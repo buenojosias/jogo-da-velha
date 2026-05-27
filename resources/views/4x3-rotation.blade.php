@@ -123,7 +123,7 @@
     </div>
 
     <div class="description" id="description">
-        Cada jogador pode manter apenas 4 peças. A mais antiga desaparece.
+        Cada jogador pode manter apenas 3 peças. Ao colocar a 4ª peça, a peça mais antiga daquele jogador desaparece.
     </div>
 
     <div id="status">
