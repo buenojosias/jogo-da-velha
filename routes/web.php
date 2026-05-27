@@ -18,3 +18,5 @@ Route::view('/5-cheia', '5-full')->name('5-full');
 Route::view('/dado', 'dice')->name('dice');
 Route::view('/maluca', 'crazy')->name('crazy');
 Route::view('/ultimate', 'ultimate')->name('ultimate');
+
+Route::view('/teste', 'teste')->name('teste');
