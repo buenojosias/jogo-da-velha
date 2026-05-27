@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Jogo da Velha 4x4x3</title>
+<title>Jogo da Velha 4x4 - Modo Normal</title>
 
 <style>
     *{
@@ -34,19 +34,12 @@
         margin-bottom:20px;
     }
 
-    select, button{
+    button{
         padding:10px 16px;
         border:none;
         border-radius:10px;
         font-size:16px;
         margin:5px;
-    }
-
-    select{
-        background:white;
-    }
-
-    button{
         background:#4fc3f7;
         color:#111;
         font-weight:bold;
@@ -104,10 +97,6 @@
         color:white !important;
     }
 
-    .old-piece{
-        opacity:0.4;
-    }
-
     .description{
         max-width:500px;
         margin:0 auto 20px;
@@ -121,19 +110,9 @@
 
 <div class="container">
 
-    <h1>Jogo da Velha 4x4x3</h1>
+    <h1>Jogo da Velha 4x4 - Modo Normal</h1>
 
     <div class="menu">
-        <select id="mode">
-            <option value="normal">Modo Normal</option>
-            <option value="blocked">
-                Modo Bloqueio
-            </option>
-            <option value="rotation">
-                Modo Rotação
-            </option>
-        </select>
-
         <button onclick="restartGame()">
             Reiniciar
         </button>
@@ -155,22 +134,15 @@
 
 const boardElement = document.getElementById('board');
 const statusElement = document.getElementById('status');
-const modeElement = document.getElementById('mode');
-const descriptionElement = document.getElementById('description');
 
 let board = Array(16).fill('');
 
 let startingPlayer =
     localStorage.getItem('startingPlayer') || 'X';
 
-    let currentPlayer = startingPlayer;
+let currentPlayer = startingPlayer;
 
 let gameOver = false;
-
-let playerMoves = {
-    X: [],
-    O: []
-};
 
 const winningCombos = [
 
@@ -226,16 +198,6 @@ function createBoard(){
             cell.classList.add(value.toLowerCase());
         }
 
-        // destaque da peça mais antiga
-        if(modeElement.value === 'rotation'){
-
-            if(playerMoves.X[0] === index ||
-               playerMoves.O[0] === index){
-
-                cell.classList.add('old-piece');
-            }
-        }
-
         cell.textContent = value;
 
         cell.addEventListener('click',()=>makeMove(index));
@@ -250,23 +212,7 @@ function makeMove(index){
         return;
     }
 
-    const mode = modeElement.value;
-
     board[index] = currentPlayer;
-
-    playerMoves[currentPlayer].push(index);
-
-    // MODO ROTAÇÃO
-    if(mode === 'rotation'){
-
-        if(playerMoves[currentPlayer].length > 3){
-
-            const oldest =
-                playerMoves[currentPlayer].shift();
-
-            board[oldest] = '';
-        }
-    }
 
     createBoard();
 
@@ -304,8 +250,6 @@ function makeMove(index){
 
 function checkWinner(player){
 
-    const mode = modeElement.value;
-
     for(const combo of winningCombos){
 
         const [a,b,c] = combo;
@@ -315,54 +259,11 @@ function checkWinner(player){
             board[b] === player &&
             board[c] === player
         ){
-
-            // MODO BLOQUEIO
-            if(mode === 'blocked'){
-
-                if(isBlocked(combo, player)){
-                    continue;
-                }
-            }
-
             return combo;
         }
     }
 
     return null;
-}
-
-function isBlocked(combo, player){
-
-    const opponent =
-        player === 'X' ? 'O' : 'X';
-
-    const [a,b,c] = combo;
-
-    const diff1 = b - a;
-    const diff2 = c - b;
-
-    if(diff1 !== diff2){
-        return false;
-    }
-
-    const direction = diff1;
-
-    const before = a - direction;
-    const after = c + direction;
-
-    if(before >= 0 &&
-       before < 16 &&
-       board[before] === opponent){
-        return true;
-    }
-
-    if(after >= 0 &&
-       after < 16 &&
-       board[after] === opponent){
-        return true;
-    }
-
-    return false;
 }
 
 function highlightWinner(combo){
@@ -392,43 +293,11 @@ function restartGame(){
 
     gameOver = false;
 
-    playerMoves = {
-        X: [],
-        O: []
-    };
-
     statusElement.textContent =
         `Vez do jogador ${currentPlayer}`;
 
-    updateDescription();
-
     createBoard();
 }
-
-function updateDescription(){
-
-    const mode = modeElement.value;
-
-    if(mode === 'normal'){
-
-        descriptionElement.textContent =
-            'Vitória com 3 peças seguidas.';
-    }
-
-    if(mode === 'blocked'){
-
-        descriptionElement.textContent =
-            'Sequências de 3 podem ser bloqueadas pelo adversário nas extremidades.';
-    }
-
-    if(mode === 'rotation'){
-
-        descriptionElement.textContent =
-            'Cada jogador pode manter apenas 4 peças. A mais antiga desaparece.';
-    }
-}
-
-modeElement.addEventListener('change',restartGame);
 
 createBoard();
 
