@@ -31,6 +31,16 @@
         function onCellRender(cellElement, cellContent, index) {
             cellElement.classList.remove("cell-selected", "cell-blocked", "cell-oldest");
 
+            // Add .cell-oldest for player X
+            if (placedPieces.o >= 2 && placedPiecesOrder.x.length > 0 && index === placedPiecesOrder.x[0]) {
+                cellElement.classList.add('cell-oldest');
+            }
+
+            // Add .cell-oldest for player O
+            if (placedPieces.x >= 3 && placedPiecesOrder.o.length > 0 && index === placedPiecesOrder.o[0]) {
+                cellElement.classList.add('cell-oldest');
+            }
+
             const inRotationPhase = placedPieces.x === 3 && placedPieces.o === 3;
 
             if (inRotationPhase) {
@@ -38,16 +48,6 @@
                 if (cellContent !== "") {
                     cellElement.classList.add("cell-blocked");
                 }
-
-                // Highlight the oldest piece for both players
-                ['x', 'o'].forEach(player => {
-                    if (placedPiecesOrder[player].length > 0) {
-                        const oldestPieceIndex = placedPiecesOrder[player][0];
-                        if (index === oldestPieceIndex) {
-                            cellElement.classList.add('cell-oldest');
-                        }
-                    }
-                });
             }
         }
 
