@@ -11,6 +11,9 @@
         const playerOScoreElement = document.getElementById("player-o-score");
         const playerXIcon = document.getElementById("player-x-icon");
         const playerOIcon = document.getElementById("player-o-icon");
+        const modalWinElement = document.getElementById("modal-win");
+        const winnerIconContainer = document.getElementById("winner-icon-container");
+        const modalRestartBtn = document.getElementById("modal-restart-btn");
 
         const oSVG = (size, color = 'oklch(79.5% 0.184 86.047)') => `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" fill="${color}" viewBox="0 0 256 256"><path d="M128,20A108,108,0,1,0,236,128,108.12,108.12,0,0,0,128,20Zm0,192a84,84,0,1,1,84-84A84.09,84.09,0,0,1,128,212Z"></path></svg>`;
         const xSVG = (size, color = 'oklch(68.5% 0.169 237.323)') => `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" fill="${color}" viewBox="0 0 256 256"><path d="M208.49,191.51a12,12,0,0,1-17,17L128,145,64.49,208.49a12,12,0,0,1-17-17L111,128,47.51,64.49a12,12,0,0,1,17-17L128,111l63.51-63.52a12,12,0,0,1,17,17L145,128Z"></path></svg>`;
@@ -55,7 +58,7 @@
             board = Array(9).fill("");
             gameOver = false;
             currentPlayer = getStartingPlayer();
-            statusTextElement.textContent = "Vez do jogador";
+            modalWinElement.style.display = 'none';
 
             loadScores();
             updateScoreboard();
@@ -75,8 +78,9 @@
             const cells = boardElement.querySelectorAll(".cell");
             board.forEach((cellContent, index) => {
                 const cellElement = cells[index];
-                cellElement.innerHTML = '';
-                // Removed: cellElement.classList.remove("winner", "disabled");
+                if(cellContent === '') {
+                    cellElement.innerHTML = '';
+                }
 
                 if (cellContent === 'x') {
                     cellElement.innerHTML = xSVG(40);
@@ -129,7 +133,6 @@
 
         function finishGame(winnerData) {
             gameOver = true;
-            statusTextElement.textContent = `Jogador ${winnerData.player.toUpperCase()} venceu!`;
             
             score[winnerData.player]++;
             saveScores();
@@ -140,10 +143,16 @@
                 cells[index].classList.add(`winner-${winnerData.player}`);
             });
 
+            winnerIconContainer.innerHTML = winnerData.player === 'x' ? xSVG(28) : oSVG(28);
+            modalWinElement.style.display = 'flex';
+
             renderBoard();
         }
 
         function updateStatus() {
+            if (gameOver) return;
+            statusTextElement.textContent = "Vez do jogador";
+
             if (currentPlayer === "x") {
                 playerXIcon.style.display = "inline";
                 playerOIcon.style.display = "none";
@@ -158,7 +167,7 @@
 
             const cell = event.target.closest('.cell');
             if (cell) {
-                const parentDivs = Array.from(boardElement.children);
+                const parentDivs = Array.from(boardElement.querySelectorAll('.p-1'));
                 const clickedParent = cell.closest('.p-1');
                 const index = parentDivs.indexOf(clickedParent);
 
@@ -169,6 +178,11 @@
         });
 
         restartBtn.addEventListener("click", () => {
+            toggleStartingPlayer();
+            startGame();
+        });
+
+        modalRestartBtn.addEventListener("click", () => {
             toggleStartingPlayer();
             startGame();
         });
