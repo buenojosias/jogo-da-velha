@@ -37,17 +37,6 @@
         function toggleStartingPlayer() {
             startingPlayer = startingPlayer === 'x' ? 'o' : 'x';
         }
-
-        function saveScores() {
-            localStorage.setItem('tic-tac-toe-scores', JSON.stringify(score));
-        }
-
-        function loadScores() {
-            const savedScores = localStorage.getItem('tic-tac-toe-scores');
-            if (savedScores) {
-                score = JSON.parse(savedScores);
-            }
-        }
         
         function updateScoreboard() {
             playerXScoreElement.textContent = score.x;
@@ -59,9 +48,6 @@
             gameOver = false;
             currentPlayer = getStartingPlayer();
             modalWinElement.style.display = 'none';
-
-            loadScores();
-            updateScoreboard();
 
             // Explicitly remove winner and disabled classes from all cells when starting a new game
             const cells = boardElement.querySelectorAll(".cell");
@@ -135,7 +121,6 @@
             gameOver = true;
             
             score[winnerData.player]++;
-            saveScores();
             updateScoreboard();
 
             const cells = boardElement.querySelectorAll(".cell");
