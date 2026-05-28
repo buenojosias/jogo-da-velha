@@ -1,5 +1,5 @@
 <x-layout title="3 peças - mover">
-    <x-board />
+    <x-board cells="9" />
     <x-footer />
     <x-modal-win />
     @section('scripts')

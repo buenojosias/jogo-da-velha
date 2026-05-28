@@ -1,5 +1,5 @@
-<x-layout title="Testando">
-    <x-board />
+<x-layout title="Tradicional - 3 peças">
+    <x-board cells="9" />
     <x-footer />
     <x-modal-win />
     @section('scripts')

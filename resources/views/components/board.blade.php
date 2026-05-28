@@ -1,6 +1,8 @@
+@props(['cells'])
+
 <div class="px-6">
-    <div id="board" class="board">
-        @for ($i = 0; $i < 9; $i++)
+    <div id="board" class="board cells-{{ $cells }}">
+        @for ($i = 0; $i < $cells; $i++)
         <div class="p-1">
             <div class="cell">
             </div>
