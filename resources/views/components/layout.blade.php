@@ -14,6 +14,7 @@
         <x-playing />
         {{ $slot }}
     </main>
+    <script src="js/game.js"></script>
     @yield('scripts')
 </body>
 </html>
