@@ -1,310 +1,223 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Jogo da Velha - 3 Peças</title>
+<x-layout title="3 peças - mover">
+    <x-board />
+    <x-footer />
+    <x-modal-win />
+    @section('scripts')
+    <script>
+        const boardElement = document.getElementById("board");
+        const statusTextElement = document.getElementById("status-text");
+        const restartBtn = document.getElementById("restartBtn");
+        const playerXScoreElement = document.getElementById("player-x-score");
+        const playerOScoreElement = document.getElementById("player-o-score");
+        const playerXIcon = document.getElementById("player-x-icon");
+        const playerOIcon = document.getElementById("player-o-icon");
+        const modalWinElement = document.getElementById("modal-win");
+        const winnerIconContainer = document.getElementById("winner-icon-container");
+        const modalRestartBtn = document.getElementById("modal-restart-btn");
 
-<style>
-    *{
-        box-sizing:border-box;
-        font-family: Arial, sans-serif;
-    }
+        const oSVG = (size, color = 'oklch(79.5% 0.184 86.047)') => `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" fill="${color}" viewBox="0 0 256 256"><path d="M128,20A108,108,0,1,0,236,128,108.12,108.12,0,0,0,128,20Zm0,192a84,84,0,1,1,84-84A84.09,84.09,0,0,1,128,212Z"></path></svg>`;
+        const xSVG = (size, color = 'oklch(68.5% 0.169 237.323)') => `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" fill="${color}" viewBox="0 0 256 256"><path d="M208.49,191.51a12,12,0,0,1-17,17L128,145,64.49,208.49a12,12,0,0,1-17-17L111,128,47.51,64.49a12,12,0,0,1,17-17L128,111l63.51-63.52a12,12,0,0,1,17,17L145,128Z"></path></svg>`;
 
-    body{
-        margin:0;
-        min-height:100vh;
-        display:flex;
-        justify-content:center;
-        align-items:center;
-        background:#1e1e1e;
-        color:white;
-    }
+        let board = [];
+        let currentPlayer = "x";
+        let gameOver = false;
+        let score = { x: 0, o: 0 }; // Initialize score
+        let startingPlayer = Math.random() < 0.5 ? "x" : "o";
 
-    .container{
-        text-align:center;
-    }
+        // let placedPieces = { x: 0, o: 0 };
+        // let selectedPiece = null;
 
-    h1{
-        margin-bottom:10px;
-    }
+        const winningCombinations = [
+            [0, 1, 2], [3, 4, 5], [6, 7, 8],
+            [0, 3, 6], [1, 4, 7], [2, 5, 8],
+            [0, 4, 8], [2, 4, 6]
+        ];
 
-    #status{
-        margin-bottom:20px;
-        font-size:18px;
-        min-height:24px;
-    }
-
-    .board{
-        display:grid;
-        grid-template-columns:repeat(3, 100px);
-        grid-template-rows:repeat(3, 100px);
-        gap:8px;
-        justify-content:center;
-        margin:auto;
-    }
-
-    .cell{
-        background:#2f2f2f;
-        border:2px solid #555;
-        display:flex;
-        justify-content:center;
-        align-items:center;
-        font-size:42px;
-        font-weight:bold;
-        cursor:pointer;
-        transition:0.2s;
-    }
-
-    .cell:hover{
-        background:#3d3d3d;
-    }
-
-    .selected{
-        outline:4px solid #ffd54f;
-    }
-
-    .winner{
-        background:#2e7d32 !important;
-        border-color:#81c784;
-    }
-
-    button{
-        margin-top:20px;
-        padding:10px 18px;
-        border:none;
-        border-radius:8px;
-        background:#1976d2;
-        color:white;
-        cursor:pointer;
-        font-size:16px;
-    }
-
-    button:hover{
-        background:#1565c0;
-    }
-
-    .info{
-        margin-top:15px;
-        color:#ccc;
-        font-size:14px;
-    }
-</style>
-</head>
-<body>
-
-<div class="container">
-    <h1>Jogo da Velha - 3 Peças</h1>
-
-    <div id="status"></div>
-
-    <div class="board" id="board"></div>
-
-    <button onclick="resetGame()">Nova Partida</button>
-
-    <div class="info">
-        Cada jogador possui apenas 3 peças.<br>
-        Depois de colocar todas, será possível mover uma peça por vez.
-    </div>
-</div>
-
-<script>
-const boardElement = document.getElementById("board");
-const statusElement = document.getElementById("status");
-
-let board = Array(9).fill("");
-let currentPlayer = localStorage.getItem("nextStarter") || "X";
-
-let placedPieces = {
-    X: 0,
-    O: 0
-};
-
-let selectedPiece = null;
-let gameOver = false;
-
-const winningCombinations = [
-    [0,1,2],
-    [3,4,5],
-    [6,7,8],
-    [0,3,6],
-    [1,4,7],
-    [2,5,8],
-    [0,4,8],
-    [2,4,6]
-];
-
-function createBoard(){
-    boardElement.innerHTML = "";
-
-    board.forEach((cell, index)=>{
-        const div = document.createElement("div");
-        div.classList.add("cell");
-        div.dataset.index = index;
-        div.textContent = cell;
-
-        div.addEventListener("click", ()=>handleClick(index));
-
-        boardElement.appendChild(div);
-    });
-
-    updateStatus();
-}
-
-function updateStatus(text = ""){
-    if(text){
-        statusElement.textContent = text;
-    } else {
-        if(placedPieces[currentPlayer] < 3){
-            statusElement.textContent =
-                `Vez do jogador ${currentPlayer} — coloque uma peça`;
-        } else {
-            statusElement.textContent =
-                `Vez do jogador ${currentPlayer} — mova uma peça`;
-        }
-    }
-}
-
-function handleClick(index){
-    if(gameOver) return;
-
-    // FASE DE COLOCAR PEÇAS
-    if(placedPieces[currentPlayer] < 3){
-
-        if(board[index] !== "") return;
-
-        board[index] = currentPlayer;
-        placedPieces[currentPlayer]++;
-
-        render();
-
-        if(checkWinner()){
-            finishGame();
-            return;
+        function getStartingPlayer() {
+            startingPlayer = startingPlayer === 'x' ? 'o' : 'x';
         }
 
-        switchPlayer();
-        return;
-    }
-
-    // FASE DE MOVIMENTAÇÃO
-    if(selectedPiece === null){
-
-        // Selecionar peça própria
-        if(board[index] === currentPlayer){
-            selectedPiece = index;
-            render();
+        function toggleStartingPlayer() {
+            startingPlayer = startingPlayer === 'x' ? 'o' : 'x';
         }
 
-    } else {
-
-        // Cancelar seleção
-        if(index === selectedPiece){
-            selectedPiece = null;
-            render();
-            return;
+        function updateScoreboard() {
+            playerXScoreElement.textContent = score.x;
+            playerOScoreElement.textContent = score.o;
         }
 
-        // Trocar seleção
-        if(board[index] === currentPlayer){
-            selectedPiece = index;
-            render();
-            return;
-        }
+        function startGame() {
+            board = Array(9).fill("");
+            gameOver = false;
+            currentPlayer = startingPlayer;
+            modalWinElement.style.display = 'none';
 
-        // Mover para espaço vazio
-        if(board[index] === ""){
-
-            board[index] = currentPlayer;
-            board[selectedPiece] = "";
-
+            placedPieces = { x: 0, o: 0 };
             selectedPiece = null;
 
-            render();
+            const cells = boardElement.querySelectorAll(".cell");
+            cells.forEach(cell => {
+                cell.classList.remove("winner-x", "winner-o", "cell-selected");
+                cell.innerHTML = '';
+            });
 
-            if(checkWinner()){
-                finishGame();
+            renderBoard();
+            updateStatus();
+        }
+
+        function renderBoard() {
+            const cells = boardElement.querySelectorAll(".cell");
+            board.forEach((cellContent, index) => {
+                const cellElement = cells[index];
+                cellElement.innerHTML = '';
+                cellElement.classList.remove("cell-selected");
+
+                if (cellContent === 'x') {
+                    cellElement.innerHTML = xSVG(40);
+                } else if (cellContent === 'o') {
+                    cellElement.innerHTML = oSVG(40);
+                }
+
+                if (index === selectedPiece) {
+                    cellElement.classList.add("cell-selected");
+                }
+            });
+        }
+
+        function handleMove(index) {
+            if (gameOver) return;
+            let winnerData;
+
+            // --- PLACEMENT PHASE ---
+            if (placedPieces[currentPlayer] < 3) {
+                if (board[index] !== "") return;
+
+                board[index] = currentPlayer;
+                placedPieces[currentPlayer]++;
+                
+                renderBoard();
+
+                winnerData = checkWinner();
+                if (winnerData) {
+                    finishGame(winnerData);
+                    return;
+                }
+
+                switchPlayer();
                 return;
             }
 
-            switchPlayer();
+            // --- MOVEMENT PHASE ---
+            if (selectedPiece === null) {
+                if (board[index] === currentPlayer) {
+                    selectedPiece = index;
+                    renderBoard();
+                }
+            } else {
+                if (index === selectedPiece) {
+                    selectedPiece = null;
+                    renderBoard();
+                    return;
+                }
+
+                if (board[index] === currentPlayer) {
+                    selectedPiece = index;
+                    renderBoard();
+                    return;
+                }
+
+                if (board[index] === "") {
+                    board[index] = currentPlayer;
+                    board[selectedPiece] = "";
+                    selectedPiece = null;
+
+                    renderBoard();
+
+                    winnerData = checkWinner();
+                    if (winnerData) {
+                        finishGame(winnerData);
+                        return;
+                    }
+
+                    switchPlayer();
+                }
+            }
         }
-    }
-}
 
-function switchPlayer(){
-    currentPlayer = currentPlayer === "X" ? "O" : "X";
-    updateStatus();
-}
-
-function render(){
-
-    document.querySelectorAll(".cell").forEach((cell, index)=>{
-        cell.textContent = board[index];
-
-        cell.classList.remove("selected");
-        cell.classList.remove("winner");
-
-        if(index === selectedPiece){
-            cell.classList.add("selected");
+        function switchPlayer() {
+            currentPlayer = currentPlayer === "x" ? "o" : "x";
+            updateStatus();
         }
-    });
-}
 
-function checkWinner(){
-
-    for(const combo of winningCombinations){
-
-        const [a,b,c] = combo;
-
-        if(
-            board[a] &&
-            board[a] === board[b] &&
-            board[a] === board[c]
-        ){
-
-            document.querySelectorAll(".cell")[a].classList.add("winner");
-            document.querySelectorAll(".cell")[b].classList.add("winner");
-            document.querySelectorAll(".cell")[c].classList.add("winner");
-
-            return true;
+        function checkWinner() {
+            for (const combo of winningCombinations) {
+                const [a, b, c] = combo;
+                if (board[a] && board[a] === board[b] && board[a] === board[c]) {
+                    return { player: board[a], combo };
+                }
+            }
+            return null;
         }
-    }
 
-    return false;
-}
+        function finishGame(winnerData) {
+            gameOver = true;
 
-function finishGame(){
+            score[winnerData.player]++; // Increment score
+            updateScoreboard(); // Update scoreboard here
 
-    gameOver = true;
+            const cells = boardElement.querySelectorAll(".cell");
+            winnerData.combo.forEach(index => {
+                cells[index].classList.add(`winner-${winnerData.player}`);
+            });
 
-    updateStatus(`Jogador ${currentPlayer} venceu!`);
+            winnerIconContainer.innerHTML = winnerData.player === 'x' ? xSVG(28) : oSVG(28);
+            modalWinElement.style.display = 'flex';
+        }
 
-    // Alterna quem começa a próxima partida
-    const nextStarter = currentPlayer === "X" ? "O" : "X";
-    localStorage.setItem("nextStarter", nextStarter);
-}
+        function updateStatus() {
+            if (gameOver) return;
 
-function resetGame(){
+            if (placedPieces[currentPlayer] < 3) {
+                statusTextElement.textContent = "Coloque uma peça";
+            } else {
+                statusTextElement.textContent = "Mova uma peça";
+            }
 
-    const starter = localStorage.getItem("nextStarter") || "X";
+            if (currentPlayer === "x") {
+                playerXIcon.style.display = "inline";
+                playerOIcon.style.display = "none";
+            } else {
+                playerOIcon.style.display = "inline";
+                playerXIcon.style.display = "none";
+            }
+        }
+        
+        boardElement.addEventListener('click', (event) => {
+            if (gameOver) return;
 
-    board = Array(9).fill("");
-    currentPlayer = starter;
+            const cell = event.target.closest('.cell');
+            if (cell) {
+                const cellParent = cell.closest('.p-1');
+                const parents = Array.from(boardElement.children);
+                const index = parents.indexOf(cellParent);
 
-    placedPieces = {
-        X: 0,
-        O: 0
-    };
+                if (index > -1) {
+                    handleMove(index);
+                }
+            }
+        });
 
-    selectedPiece = null;
-    gameOver = false;
+        restartBtn.addEventListener("click", () => {
+            toggleStartingPlayer();
+            startGame();
+        });
 
-    createBoard();
-}
+        modalRestartBtn.addEventListener("click", () => {
+            toggleStartingPlayer();
+            startGame();
+        });
 
-createBoard();
-</script>
-
-</body>
-</html>
+        startGame();
+    </script>
+    @endsection
+</x-layout>
