@@ -42,7 +42,11 @@ body {
     @apply grid-cols-5;
 }
 .cell-selected {
-    @apply bg-neutral-700/40;
+    @apply bg-emerald-200/5 border-emerald-400/40 border shadow-[0_0_5px_0_rgba(0,0,0,1)] shadow-emerald-400/50;
+}
+
+.cell-oldest{
+    @apply bg-amber-200/5 border-amber-400/40 border shadow-[0_0_5px_0_rgba(0,0,0,1)] shadow-amber-400/50;
 }
 
 .winner-x {
