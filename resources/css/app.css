@@ -18,3 +18,7 @@ body {
     overflow-x: hidden;
     -webkit-tap-highlight-color: transparent;
 }
+
+.winner {
+    @apply bg-sky-200/10;
+}
