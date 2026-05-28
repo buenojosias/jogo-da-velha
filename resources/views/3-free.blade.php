@@ -4,11 +4,8 @@
     <x-modal-win />
     @section('scripts')
     <script>
-        const winningCombinations = [
-            [0, 1, 2], [3, 4, 5], [6, 7, 8],
-            [0, 3, 6], [1, 4, 7], [2, 5, 8],
-            [0, 4, 8], [2, 4, 6]
-        ];
+        let placedPieces = { x: 0, o: 0 };
+        let selectedPiece = null;
 
         function startGame() {
             board = Array(9).fill("");
@@ -19,33 +16,17 @@
             placedPieces = { x: 0, o: 0 };
             selectedPiece = null;
 
-            const cells = boardElement.querySelectorAll(".cell");
-            cells.forEach(cell => {
-                cell.classList.remove("winner-x", "winner-o", "cell-selected");
-                cell.innerHTML = '';
-            });
+            resetBoardUI(["cell-selected"]);
 
             renderBoard();
             updateStatus();
         }
 
-        function renderBoard() {
-            const cells = boardElement.querySelectorAll(".cell");
-            board.forEach((cellContent, index) => {
-                const cellElement = cells[index];
-                cellElement.innerHTML = '';
-                cellElement.classList.remove("cell-selected");
-
-                if (cellContent === 'x') {
-                    cellElement.innerHTML = xSVG(40);
-                } else if (cellContent === 'o') {
-                    cellElement.innerHTML = oSVG(40);
-                }
-
-                if (index === selectedPiece) {
-                    cellElement.classList.add("cell-selected");
-                }
-            });
+        function onCellRender(cellElement, cellContent, index) {
+            cellElement.classList.remove("cell-selected");
+            if (index === selectedPiece) {
+                cellElement.classList.add("cell-selected");
+            }
         }
 
         function handleMove(index) {
@@ -58,7 +39,7 @@
 
                 board[index] = currentPlayer;
                 placedPieces[currentPlayer]++;
-                
+
                 renderBoard();
 
                 winnerData = checkWinner();
@@ -122,39 +103,8 @@
                 statusTextElement.textContent = "Mova uma peça";
             }
 
-            if (currentPlayer === "x") {
-                playerXIcon.style.display = "inline";
-                playerOIcon.style.display = "none";
-            } else {
-                playerOIcon.style.display = "inline";
-                playerXIcon.style.display = "none";
-            }
+            updatePlayerIcons();
         }
-        
-        boardElement.addEventListener('click', (event) => {
-            if (gameOver) return;
-
-            const cell = event.target.closest('.cell');
-            if (cell) {
-                const cellParent = cell.closest('.p-1');
-                const parents = Array.from(boardElement.children);
-                const index = parents.indexOf(cellParent);
-
-                if (index > -1) {
-                    handleMove(index);
-                }
-            }
-        });
-
-        restartBtn.addEventListener("click", () => {
-            toggleStartingPlayer();
-            startGame();
-        });
-
-        modalRestartBtn.addEventListener("click", () => {
-            toggleStartingPlayer();
-            startGame();
-        });
 
         startGame();
     </script>

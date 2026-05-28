@@ -18,12 +18,11 @@ let gameOver = false;
 let score = { x: 0, o: 0 };
 let startingPlayer = Math.random() < 0.5 ? "x" : "o";
 
-// let placedPieces = { x: 0, o: 0 };
-// let selectedPiece = null;
-
-function getStartingPlayer() {
-    startingPlayer = startingPlayer === 'x' ? 'o' : 'x';
-}
+const winningCombinations = [
+    [0, 1, 2], [3, 4, 5], [6, 7, 8],
+    [0, 3, 6], [1, 4, 7], [2, 5, 8],
+    [0, 4, 8], [2, 4, 6]
+];
 
 function toggleStartingPlayer() {
     startingPlayer = startingPlayer === 'x' ? 'o' : 'x';
@@ -36,7 +35,7 @@ function updateScoreboard() {
 
 function finishGame(winnerData) {
     gameOver = true;
-    
+
     score[winnerData.player]++;
     updateScoreboard();
 
@@ -58,3 +57,73 @@ function checkWinner() {
     }
     return null;
 }
+
+function updatePlayerIcons() {
+    if (currentPlayer === "x") {
+        playerXIcon.style.display = "inline";
+        playerOIcon.style.display = "none";
+    } else {
+        playerOIcon.style.display = "inline";
+        playerXIcon.style.display = "none";
+    }
+}
+
+function resetBoardUI(cellClassesToRemove = []) {
+    const defaultClasses = ["winner-x", "winner-o", "disabled"];
+    const classesToRemove = [...defaultClasses, ...cellClassesToRemove];
+
+    const cells = boardElement.querySelectorAll(".cell");
+    cells.forEach(cell => {
+        cell.classList.remove(...classesToRemove);
+        cell.innerHTML = '';
+    });
+}
+
+function renderBoard() {
+    const cells = boardElement.querySelectorAll(".cell");
+    board.forEach((cellContent, index) => {
+        const cellElement = cells[index];
+        cellElement.innerHTML = '';
+
+        if (cellContent === 'x') {
+            cellElement.innerHTML = xSVG(40);
+        } else if (cellContent === 'o') {
+            cellElement.innerHTML = oSVG(40);
+        }
+
+        if(typeof onCellRender === 'function') {
+            onCellRender(cellElement, cellContent, index);
+        }
+    });
+
+    if (gameOver) {
+        cells.forEach(cell => cell.classList.add('disabled'));
+    }
+}
+
+boardElement.addEventListener('click', (event) => {
+    if (typeof handleMove !== 'function' || gameOver) return;
+
+    const cell = event.target.closest('.cell');
+    if (!cell) return;
+
+    const cellContainer = cell.closest('.p-1');
+    if (cellContainer && cellContainer.parentNode === boardElement) {
+        const index = Array.from(boardElement.children).indexOf(cellContainer);
+        if (index > -1) {
+            handleMove(index);
+        }
+    }
+});
+
+restartBtn.addEventListener("click", () => {
+    if (typeof startGame !== 'function') return;
+    toggleStartingPlayer();
+    startGame();
+});
+
+modalRestartBtn.addEventListener("click", () => {
+    if (typeof startGame !== 'function') return;
+    toggleStartingPlayer();
+    startGame();
+});
