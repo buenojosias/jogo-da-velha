@@ -1,7 +1,7 @@
 <x-layout title="Testando">
     <x-board />
     <x-footer />
-    
+    <x-modal-win />
     @section('scripts')
     <script>
         const boardElement = document.getElementById("board");
