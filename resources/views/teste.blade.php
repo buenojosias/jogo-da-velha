@@ -1,43 +1,6 @@
 <x-layout title="Testando">
-
-    <div class="status-wrapper">
-        <div id="status" class="status">
-            <span id="status-text">Vez do jogador</span>
-            <span id="player-x-icon" style="display: none;"><x-x size="22" /></span>
-            <span id="player-o-icon" style="display: none;"><x-o size="22" /></span>
-        </div>
-    </div>
-
-    <div class="px-6">
-        <div id="board" class="board">
-            @for ($i = 0; $i < 9; $i++)
-            <div class="p-1">
-                <div class="cell">
-                </div>
-            </div>
-            @endfor
-        </div>
-    </div>
-
-    <footer>
-        <div class="scoreboard">
-            <div class="score-o">
-                <p class="header">jogador <x-o size="16" /></p>
-                <p id="player-o-score" class="points">0</p>
-            </div>
-            <div class="score-x">
-                <p class="header">jogador <x-x size="16" /></p>
-                <p id="player-x-score" class="points">0</p>
-            </div>
-        </div>
-        <div class="actions">
-            <div class="flex gap-3">
-                <button id="restartBtn" class="btn-restart">Reiniciar</button>
-                <button class="btn-help">?</button>
-            </div>
-            <a class="btn-leave" href="{{ route('welcome') }}">Sair</a>
-        </div>
-    </footer>
+    <x-board />
+    <x-footer />
     
     @section('scripts')
     <script>
