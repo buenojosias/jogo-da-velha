@@ -1,519 +1,182 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Jogo da Velha 5x5</title>
+<x-layout title="5x5 cheia">
+    <x-board cells="25" />
+    <x-footer />
+    <x-modal-win />
+    @section('scripts')
+    <script>
+        const SIZE = 5;
+        let localScore = { x: 0, o: 0 };
 
-<style>
-    *{
-        box-sizing:border-box;
-        font-family: Arial, sans-serif;
-    }
-
-    body{
-        margin:0;
-        background:#1e1e2f;
-        color:white;
-        display:flex;
-        flex-direction:column;
-        align-items:center;
-        padding:20px;
-    }
-
-    h1{
-        margin-bottom:10px;
-    }
-
-    .info{
-        display:flex;
-        gap:20px;
-        margin-bottom:20px;
-        flex-wrap:wrap;
-        justify-content:center;
-    }
-
-    .card{
-        background:#2d2d44;
-        padding:12px 18px;
-        border-radius:10px;
-        min-width:180px;
-        text-align:center;
-        box-shadow:0 0 10px rgba(0,0,0,0.3);
-    }
-
-    #board{
-        display:grid;
-        grid-template-columns:repeat(5, 90px);
-        gap:8px;
-        margin-bottom:20px;
-    }
-
-    .cell{
-        width:90px;
-        height:90px;
-        background:#2d2d44;
-        border-radius:12px;
-        display:flex;
-        justify-content:center;
-        align-items:center;
-        font-size:42px;
-        font-weight:bold;
-        cursor:pointer;
-        transition:0.2s;
-        user-select:none;
-        position:relative;
-    }
-
-    .cell:hover{
-        background:#3c3c5c;
-        transform:scale(1.03);
-    }
-
-    .cell.disabled{
-        cursor:default;
-    }
-
-    .x{
-        color:#4fc3f7;
-    }
-
-    .o{
-        color:#ffb74d;
-    }
-
-    .highlight{
-        animation: flash 0.6s ease;
-    }
-
-    @keyframes flash{
-
-        0%{
-            transform:scale(1);
-            box-shadow:0 0 0px transparent;
-        }
-
-        50%{
-            transform:scale(1.12);
-            background:#6ee7ff;
-            box-shadow:0 0 20px #6ee7ff;
-            color:#111;
-        }
-
-        100%{
-            transform:scale(1);
-        }
-    }
-
-    button{
-        padding:12px 20px;
-        border:none;
-        border-radius:10px;
-        background:#4fc3f7;
-        color:#111;
-        font-weight:bold;
-        cursor:pointer;
-        transition:0.2s;
-    }
-
-    button:hover{
-        transform:scale(1.05);
-    }
-
-    #message{
-        margin-top:10px;
-        font-size:20px;
-        font-weight:bold;
-    }
-
-    .rules{
-        margin-top:25px;
-        max-width:700px;
-        background:#2d2d44;
-        padding:18px;
-        border-radius:12px;
-        line-height:1.6;
-    }
-
-    .highlight-text{
-        color:#4fc3f7;
-        font-weight:bold;
-    }
-</style>
-</head>
-<body>
-
-<h1>Jogo da Velha 5x5</h1>
-
-<div class="info">
-
-    <div class="card">
-        <div>Vez do jogador</div>
-        <h2 id="turn"></h2>
-    </div>
-
-    <div class="card">
-        <div>Pontuação X</div>
-        <h2 id="scoreX">0</h2>
-    </div>
-
-    <div class="card">
-        <div>Pontuação O</div>
-        <h2 id="scoreO">0</h2>
-    </div>
-
-</div>
-
-<div id="board"></div>
-
-<button onclick="restartGame()">Reiniciar</button>
-
-<div id="message"></div>
-
-<div class="rules">
-
-    <h3>Regras</h3>
-
-    <p>
-        • O tabuleiro possui
-        <span class="highlight-text">5 linhas e 5 colunas</span>.
-    </p>
-
-    <p>
-        • Os jogadores alternam jogadas marcando
-        <span class="highlight-text">X</span> e
-        <span class="highlight-text">O</span>.
-    </p>
-
-    <p>
-        • Sequências valem pontos:
-    </p>
-
-    <p>
-        ✔ 3 em sequência =
-        <span class="highlight-text">3 pontos</span><br>
-
-        ✔ 4 em sequência =
-        <span class="highlight-text">6 pontos</span><br>
-
-        ✔ 5 em sequência =
-        <span class="highlight-text">10 pontos</span>
-    </p>
-
-    <p>
-        • As sequências podem ser:
-        horizontais, verticais ou diagonais.
-    </p>
-
-    <p>
-        • Ao final do tabuleiro,
-        quem tiver mais pontos vence.
-    </p>
-
-</div>
-
-<script>
-
-    const boardElement = document.getElementById("board");
-    const turnElement = document.getElementById("turn");
-    const scoreXElement = document.getElementById("scoreX");
-    const scoreOElement = document.getElementById("scoreO");
-    const messageElement = document.getElementById("message");
-
-    const SIZE = 5;
-
-    let board = [];
-    let gameOver = false;
-
-    // sorteia quem começa
-    let startingPlayer = Math.random() < 0.5 ? "X" : "O";
-    let currentPlayer = startingPlayer;
-
-    function createBoard(){
-
-        boardElement.innerHTML = "";
-        board = [];
-
-        for(let row = 0; row < SIZE; row++){
-
-            board[row] = [];
-
-            for(let col = 0; col < SIZE; col++){
-
-                board[row][col] = "";
-
-                const cell = document.createElement("div");
-
-                cell.classList.add("cell");
-
-                cell.dataset.row = row;
-                cell.dataset.col = col;
-
-                cell.addEventListener("click", handleMove);
-
-                boardElement.appendChild(cell);
+        function calculateScore(player) {
+            let total = 0;
+            const sequences = getSequences(player);
+            for (const seq of sequences) {
+                if (seq.length === 3) total += 3;
+                else if (seq.length === 4) total += 6;
+                else if (seq.length >= 5) total += 10;
             }
+            return total;
         }
 
-        turnElement.textContent = currentPlayer;
-
-        updateScores();
-    }
-
-    function handleMove(e){
-
-        if(gameOver) return;
-
-        const cell = e.target;
-
-        const row = parseInt(cell.dataset.row);
-        const col = parseInt(cell.dataset.col);
-
-        if(board[row][col] !== "") return;
-
-        board[row][col] = currentPlayer;
-
-        cell.textContent = currentPlayer;
-
-        cell.classList.add(currentPlayer.toLowerCase());
-        cell.classList.add("disabled");
-
-        // destaque apenas das sequências criadas agora
-        highlightNewSequences(currentPlayer, row, col);
-
-        updateScores();
-
-        if(isBoardFull()){
-
-            finishGame();
-            return;
+        function updateScoreboard() {
+            localScore.x = calculateScore('x');
+            localScore.o = calculateScore('o');
+            playerXScoreElement.textContent = localScore.x;
+            playerOScoreElement.textContent = localScore.o;
         }
 
-        currentPlayer = currentPlayer === "X" ? "O" : "X";
+        function getSequences(player) {
+            const sequences = [];
+            const directions = [
+                { dr: 0, dc: 1 },  // Horizontal
+                { dr: 1, dc: 0 },  // Vertical
+                { dr: 1, dc: 1 },  // Diagonal \
+                { dr: 1, dc: -1 }  // Diagonal /
+            ];
 
-        turnElement.textContent = currentPlayer;
-    }
+            for (let r_start = 0; r_start < SIZE; r_start++) {
+                for (let c_start = 0; c_start < SIZE; c_start++) {
+                    if (board[r_start * SIZE + c_start] !== player) continue;
 
-    function isBoardFull(){
+                    for (const { dr, dc } of directions) {
+                        const pr = r_start - dr;
+                        const pc = c_start - dc;
 
-        for(let row of board){
+                        if (pr >= 0 && pr < SIZE && pc >= 0 && pc < SIZE && board[pr * SIZE + pc] === player) {
+                            continue;
+                        }
 
-            for(let cell of row){
+                        let cells = [];
+                        let r = r_start, c = c_start;
+                        while (r >= 0 && r < SIZE && c >= 0 && c < SIZE && board[r * SIZE + c] === player) {
+                            cells.push(r * SIZE + c);
+                            r += dr;
+                            c += dc;
+                        }
 
-                if(cell === "") return false;
+                        if (cells.length >= 3) {
+                            sequences.push(cells);
+                        }
+                    }
+                }
             }
+            return sequences;
         }
 
-        return true;
-    }
+        function startGame() {
+            board = Array(SIZE * SIZE).fill("");
+            gameOver = false;
+            currentPlayer = startingPlayer;
+            localScore = { x: 0, o: 0 };
 
-    function getSequences(player){
+            modalWinElement.style.display = 'none';
 
-        const sequences = [];
+            let winMessage = modalWinElement.querySelector('#win-message');
+            if (winMessage) {
+                winMessage.textContent = '';
+            }
 
-        const directions = [
-            [0,1],
-            [1,0],
-            [1,1],
-            [1,-1]
-        ];
+            resetBoardUI();
+            renderBoard();
+            updateStatus();
+            updateScoreboard();
+        }
 
-        for(let row = 0; row < SIZE; row++){
+        function handleMove(index) {
+            if (gameOver || board[index] !== "") return;
 
-            for(let col = 0; col < SIZE; col++){
+            board[index] = currentPlayer;
+            renderBoard();
+            
+            highlightNewSequences(currentPlayer, index);
+            updateScoreboard();
 
-                if(board[row][col] !== player) continue;
+            if (board.every(cell => cell !== "")) {
+                finishGame();
+                return;
+            }
 
-                for(let [dr, dc] of directions){
+            switchPlayer();
+        }
+        
+        function highlightNewSequences(player, newPieceIndex) {
+            const rowPlayed = Math.floor(newPieceIndex / SIZE);
+            const colPlayed = newPieceIndex % SIZE;
+             const directions = [
+                { dr: 0, dc: 1 }, { dr: 1, dc: 0 }, { dr: 1, dc: 1 }, { dr: 1, dc: -1 }
+            ];
 
-                    let prevRow = row - dr;
-                    let prevCol = col - dc;
+            for(const {dr, dc} of directions){
+                let sequence = [newPieceIndex];
 
-                    // garante início da sequência
-                    if(
-                        prevRow >= 0 &&
-                        prevRow < SIZE &&
-                        prevCol >= 0 &&
-                        prevCol < SIZE &&
-                        board[prevRow][prevCol] === player
-                    ){
-                        continue;
-                    }
+                let r = rowPlayed - dr, c = colPlayed - dc;
+                while(r >= 0 && r < SIZE && c >= 0 && c < SIZE && board[r*SIZE+c] === player) {
+                    sequence.unshift(r*SIZE+c);
+                    r -= dr; c -= dc;
+                }
+                
+                r = rowPlayed + dr, c = colPlayed + dc;
+                while(r >= 0 && r < SIZE && c >= 0 && c < SIZE && board[r*SIZE+c] === player) {
+                    sequence.push(r*SIZE+c);
+                    r += dr; c += dc;
+                }
 
-                    let cells = [];
-
-                    let r = row;
-                    let c = col;
-
-                    while(
-                        r >= 0 &&
-                        r < SIZE &&
-                        c >= 0 &&
-                        c < SIZE &&
-                        board[r][c] === player
-                    ){
-                        cells.push([r, c]);
-
-                        r += dr;
-                        c += dc;
-                    }
-
-                    if(cells.length >= 3){
-                        sequences.push(cells);
-                    }
+                if(sequence.length >= 3) {
+                    const cells = boardElement.querySelectorAll(".cell");
+                    sequence.forEach(idx => {
+                        cells[idx].classList.add('cell-selected');
+                        setTimeout(() => cells[idx].classList.remove('cell-selected'), 600);
+                    });
                 }
             }
         }
 
-        return sequences;
-    }
+        function switchPlayer() {
+            currentPlayer = currentPlayer === "x" ? "o" : "x";
+            updateStatus();
+        }
 
-    function calculateScore(player){
+        function updateStatus() {
+            if (gameOver) return;
+            statusTextElement.textContent = "Faça a sua jogada";
+            updatePlayerIcons();
+        }
 
-        let total = 0;
-
-        const sequences = getSequences(player);
-
-        for(let seq of sequences){
-
-            if(seq.length === 3){
-                total += 3;
+        function finishGame() {
+            gameOver = true;
+            let finalMessage = "";
+            if (localScore.x > localScore.o) {
+                finalMessage = `Jogador X venceu!`;
+                winnerIconContainer.innerHTML = xSVG(28);
+            } else if (localScore.o > localScore.x) {
+                finalMessage = `Jogador O venceu!`;
+                winnerIconContainer.innerHTML = oSVG(28);
+            } else {
+                finalMessage = "Empate!";
+                winnerIconContainer.innerHTML = xSVG(28) + oSVG(28);
             }
-            else if(seq.length === 4){
-                total += 6;
+            
+            let messageContainer = modalWinElement.querySelector('#win-message');
+            if(!messageContainer) {
+                messageContainer = document.createElement('span');
+                messageContainer.id = 'win-message';
+                messageContainer.className = 'text-xl font-bold';
+                winnerIconContainer.parentNode.insertBefore(messageContainer, winnerIconContainer.nextSibling);
             }
-            else if(seq.length >= 5){
-                total += 10;
+            messageContainer.textContent = finalMessage;
+
+            modalWinElement.style.display = 'flex';
+        }
+        
+        function onCellRender(cellElement, cellContent) {
+            if (cellContent !== '') {
+                cellElement.classList.add("disabled");
+            } else {
+                cellElement.classList.remove("disabled");
             }
         }
 
-        return total;
-    }
-
-    function updateScores(){
-
-        scoreXElement.textContent = calculateScore("X");
-        scoreOElement.textContent = calculateScore("O");
-    }
-
-    // destaca SOMENTE as sequências criadas na jogada atual
-    function highlightNewSequences(player, rowPlayed, colPlayed){
-
-        const directions = [
-            [0,1],
-            [1,0],
-            [1,1],
-            [1,-1]
-        ];
-
-        const sequencesToHighlight = [];
-
-        for(let [dr, dc] of directions){
-
-            let cells = [[rowPlayed, colPlayed]];
-
-            // trás
-            let r = rowPlayed - dr;
-            let c = colPlayed - dc;
-
-            while(
-                r >= 0 &&
-                r < SIZE &&
-                c >= 0 &&
-                c < SIZE &&
-                board[r][c] === player
-            ){
-                cells.unshift([r, c]);
-
-                r -= dr;
-                c -= dc;
-            }
-
-            // frente
-            r = rowPlayed + dr;
-            c = colPlayed + dc;
-
-            while(
-                r >= 0 &&
-                r < SIZE &&
-                c >= 0 &&
-                c < SIZE &&
-                board[r][c] === player
-            ){
-                cells.push([r, c]);
-
-                r += dr;
-                c += dc;
-            }
-
-            if(cells.length >= 3){
-                sequencesToHighlight.push(cells);
-            }
-        }
-
-        sequencesToHighlight.forEach(seq => {
-
-            seq.forEach(([row, col]) => {
-
-                const cell = document.querySelector(
-                    `.cell[data-row="${row}"][data-col="${col}"]`
-                );
-
-                cell.classList.remove("highlight");
-
-                // reinicia animação
-                void cell.offsetWidth;
-
-                cell.classList.add("highlight");
-
-                setTimeout(() => {
-                    cell.classList.remove("highlight");
-                }, 600);
-            });
-        });
-    }
-
-    function finishGame(){
-
-        gameOver = true;
-
-        const scoreX = calculateScore("X");
-        const scoreO = calculateScore("O");
-
-        if(scoreX > scoreO){
-
-            messageElement.textContent =
-                `Jogador X venceu por ${scoreX} x ${scoreO}!`;
-        }
-        else if(scoreO > scoreX){
-
-            messageElement.textContent =
-                `Jogador O venceu por ${scoreO} x ${scoreX}!`;
-        }
-        else{
-
-            messageElement.textContent =
-                `Empate! ${scoreX} x ${scoreO}`;
-        }
-    }
-
-    function restartGame(){
-
-        // alterna quem começa
-        startingPlayer = startingPlayer === "X" ? "O" : "X";
-
-        currentPlayer = startingPlayer;
-
-        gameOver = false;
-
-        messageElement.textContent = "";
-
-        createBoard();
-    }
-
-    createBoard();
-
-</script>
-
-</body>
-</html>
+        startGame();
+    </script>
+    @endsection
+</x-layout>
