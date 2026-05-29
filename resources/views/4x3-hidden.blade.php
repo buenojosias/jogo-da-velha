@@ -39,6 +39,31 @@
             }
         }
 
+        function finishGame(winnerData) {
+            gameOver = true;
+
+            // Stop any interaction
+            boardElement.querySelectorAll(".cell").forEach(cell => cell.classList.add('disabled'));
+
+            // Update score
+            score[winnerData.player]++;
+            updateScoreboard();
+
+            // Highlight winning combo
+            winnerData.combo.forEach(index => {
+                boardElement.querySelectorAll(".cell")[index].classList.add(`winner-${winnerData.player}`);
+            });
+
+            // Show all pieces
+            boardElement.querySelectorAll(".cell svg").forEach(svg => {
+                svg.classList.remove('piece-hidden');
+            });
+
+            // Show modal
+            winnerIconContainer.innerHTML = winnerData.player === 'x' ? xSVG(28) : oSVG(28);
+            modalWinElement.style.display = 'flex';
+        }
+
         function handleMove(index) {
             if (gameOver) return;
 
