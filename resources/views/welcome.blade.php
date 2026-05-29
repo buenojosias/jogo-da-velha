@@ -20,7 +20,7 @@
                 <h2 class="text-2xl font-bold mb-2">Jogo da Velha</h2>
                 <p class="text-gray-400">O jogador inicial alterna automaticamente a cada nova partida.</p>
             </a>
-            <a href="{{ route('3-free') }}" class="bg-gray-800 rounded-lg shadow-lg p-6 hover:bg-gray-700 transition duration-300 ease-in-out transform hover:-translate-y-1">
+            <a href="{{ route('3-move') }}" class="bg-gray-800 rounded-lg shadow-lg p-6 hover:bg-gray-700 transition duration-300 ease-in-out transform hover:-translate-y-1">
                 <h2 class="text-2xl font-bold mb-2">Jogo da Velha - 3 Peças</h2>
                 <p class="text-gray-400">Cada jogador possui apenas 3 peças. Depois de colocar todas, será possível mover uma peça por vez.</p>
             </a>

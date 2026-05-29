@@ -7,7 +7,7 @@ Route::get('/', function () {
 })->name('welcome');
 
 Route::view('/3-basico', '3-basic')->name('3-basic');
-Route::view('/3-livre', '3-free')->name('3-free');
+Route::view('/3-mover', '3-move')->name('3-move');
 Route::view('/3-rotacao', '3-rotation')->name('3-rotation');
 Route::view('/4-3-basico', '4x3-basic')->name('4x3-basic');
 Route::view('/4-3-mover', '4x3-move')->name('4x3-move');

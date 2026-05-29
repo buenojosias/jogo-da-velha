@@ -1,338 +1,125 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Jogo da Velha 4x4 - Modo Rotação</title>
+<x-layout title="3 peças - Rotação">
+    <x-board cells="16" />
+    <x-footer />
+    <x-modal-win />
+    @section('scripts')
+    <script>
+        const winningCombinations = [
+            // Horizontais
+            [0,1,2], [1,2,3], [4,5,6], [5,6,7], [8,9,10], [9,10,11], [12,13,14], [13,14,15],
+            // Verticais
+            [0,4,8], [4,8,12], [1,5,9], [5,9,13], [2,6,10], [6,10,14], [3,7,11], [7,11,15],
+            // Diagonais
+            [0,5,10], [1,6,11], [4,9,14], [5,10,15], [2,5,8], [3,6,9], [6,9,12], [7,10,13]
+        ];
 
-<style>
-    *{
-        box-sizing:border-box;
-    }
+        let placedPieces = { x: 0, o: 0 };
+        let placedPiecesOrder = { x: [], o: [] };
 
-    body{
-        margin:0;
-        font-family:Arial, sans-serif;
-        background:#1f1f2e;
-        color:white;
-        display:flex;
-        justify-content:center;
-        align-items:center;
-        min-height:100vh;
-    }
+        function startGame() {
+            board = Array(16).fill("");
+            gameOver = false;
+            currentPlayer = startingPlayer;
+            modalWinElement.style.display = 'none';
 
-    .container{
-        text-align:center;
-        padding:20px;
-    }
+            placedPieces = { x: 0, o: 0 };
+            placedPiecesOrder = { x: [], o: [] };
 
-    h1{
-        margin-bottom:10px;
-    }
+            resetBoardUI(["cell-selected", "cell-blocked", "cell-oldest"]);
 
-    .menu{
-        margin-bottom:20px;
-    }
-
-    button{
-        padding:10px 16px;
-        border:none;
-        border-radius:10px;
-        font-size:16px;
-        margin:5px;
-        background:#4fc3f7;
-        color:#111;
-        font-weight:bold;
-        cursor:pointer;
-    }
-
-    button:hover{
-        transform:scale(1.03);
-    }
-
-    #status{
-        margin-bottom:20px;
-        font-size:20px;
-        font-weight:bold;
-    }
-
-    .board{
-        display:grid;
-        grid-template-columns:repeat(4, 90px);
-        grid-template-rows:repeat(4, 90px);
-        gap:8px;
-        justify-content:center;
-    }
-
-    .cell{
-        width:90px;
-        height:90px;
-        background:#2e2e45;
-        border-radius:12px;
-        display:flex;
-        justify-content:center;
-        align-items:center;
-        font-size:42px;
-        font-weight:bold;
-        cursor:pointer;
-        user-select:none;
-        transition:0.2s;
-    }
-
-    .cell:hover{
-        background:#404064;
-        transform:scale(1.03);
-    }
-
-    .x{
-        color:#4fc3f7;
-    }
-
-    .o{
-        color:#ffca28;
-    }
-
-    .winner{
-        background:#43a047 !important;
-        color:white !important;
-    }
-
-    .old-piece{
-        opacity:0.4;
-    }
-
-    .description{
-        max-width:500px;
-        margin:0 auto 20px;
-        color:#cfcfe0;
-        font-size:14px;
-        line-height:1.4;
-    }
-</style>
-</head>
-<body>
-
-<div class="container">
-
-    <h1>Jogo da Velha 4x4 - Modo Rotação</h1>
-
-    <div class="menu">
-        <button onclick="restartGame()">
-            Reiniciar
-        </button>
-    </div>
-
-    <div class="description" id="description">
-        Cada jogador pode manter apenas 3 peças. Ao colocar a 4ª peça, a peça mais antiga daquele jogador desaparece.
-    </div>
-
-    <div id="status">
-        Vez do jogador X
-    </div>
-
-    <div class="board" id="board"></div>
-
-</div>
-
-<script>
-
-const boardElement = document.getElementById('board');
-const statusElement = document.getElementById('status');
-
-let board = Array(16).fill('');
-
-let startingPlayer =
-    localStorage.getItem('startingPlayer') || 'X';
-
-let currentPlayer = startingPlayer;
-
-let gameOver = false;
-
-let playerMoves = {
-    X: [],
-    O: []
-};
-
-const winningCombos = [
-
-    // Horizontais
-    [0,1,2],
-    [1,2,3],
-
-    [4,5,6],
-    [5,6,7],
-
-    [8,9,10],
-    [9,10,11],
-
-    [12,13,14],
-    [13,14,15],
-
-    // Verticais
-    [0,4,8],
-    [4,8,12],
-
-    [1,5,9],
-    [5,9,13],
-
-    [2,6,10],
-    [6,10,14],
-
-    [3,7,11],
-    [7,11,15],
-
-    // Diagonais
-    [0,5,10],
-    [1,6,11],
-    [4,9,14],
-    [5,10,15],
-
-    [2,5,8],
-    [3,6,9],
-    [6,9,12],
-    [7,10,13]
-];
-
-function createBoard(){
-
-    boardElement.innerHTML = '';
-
-    board.forEach((value,index)=>{
-
-        const cell = document.createElement('div');
-
-        cell.classList.add('cell');
-
-        if(value){
-            cell.classList.add(value.toLowerCase());
+            renderBoard();
+            updateStatus();
         }
 
-        // destaque da peça mais antiga
-        if(playerMoves.X[0] === index ||
-           playerMoves.O[0] === index){
+        function onCellRender(cellElement, cellContent, index) {
+            cellElement.classList.remove("cell-selected", "cell-blocked", "cell-oldest");
 
-            cell.classList.add('old-piece');
+            if (placedPieces.x === 3 && placedPiecesOrder.x.length > 0 && index === placedPiecesOrder.x[0]) {
+                cellElement.classList.add('cell-oldest');
+            }
+
+            if (placedPieces.o === 3 && placedPiecesOrder.o.length > 0 && index === placedPiecesOrder.o[0]) {
+                cellElement.classList.add('cell-oldest');
+            }
+
+            const inRotationPhase = placedPieces.x === 3 && placedPieces.o === 3;
+
+            if (inRotationPhase) {
+                // Block non-empty cells
+                if (cellContent !== "") {
+                    cellElement.classList.add("cell-blocked");
+                }
+            }
         }
 
-        cell.textContent = value;
+        function handleMove(index) {
+            if (gameOver) return;
+            
+            const cellElement = boardElement.querySelectorAll(".cell")[index];
+            if (cellElement.classList.contains('cell-blocked')) return;
 
-        cell.addEventListener('click',()=>makeMove(index));
+            let winnerData;
 
-        boardElement.appendChild(cell);
-    });
-}
+            // --- PLACEMENT PHASE ---
+            if (placedPieces[currentPlayer] < 3) {
+                if (board[index] !== "") return;
 
-function makeMove(index){
+                board[index] = currentPlayer;
+                placedPieces[currentPlayer]++;
+                placedPiecesOrder[currentPlayer].push(index);
 
-    if(board[index] || gameOver){
-        return;
-    }
+                renderBoard();
 
-    board[index] = currentPlayer;
+                winnerData = checkWinner();
+                if (winnerData) {
+                    finishGame(winnerData);
+                    return;
+                }
 
-    playerMoves[currentPlayer].push(index);
+                switchPlayer();
+                return;
+            }
 
-    if(playerMoves[currentPlayer].length > 3){
+            // --- ROTATION PHASE ---
+            if (board[index] !== "") return; // Can only place on empty cells
 
-        const oldest =
-            playerMoves[currentPlayer].shift();
+            // Remove oldest piece
+            const oldestIndex = placedPiecesOrder[currentPlayer].shift();
+            board[oldestIndex] = "";
 
-        board[oldest] = '';
-    }
+            // Add new piece
+            board[index] = currentPlayer;
+            placedPiecesOrder[currentPlayer].push(index);
 
-    createBoard();
+            renderBoard();
 
-    const winnerCombo =
-        checkWinner(currentPlayer);
+            winnerData = checkWinner();
+            if (winnerData) {
+                finishGame(winnerData);
+                return;
+            }
 
-    if(winnerCombo){
-
-        gameOver = true;
-
-        highlightWinner(winnerCombo);
-
-        statusElement.textContent =
-            `Jogador ${currentPlayer} venceu!`;
-
-        return;
-    }
-
-    if(board.every(cell => cell !== '')){
-
-        gameOver = true;
-
-        statusElement.textContent =
-            'Empate!';
-
-        return;
-    }
-
-    currentPlayer =
-        currentPlayer === 'X' ? 'O' : 'X';
-
-    statusElement.textContent =
-        `Vez do jogador ${currentPlayer}`;
-}
-
-function checkWinner(player){
-
-    for(const combo of winningCombos){
-
-        const [a,b,c] = combo;
-
-        if(
-            board[a] === player &&
-            board[b] === player &&
-            board[c] === player
-        ){
-            return combo;
+            switchPlayer();
         }
-    }
 
-    return null;
-}
+        function switchPlayer() {
+            currentPlayer = currentPlayer === "x" ? "o" : "x";
+            updateStatus();
+        }
 
-function highlightWinner(combo){
+        function updateStatus() {
+            if (gameOver) return;
 
-    const cells =
-        document.querySelectorAll('.cell');
+            if (placedPieces[currentPlayer] < 3) {
+                statusTextElement.textContent = "Coloque uma peça";
+            } else {
+                statusTextElement.textContent = "Sua peça mais antiga será removida";
+            }
 
-    combo.forEach(index=>{
-        cells[index].classList.add('winner');
-    });
-}
+            updatePlayerIcons();
+        }
 
-function restartGame(){
-
-    // alterna jogador inicial
-    startingPlayer =
-        startingPlayer === 'X' ? 'O' : 'X';
-
-    localStorage.setItem(
-        'startingPlayer',
-        startingPlayer
-    );
-
-    board = Array(16).fill('');
-
-    currentPlayer = startingPlayer;
-
-    gameOver = false;
-
-    playerMoves = {
-        X: [],
-        O: []
-    };
-
-    statusElement.textContent =
-        `Vez do jogador ${currentPlayer}`;
-
-    createBoard();
-}
-
-createBoard();
-
-</script>
-
-</body>
-</html>
+        startGame();
+    </script>
+    @endsection
+</x-layout>

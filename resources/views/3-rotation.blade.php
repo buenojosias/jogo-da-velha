@@ -31,13 +31,11 @@
         function onCellRender(cellElement, cellContent, index) {
             cellElement.classList.remove("cell-selected", "cell-blocked", "cell-oldest");
 
-            // Add .cell-oldest for player X
-            if (placedPieces.o >= 2 && placedPiecesOrder.x.length > 0 && index === placedPiecesOrder.x[0]) {
+            if (placedPieces.x === 3 && placedPiecesOrder.x.length > 0 && index === placedPiecesOrder.x[0]) {
                 cellElement.classList.add('cell-oldest');
             }
 
-            // Add .cell-oldest for player O
-            if (placedPieces.x >= 3 && placedPiecesOrder.o.length > 0 && index === placedPiecesOrder.o[0]) {
+            if (placedPieces.o === 3 && placedPiecesOrder.o.length > 0 && index === placedPiecesOrder.o[0]) {
                 cellElement.classList.add('cell-oldest');
             }
 

@@ -46,7 +46,7 @@ body {
 }
 
 .cell-oldest{
-    @apply bg-amber-200/5 border-amber-400/40 border shadow-[0_0_5px_0_rgba(0,0,0,1)] shadow-amber-400/50;
+    @apply relative bg-amber-200/5 border-amber-400/40 border shadow-[0_0_5px_0_rgba(0,0,0,1)] shadow-amber-400/50;
 }
 
 .winner-x {
