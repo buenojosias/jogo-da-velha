@@ -44,9 +44,9 @@
                 <h2 class="text-2xl font-bold mb-2">Jogo da Velha 4x3 - Modo Bloqueio</h2>
                 <p class="text-gray-400">Sequências de 3 podem ser bloqueadas pelo adversário nas extremidades.</p>
             </a>
-            <a href="{{ route('4x4-rotation') }}" class="bg-gray-800 rounded-lg shadow-lg p-6 hover:bg-gray-700 transition duration-300 ease-in-out transform hover:-translate-y-1">
-                <h2 class="text-2xl font-bold mb-2">Jogo da Velha 4x4 com Rotação</h2>
-                <p class="text-gray-400">Jogo da Velha 4x4 com rotação de peças.</p>
+            <a href="{{ route('4x4-move') }}" class="bg-gray-800 rounded-lg shadow-lg p-6 hover:bg-gray-700 transition duration-300 ease-in-out transform hover:-translate-y-1">
+                <h2 class="text-2xl font-bold mb-2">Jogo da Velha 4x4 com Mover</h2>
+                <p class="text-gray-400">Jogo da Velha 4x4 com movimentação de peças.</p>
             </a>
             <a href="{{ route('5-full') }}" class="bg-gray-800 rounded-lg shadow-lg p-6 hover:bg-gray-700 transition duration-300 ease-in-out transform hover:-translate-y-1">
                 <h2 class="text-2xl font-bold mb-2">Jogo da Velha 5x5</h2>
