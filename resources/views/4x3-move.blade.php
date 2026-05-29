@@ -1,4 +1,4 @@
-<x-layout title="4x3 peças - mover">
+<x-layout title="Movimento 4x4 (3 peças)">
     <x-board cells="16" />
     <x-footer />
     <x-modal-win />

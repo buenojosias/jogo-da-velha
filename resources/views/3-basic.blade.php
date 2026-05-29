@@ -1,4 +1,4 @@
-<x-layout title="Tradicional - 3 peças">
+<x-layout title="Clássico 3x3">
     <x-board cells="9" />
     <x-footer />
     <x-modal-win />

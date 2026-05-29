@@ -1,4 +1,4 @@
-<x-layout title="3 peças - Rotação">
+<x-layout title="Rotação 4x4 (3 peças)">
     <x-board cells="16" />
     <x-footer />
     <x-modal-win />

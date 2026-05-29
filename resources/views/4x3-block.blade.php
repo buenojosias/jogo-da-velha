@@ -1,4 +1,4 @@
-<x-layout title="Jogo da Velha 4x4 - Modo básico">
+<x-layout title="Bloqueio 4x4">
     <x-board cells="16" />
     <x-footer />
     <x-modal-win />

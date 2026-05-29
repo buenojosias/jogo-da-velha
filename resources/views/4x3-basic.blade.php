@@ -1,4 +1,4 @@
-<x-layout title="Jogo da Velha 4x4 - Modo básico">
+<x-layout title="Clássico 4x4 (3 peças))">
     <x-board cells="16" />
     <x-footer />
     <x-modal-win />

@@ -1,4 +1,4 @@
-<x-layout title="4 peças - Mover">
+<x-layout title="Linha de 4 com Movimento">
     <x-board cells="16" />
     <x-footer />
     <x-modal-win />

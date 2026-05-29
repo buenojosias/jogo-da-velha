@@ -1,4 +1,4 @@
-<x-layout title="5x5 cheia">
+<x-layout title="Pontuação 5x5 (Blade)">
     <x-board cells="25" />
     <x-footer />
     <x-modal-win />
