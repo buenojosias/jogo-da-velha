@@ -39,7 +39,7 @@
             board[index] = currentPlayer;
             renderBoard();
 
-            const winnerData = checkWinner();
+            const winnerData = checkWinner(index);
             if (winnerData) {
                 finishGame(winnerData);
                 return;
@@ -62,13 +62,14 @@
             updatePlayerIcons();
         }
 
-        function isBlocked(combo, player) {
+        function getBlockers(combo, player) {
             const opponent = player === 'x' ? 'o' : 'x';
             const [a, b, c] = combo;
+            const blockers = [];
 
             const direction = b - a;
 
-            if ((c - b) !== direction) return false;
+            if ((c - b) !== direction) return [];
 
             const before = a - direction;
             const after = c + direction;
@@ -76,30 +77,42 @@
             if (before >= 0 && before < 16) {
                 if (direction === 1 && Math.floor(a / 4) !== Math.floor(before / 4)) {
                 } else if (board[before] === opponent) {
-                    return true;
+                    blockers.push(before);
                 }
             }
 
             if (after >= 0 && after < 16) {
                 if (direction === 1 && Math.floor(c / 4) !== Math.floor(after / 4)) {
                 } else if (board[after] === opponent) {
-                    return true;
+                    blockers.push(after);
                 }
             }
 
-            return false;
+            return blockers;
         }
 
-        function checkWinner() {
-            for (const combo of winningCombinations) {
+        function checkWinner(newPieceIndex) {
+            const relevantCombos = winningCombinations.filter(c => c.includes(newPieceIndex));
+
+            for (const combo of relevantCombos) {
                 const [a, b, c] = combo;
                 if (board[a] && board[a] === board[b] && board[a] === board[c]) {
-                    if (isBlocked(combo, board[a])) {
-                        continue;
+                    const blockers = getBlockers(combo, board[a]);
+
+                    if (blockers.length > 0) {
+                        const cells = boardElement.querySelectorAll(".cell");
+                        blockers.forEach(blockerIndex => {
+                            cells[blockerIndex].classList.add('cell-blocked');
+                            setTimeout(() => {
+                                cells[blockerIndex].classList.remove('cell-blocked');
+                            }, 1000);
+                        });
+                    } else {
+                        return { player: board[a], combo };
                     }
-                    return { player: board[a], combo };
                 }
             }
+
             return null;
         }
 

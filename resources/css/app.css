@@ -44,6 +44,9 @@ body {
 .cell-selected {
     @apply bg-emerald-200/5 border-emerald-400/40 border shadow-[0_0_5px_0_rgba(0,0,0,1)] shadow-emerald-400/50;
 }
+.cell-blocked {
+    @apply bg-red-200/5 border-red-400/40 border shadow-[0_0_5px_0_rgba(0,0,0,1)] shadow-red-400/50;
+}
 
 .cell-oldest{
     @apply relative bg-amber-200/5 border-amber-400/40 border shadow-[0_0_5px_0_rgba(0,0,0,1)] shadow-amber-400/50;
