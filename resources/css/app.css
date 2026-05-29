@@ -52,6 +52,19 @@ body {
     @apply relative bg-amber-200/5 border-amber-400/40 border shadow-[0_0_5px_0_rgba(0,0,0,1)] shadow-amber-400/50;
 }
 
+.cell svg {
+    transition: opacity 0.3s ease-in-out;
+}
+
+.cell svg.piece-hidden {
+    opacity: 0;
+}
+
+.winner-x svg.piece-hidden,
+.winner-o svg.piece-hidden {
+    opacity: 1;
+}
+
 .winner-x {
     @apply bg-sky-200/10;
 }

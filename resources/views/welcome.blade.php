@@ -44,6 +44,10 @@
                 <h2 class="text-2xl font-bold mb-2">Jogo da Velha 4x3 - Modo Bloqueio</h2>
                 <p class="text-gray-400">Sequências de 3 podem ser bloqueadas pelo adversário nas extremidades.</p>
             </a>
+            <a href="{{ route('4x3-hidden') }}" class="bg-gray-800 rounded-lg shadow-lg p-6 hover:bg-gray-700 transition duration-300 ease-in-out transform hover:-translate-y-1">
+                <h2 class="text-2xl font-bold mb-2">Jogo da Velha 4x3 - Modo Oculto</h2>
+                <p class="text-gray-400">Os jogadores não podem ver as peças no tabuleiro. Ganha quem fizer linha com 3.</p>
+            </a>
             <a href="{{ route('4x4-move') }}" class="bg-gray-800 rounded-lg shadow-lg p-6 hover:bg-gray-700 transition duration-300 ease-in-out transform hover:-translate-y-1">
                 <h2 class="text-2xl font-bold mb-2">Jogo da Velha 4x4 com Mover</h2>
                 <p class="text-gray-400">Jogo da Velha 4x4 com movimentação de peças.</p>
