@@ -28,8 +28,8 @@
                 <h2 class="text-2xl font-bold mb-2">Jogo da Velha - Peça Mais Antiga</h2>
                 <p class="text-gray-400">Cada jogador pode manter apenas 3 peças no tabuleiro. Ao colocar a 4ª peça, a peça mais antiga daquele jogador desaparece.</p>
             </a>
-            <a href="{{ route('4x3-normal') }}" class="bg-gray-800 rounded-lg shadow-lg p-6 hover:bg-gray-700 transition duration-300 ease-in-out transform hover:-translate-y-1">
-                <h2 class="text-2xl font-bold mb-2">Jogo da Velha 4x4 - Modo Normal</h2>
+            <a href="{{ route('4x3-basic') }}" class="bg-gray-800 rounded-lg shadow-lg p-6 hover:bg-gray-700 transition duration-300 ease-in-out transform hover:-translate-y-1">
+                <h2 class="text-2xl font-bold mb-2">Jogo da Velha 4x3 - Modo básico</h2>
                 <p class="text-gray-400">Vitória com 3 peças seguidas.</p>
             </a>
             <a href="{{ route('4x3-move') }}" class="bg-gray-800 rounded-lg shadow-lg p-6 hover:bg-gray-700 transition duration-300 ease-in-out transform hover:-translate-y-1">
