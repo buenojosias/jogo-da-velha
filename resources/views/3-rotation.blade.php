@@ -38,15 +38,6 @@
             if (placedPieces.o === 3 && placedPiecesOrder.o.length > 0 && index === placedPiecesOrder.o[0]) {
                 cellElement.classList.add('cell-oldest');
             }
-
-            const inRotationPhase = placedPieces.x === 3 && placedPieces.o === 3;
-
-            if (inRotationPhase) {
-                // Block non-empty cells
-                if (cellContent !== "") {
-                    cellElement.classList.add("cell-blocked");
-                }
-            }
         }
 
         function handleMove(index) {
