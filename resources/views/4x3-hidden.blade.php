@@ -1,4 +1,4 @@
-<x-layout title="3 peças - Rotação">
+<x-layout title="3 peças - Modo oculto">
     <x-board cells="16" />
     <x-footer />
     <x-modal-win />
