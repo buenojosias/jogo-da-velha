@@ -34,8 +34,12 @@ function finishGame(winnerData) {
     updateScoreboard();
 
     const cells = boardElement.querySelectorAll(".cell");
-    winnerData.combo.forEach(index => {
-        cells[index].classList.add(`winner-${winnerData.player}`);
+    const combos = winnerData.combos || [winnerData.combo];
+
+    combos.forEach(combo => {
+        combo.forEach(index => {
+            cells[index].classList.add(`winner-${winnerData.player}`);
+        });
     });
 
     winnerIconContainer.innerHTML = winnerData.player === 'x' ? xSVG(28) : oSVG(28);

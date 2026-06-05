@@ -52,6 +52,10 @@
                 <h2 class="text-2xl font-bold mb-2">Linha de 4 com Movimento</h2>
                 <p class="text-gray-400">Em um tabuleiro 4x4, faça 4 em linha. Após colocar 4 peças, mova-as para vencer.</p>
             </a>
+            <a href="{{ route('5x5-2-lines') }}" class="bg-gray-800 rounded-lg shadow-lg p-6 hover:bg-gray-700 transition duration-300 ease-in-out transform hover:-translate-y-1">
+                <h2 class="text-2xl font-bold mb-2">Duas Linhas 5x5</h2>
+                <p class="text-gray-400">Em um tabuleiro 5x5, faça 2 linhas de 3 para vencer. Mas cuidado, o oponente pode bloquear uma delas!</p>
+            </a>
             <a href="{{ route('5-full') }}" class="bg-gray-800 rounded-lg shadow-lg p-6 hover:bg-gray-700 transition duration-300 ease-in-out transform hover:-translate-y-1">
                 <h2 class="text-2xl font-bold mb-2">Pontuação 5x5</h2>
                 <p class="text-gray-400">Faça sequências de 3, 4 ou 5 peças para acumular pontos. Quem tiver mais pontos no final, vence.</p>

@@ -15,6 +15,7 @@ Route::view('/4-3-rotacao', '4x3-rotation')->name('4x3-rotation');
 Route::view('/4-3-bloqueio', '4x3-block')->name('4x3-block');
 Route::view('/4-3-oculto', '4x3-hidden')->name('4x3-hidden');
 Route::view('/4-mover', '4x4-move')->name('4x4-move');
+Route::view('/2-linhas', '5x5-2-lines')->name('5x5-2-lines');
 Route::view('/5-cheia', '5-full')->name('5-full');
 Route::view('/dado', 'dice')->name('dice');
 Route::view('/maluca', 'crazy')->name('crazy');
