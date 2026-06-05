@@ -73,7 +73,7 @@ body {
 }
 
 footer {
-    @apply flex flex-col items-center space-y-6 py-4 px-6;
+    @apply flex flex-col items-center space-y-6 py-4 px-4;
 }
 .scoreboard {
     @apply flex w-full space-x-4 text-center;
