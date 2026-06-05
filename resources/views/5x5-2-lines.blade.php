@@ -40,7 +40,7 @@
             let allWinningCombos = {
                 x: [],
                 o: []
-            }
+            };
 
             for (const direction in winningCombinationsByDirection) {
                 const combosInDirection = winningCombinationsByDirection[direction];
@@ -62,40 +62,28 @@
                     const combos = playerWinningCombos[player];
                     if (combos.length === 0) continue;
 
-                    const adj = new Map();
-                    for (let i = 0; i < combos.length; i++) {
-                        adj.set(i, []);
-                    }
-
-                    for (let i = 0; i < combos.length; i++) {
-                        for (let j = i + 1; j < combos.length; j++) {
-                            const intersection = combos[i].filter(c => combos[j].includes(c));
-                            if (intersection.length > 0) {
-                                adj.get(i).push(j);
-                                adj.get(j).push(i);
-                            }
-                        }
-                    }
-
-                    const visited = new Set();
-                    let components = 0;
-                    for (let i = 0; i < combos.length; i++) {
-                        if (!visited.has(i)) {
-                            components++;
-                            const stack = [i];
-                            visited.add(i);
-                            while (stack.length > 0) {
-                                const u = stack.pop();
-                                for (const v of adj.get(u)) {
-                                    if (!visited.has(v)) {
-                                        visited.add(v);
-                                        stack.push(v);
-                                    }
+                    const remainingCombos = [...combos];
+                    let numLines = 0;
+                    while (remainingCombos.length > 0) {
+                        numLines++;
+                        const line = [remainingCombos.pop()];
+                        let i = 0;
+                        while (i < line.length) {
+                            const currentCombo = line[i];
+                            let j = remainingCombos.length - 1;
+                            while (j >= 0) {
+                                const otherCombo = remainingCombos[j];
+                                const intersection = currentCombo.filter(c => otherCombo.includes(c));
+                                if (intersection.length > 0) {
+                                    line.push(otherCombo);
+                                    remainingCombos.splice(j, 1);
                                 }
+                                j--;
                             }
+                            i++;
                         }
                     }
-                    lines[player] += components;
+                    lines[player] += numLines;
                 }
             }
 
