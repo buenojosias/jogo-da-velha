@@ -4,48 +4,107 @@
     <x-modal-win />
     @section('scripts')
     <script>
-        const winningCombinations = [
-            // Horizontais
-            [0, 1, 2], [1, 2, 3], [2, 3, 4],
-            [5, 6, 7], [6, 7, 8], [7, 8, 9],
-            [10, 11, 12], [11, 12, 13], [12, 13, 14],
-            [15, 16, 17], [16, 17, 18], [17, 18, 19],
-            [20, 21, 22], [21, 22, 23], [22, 23, 24],
-            // Verticais
-            [0, 5, 10], [5, 10, 15], [10, 15, 20],
-            [1, 6, 11], [6, 11, 16], [11, 16, 21],
-            [2, 7, 12], [7, 12, 17], [12, 17, 22],
-            [3, 8, 13], [8, 13, 18], [13, 18, 23],
-            [4, 9, 14], [9, 14, 19], [14, 19, 24],
-            // Diagonais (top-left to bottom-right)
-            [0, 6, 12], [1, 7, 13], [2, 8, 14],
-            [5, 11, 17], [6, 12, 18], [7, 13, 19],
-            [10, 16, 22], [11, 17, 23], [12, 18, 24],
-            // Diagonais (top-right to bottom-left)
-            [2, 6, 10], [3, 7, 11], [4, 8, 12],
-            [7, 11, 15], [8, 12, 16], [9, 13, 17],
-            [12, 16, 20], [13, 17, 21], [14, 18, 22],
-        ];
+        const winningCombinationsByDirection = {
+            horizontal: [
+                [0, 1, 2], [1, 2, 3], [2, 3, 4],
+                [5, 6, 7], [6, 7, 8], [7, 8, 9],
+                [10, 11, 12], [11, 12, 13], [12, 13, 14],
+                [15, 16, 17], [16, 17, 18], [17, 18, 19],
+                [20, 21, 22], [21, 22, 23], [22, 23, 24],
+            ],
+            vertical: [
+                [0, 5, 10], [5, 10, 15], [10, 15, 20],
+                [1, 6, 11], [6, 11, 16], [11, 16, 21],
+                [2, 7, 12], [7, 12, 17], [12, 17, 22],
+                [3, 8, 13], [8, 13, 18], [13, 18, 23],
+                [4, 9, 14], [9, 14, 19], [14, 19, 24],
+            ],
+            diag_tl_br: [
+                [0, 6, 12], [1, 7, 13], [2, 8, 14],
+                [5, 11, 17], [6, 12, 18], [7, 13, 19],
+                [10, 16, 22], [11, 17, 23], [12, 18, 24],
+            ],
+            diag_tr_bl: [
+                [2, 6, 10], [3, 7, 11], [4, 8, 12],
+                [7, 11, 15], [8, 12, 16], [9, 13, 17],
+                [12, 16, 20], [13, 17, 21], [14, 18, 22],
+            ]
+        };
+        const winningCombinations = Object.values(winningCombinationsByDirection).flat();
 
         function checkWinner() {
-            let winningCombos = {
+            let lines = {
+                x: 0,
+                o: 0
+            };
+            let allWinningCombos = {
                 x: [],
                 o: []
-            };
+            }
 
-            for (const combo of winningCombinations) {
-                const [a, b, c] = combo;
-                if (board[a] && board[a] === board[b] && board[a] === board[c]) {
-                    winningCombos[board[a]].push(combo);
+            for (const direction in winningCombinationsByDirection) {
+                const combosInDirection = winningCombinationsByDirection[direction];
+
+                let playerWinningCombos = {
+                    x: [],
+                    o: []
+                };
+
+                for (const combo of combosInDirection) {
+                    const [a, b, c] = combo;
+                    if (board[a] && board[a] === board[b] && board[a] === board[c]) {
+                        playerWinningCombos[board[a]].push(combo);
+                        allWinningCombos[board[a]].push(combo);
+                    }
+                }
+
+                for (const player in playerWinningCombos) {
+                    const combos = playerWinningCombos[player];
+                    if (combos.length === 0) continue;
+
+                    const adj = new Map();
+                    for (let i = 0; i < combos.length; i++) {
+                        adj.set(i, []);
+                    }
+
+                    for (let i = 0; i < combos.length; i++) {
+                        for (let j = i + 1; j < combos.length; j++) {
+                            const intersection = combos[i].filter(c => combos[j].includes(c));
+                            if (intersection.length > 0) {
+                                adj.get(i).push(j);
+                                adj.get(j).push(i);
+                            }
+                        }
+                    }
+
+                    const visited = new Set();
+                    let components = 0;
+                    for (let i = 0; i < combos.length; i++) {
+                        if (!visited.has(i)) {
+                            components++;
+                            const stack = [i];
+                            visited.add(i);
+                            while (stack.length > 0) {
+                                const u = stack.pop();
+                                for (const v of adj.get(u)) {
+                                    if (!visited.has(v)) {
+                                        visited.add(v);
+                                        stack.push(v);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    lines[player] += components;
                 }
             }
 
-            if (winningCombos.x.length >= 2) {
-                return { player: 'x', combos: winningCombos.x };
+            if (lines.x >= 2) {
+                return { player: 'x', combos: allWinningCombos.x };
             }
 
-            if (winningCombos.o.length >= 2) {
-                return { player: 'o', combos: winningCombos.o };
+            if (lines.o >= 2) {
+                return { player: 'o', combos: allWinningCombos.o };
             }
 
             return null;
