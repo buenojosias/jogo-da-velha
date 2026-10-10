@@ -1,5 +1,12 @@
 <?php
 
+use App\Games\Modality;
+use App\Games\Participant;
+use App\Games\ParticipantKind;
+use App\Games\Participants;
+use App\Games\PlayerMark;
+use App\Games\Rules\Classic3x3Rules;
+use App\Http\SessionMatchStore;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -23,6 +30,25 @@ Route::view('/ultimate', 'ultimate')->name('ultimate');
 
 if (app()->environment(['local', 'testing'])) {
     Route::view('/livewire-reference', 'livewire-reference')->name('livewire.reference');
+
+    Route::get('/experimental/3-basico', function (SessionMatchStore $store, Classic3x3Rules $rules) {
+        $state = $rules->initialState(
+            new Modality('3-basic'),
+            new Participants(
+                new Participant(ParticipantKind::Guest, 'local-x'),
+                new Participant(ParticipantKind::Guest, 'local-o'),
+            ),
+            PlayerMark::X,
+        );
+
+        return redirect()->route('experimental.classic.show', ['matchId' => $store->create($state)]);
+    })->name('experimental.classic.create');
+
+    Route::get('/experimental/3-basico/{matchId}', function (string $matchId, SessionMatchStore $store) {
+        abort_if($store->find($matchId) === null, 404);
+
+        return view('experimental-classic', ['matchId' => $matchId]);
+    })->where('matchId', '[A-Za-z0-9]{40}')->name('experimental.classic.show');
 }
 
 Route::view('/teste', 'teste')->name('teste');
