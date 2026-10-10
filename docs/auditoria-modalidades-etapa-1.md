@@ -139,7 +139,7 @@ No layout comum, `js/game.js` é referenciado diretamente, fora do Vite e sem o 
 - Tailwind CSS 4.3.0 e `@tailwindcss/vite` 4.3.0.
 - Vite 8.0.14 e Laravel Vite Plugin 3.1.0.
 - Concurrently 9.2.1.
-- Livewire não está instalado.
+- Na Etapa 1, Livewire ainda não estava instalado. A instalação posterior está registrada em `docs/modernizacao-etapa-2-livewire.md`.
 
 ## Problemas confirmados e riscos técnicos
 
