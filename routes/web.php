@@ -21,4 +21,8 @@ Route::view('/dado', 'dice')->name('dice');
 Route::view('/maluca', 'crazy')->name('crazy');
 Route::view('/ultimate', 'ultimate')->name('ultimate');
 
+if (app()->environment(['local', 'testing'])) {
+    Route::view('/livewire-reference', 'livewire-reference')->name('livewire.reference');
+}
+
 Route::view('/teste', 'teste')->name('teste');

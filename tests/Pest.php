@@ -1,6 +1,8 @@
 <?php
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Pest\Browser\Api\AwaitableWebpage;
+use Pest\Browser\Api\PendingAwaitablePage;
 use Tests\TestCase;
 
 /*
@@ -16,7 +18,7 @@ use Tests\TestCase;
 
 pest()->extend(TestCase::class)
  // ->use(RefreshDatabase::class)
-    ->in('Feature', '../resources/views');
+    ->in('Feature', 'Browser', '../resources/views');
 
 /*
 |--------------------------------------------------------------------------
@@ -47,4 +49,19 @@ expect()->extend('toBeOne', function () {
 function something()
 {
     // ..
+}
+
+function browserCellSelector(int $index): string
+{
+    return sprintf('#board > .p-1:nth-child(%d) > .cell', $index + 1);
+}
+
+/**
+ * @param  array<int, int>  $indices
+ */
+function clickBrowserCells(AwaitableWebpage|PendingAwaitablePage $page, array $indices): void
+{
+    foreach ($indices as $index) {
+        $page->click(browserCellSelector($index));
+    }
 }
