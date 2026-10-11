@@ -197,6 +197,41 @@ test('shows a victory and rejects further moves after the match finishes', funct
     expect($state->data['board'][5])->toBe('');
 });
 
+test('renders the three confirmed winning cells and a result dialog', function (array $cells, array $expectedWinningCells, string $winner, string $scoreTestId) {
+    $matchId = createClassicSessionMatch();
+    $component = Livewire::test('experimental-classic-3x3', ['matchId' => $matchId]);
+
+    foreach ($cells as $cell) {
+        $component->call('place', $cell);
+    }
+
+    preg_match_all('/data-testid="cell-(\d+)"[^>]*data-winning-cell="true"/', $component->html(), $matches);
+
+    $component
+        ->assertSee("Jogador {$winner} venceu!")
+        ->assertSeeHtml('data-testid="result-dialog"')
+        ->assertSeeHtml('aria-modal="true"')
+        ->assertSeeHtml("data-testid=\"{$scoreTestId}\"")
+        ->assertDispatched('classic-round-finished');
+    expect(array_map('intval', $matches[1]))->toBe($expectedWinningCells);
+    expect(app(SessionMatchStore::class)->score($matchId)[$winner === 'X' ? 'x' : 'o'])->toBe(1);
+})->with([
+    'X horizontal' => [[0, 3, 1, 4, 2], [0, 1, 2], 'X', 'result-score-x'],
+    'O vertical' => [[0, 1, 2, 4, 3, 7], [1, 4, 7], 'O', 'result-score-o'],
+]);
+
+test('does not request a result dialog for an unfinished or rejected action', function () {
+    $matchId = createClassicSessionMatch();
+
+    Livewire::test('experimental-classic-3x3', ['matchId' => $matchId])
+        ->assertDontSeeHtml('data-testid="result-dialog"')
+        ->call('place', 0)
+        ->assertNotDispatched('classic-round-finished')
+        ->call('place', 0)
+        ->assertSee('Esta casa já está ocupada.')
+        ->assertNotDispatched('classic-round-finished');
+});
+
 test('shows a draw after nine moves', function () {
     $matchId = createClassicSessionMatch();
     $component = Livewire::test('experimental-classic-3x3', ['matchId' => $matchId]);
@@ -205,8 +240,27 @@ test('shows a draw after nine moves', function () {
         $component->call('place', $cell);
     }
 
-    $component->assertSee('Empate!');
+    $component
+        ->assertSee('Empate!')
+        ->assertSeeHtml('data-testid="result-dialog"')
+        ->assertSeeHtml('data-testid="result-score-draws"')
+        ->assertDispatched('classic-round-finished');
+    expect(substr_count($component->html(), 'data-winning-cell="true"'))->toBe(0);
     expect(app(SessionMatchStore::class)->find($matchId)->status)->toBe(MatchStatus::Drawn);
+});
+
+test('renders a completed result after a new request without dispatching an opening event', function () {
+    $matchId = createClassicSessionMatch();
+    $component = Livewire::test('experimental-classic-3x3', ['matchId' => $matchId]);
+
+    foreach ([0, 3, 1, 4, 2] as $cell) {
+        $component->call('place', $cell);
+    }
+
+    Livewire::test('experimental-classic-3x3', ['matchId' => $matchId])
+        ->assertSee('Jogador X venceu!')
+        ->assertSeeHtml('data-testid="result-dialog"')
+        ->assertNotDispatched('classic-round-finished');
 });
 
 test('restarts with an empty board, clears errors, and alternates the starter', function () {

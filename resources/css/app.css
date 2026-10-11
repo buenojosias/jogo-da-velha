@@ -68,6 +68,7 @@ html[data-design-system='experimental'] {
     --ds-radius-card: 1.25rem;
     --ds-shadow-card: 0 8px 24px rgb(38 25 86 / 10%);
     --ds-shadow-elevated: 0 16px 40px rgb(38 25 86 / 16%);
+    --ds-overlay: rgb(18 14 39 / 65%);
     --ds-transition-fast: 150ms ease;
     --ds-transition-standard: 220ms ease;
 }
@@ -98,6 +99,7 @@ html[data-design-system='experimental'][data-theme='dark'] {
     --ds-o: #ff9fb4;
     --ds-shadow-card: 0 8px 24px rgb(4 3 18 / 28%);
     --ds-shadow-elevated: 0 16px 40px rgb(4 3 18 / 38%);
+    --ds-overlay: rgb(6 5 18 / 78%);
 }
 
 html[data-design-system='experimental'] body {
@@ -107,6 +109,21 @@ html[data-design-system='experimental'] body {
         var(--ds-canvas);
     color: var(--ds-text);
     overflow-x: visible;
+}
+
+html[data-design-system='experimental']:has(.ds-result-dialog[open]) {
+    overflow: hidden;
+}
+
+html[data-design-system='experimental'] .ds-result-dialog::backdrop {
+    background: var(--ds-overlay);
+    backdrop-filter: blur(2px);
+}
+
+html[data-design-system='experimental'] .experimental-board [data-winning-cell='true'] {
+    border-color: var(--ds-success);
+    background: var(--ds-hover);
+    box-shadow: inset 0 0 0 2px var(--ds-success), var(--ds-shadow-card);
 }
 
 @media (min-width: 40rem) and (max-height: 26.875rem) and (orientation: landscape) {

@@ -39,6 +39,15 @@ new class extends Component
         return app(SessionMatchStore::class)->score($this->matchId);
     }
 
+    /**
+     * @return list<int>
+     */
+    #[Computed]
+    public function winningCells(): array
+    {
+        return app(Classic3x3Rules::class)->winningLine($this->matchState) ?? [];
+    }
+
     public function place(mixed $cellIndex): void
     {
         $state = $this->matchState;
@@ -61,7 +70,11 @@ new class extends Component
 
         app(SessionMatchStore::class)->save($this->matchId, $result->state);
         $this->rejectionMessage = null;
-        unset($this->matchState, $this->score);
+        unset($this->matchState, $this->score, $this->winningCells);
+
+        if ($result->state->isFinished()) {
+            $this->dispatch('classic-round-finished');
+        }
     }
 
     public function restart(): void
@@ -78,15 +91,39 @@ new class extends Component
         );
 
         $this->rejectionMessage = null;
-        unset($this->matchState, $this->score);
+        unset($this->matchState, $this->score, $this->winningCells);
     }
 };
 ?>
 
 @php($state = $this->matchState)
 @php($score = $this->score)
+@php($winningCells = $this->winningCells)
 
-<div class="experimental-match mx-auto flex min-h-screen w-full max-w-5xl flex-col gap-4 px-4 py-4 text-ds-text sm:px-6 sm:py-6">
+<div
+    class="experimental-match mx-auto flex min-h-screen w-full max-w-5xl flex-col gap-4 px-4 py-4 text-ds-text sm:px-6 sm:py-6"
+    x-data="{
+        resultOrigin: null,
+        openRoundResult() {
+            this.$nextTick(() => {
+                const dialog = this.$refs.resultDialog;
+                if (!dialog || dialog.open) return;
+                this.resultOrigin = document.activeElement;
+                dialog.showModal();
+            });
+        },
+        closeRoundResult() {
+            this.$refs.resultDialog?.close();
+        },
+        restoreRoundResultFocus() {
+            const origin = this.resultOrigin;
+            const canReturnToOrigin = origin instanceof HTMLElement && origin.isConnected && origin.tabIndex >= 0 && !origin.matches(':disabled');
+            const target = canReturnToOrigin ? origin : this.$refs.restartButton;
+            requestAnimationFrame(() => target?.focus());
+        }
+    }"
+    x-on:classic-round-finished.window="openRoundResult()"
+>
     <x-design-system.match-header
         modality="Clássico 3×3"
         title="Jogo da Velha"
@@ -115,16 +152,18 @@ new class extends Component
 
             <div data-testid="classic-board" role="group" aria-label="Tabuleiro 3 por 3" class="experimental-board mx-auto mt-3 grid w-full max-w-[28rem] grid-cols-3 gap-2 sm:mt-4 sm:gap-3">
                 @foreach ($state->data['board'] as $index => $cell)
+                    @php($isWinningCell = in_array($index, $winningCells, true))
                     <button
                         type="button"
                         wire:key="cell-{{ $index }}"
                         wire:click="place({{ $index }})"
                         wire:loading.attr="disabled"
                         data-testid="cell-{{ $index }}"
-                        aria-label="Casa linha {{ intdiv($index, 3) + 1 }}, coluna {{ $index % 3 + 1 }}: {{ $cell === '' ? 'vazia' : strtoupper($cell) }}"
+                        data-winning-cell="{{ $isWinningCell ? 'true' : 'false' }}"
+                        aria-label="Casa linha {{ intdiv($index, 3) + 1 }}, coluna {{ $index % 3 + 1 }}: {{ $cell === '' ? 'vazia' : strtoupper($cell) }}{{ $isWinningCell ? ', casa vencedora' : '' }}"
                         @disabled($cell !== '' || $state->isFinished())
-                        class="aspect-square min-h-18 rounded-ds-control border-2 border-ds-border bg-ds-surface text-5xl font-black uppercase shadow-sm {{ $cell === 'o' ? 'text-ds-o' : 'text-ds-x' }} enabled:hover:border-ds-primary enabled:hover:bg-ds-hover enabled:hover:shadow-ds-card enabled:active:scale-[0.98] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-ds-focus disabled:cursor-not-allowed disabled:bg-ds-surface-muted motion-safe:transition-[transform,background-color,border-color,box-shadow] motion-safe:duration-200 motion-reduce:transition-none sm:text-6xl"
-                    >{{ $cell }}</button>
+                        class="relative aspect-square min-h-18 rounded-ds-control border-2 border-ds-border bg-ds-surface text-5xl font-black uppercase shadow-sm {{ $cell === 'o' ? 'text-ds-o' : 'text-ds-x' }} enabled:hover:border-ds-primary enabled:hover:bg-ds-hover enabled:hover:shadow-ds-card enabled:active:scale-[0.98] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-ds-focus disabled:cursor-not-allowed disabled:bg-ds-surface-muted motion-safe:transition-[transform,background-color,border-color,box-shadow] motion-safe:duration-200 motion-reduce:transition-none sm:text-6xl"
+                    >{{ $cell }}@if ($isWinningCell)<span aria-hidden="true" class="pointer-events-none absolute top-1 right-1 text-base text-ds-success">✦</span>@endif</button>
                 @endforeach
             </div>
 
@@ -156,7 +195,7 @@ new class extends Component
             <p data-testid="score-draws" class="rounded-ds-control border border-ds-border bg-ds-surface-muted px-2 py-1 text-center text-xs font-bold text-ds-text-secondary">Empates: <span class="font-black text-ds-text">{{ $score['draws'] }}</span></p>
 
             <x-design-system.match-actions data-testid="match-actions">
-                <button type="button" wire:click="restart" wire:loading.attr="disabled" class="min-h-12 w-full rounded-ds-control bg-ds-primary px-5 py-3 text-base font-bold text-ds-on-primary hover:bg-ds-primary-hover focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-ds-focus disabled:opacity-60 motion-safe:transition-colors motion-safe:duration-200 motion-reduce:transition-none">
+                <button type="button" x-ref="restartButton" wire:click="restart" wire:loading.attr="disabled" class="min-h-12 w-full rounded-ds-control bg-ds-primary px-5 py-3 text-base font-bold text-ds-on-primary hover:bg-ds-primary-hover focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-ds-focus disabled:opacity-60 motion-safe:transition-colors motion-safe:duration-200 motion-reduce:transition-none">
                     Reiniciar partida
                 </button>
             </x-design-system.match-actions>
@@ -164,4 +203,22 @@ new class extends Component
             <p data-testid="move-count" class="text-center text-xs font-semibold text-ds-text-muted">Jogadas realizadas: {{ count(array_filter($state->data['board'], fn (string $cell): bool => $cell !== '')) }}</p>
         </div>
     </section>
+
+    @if ($state->isFinished())
+        <x-design-system.result-dialog
+            :title="$state->status === MatchStatus::Drawn ? 'Empate!' : 'Jogador '.strtoupper($state->winner->value).' venceu!'"
+            :eyebrow="$state->status === MatchStatus::Drawn ? 'Rodada empatada' : 'Vitória da rodada'"
+            :description="$state->status === MatchStatus::Drawn ? 'Ninguém completou uma linha nesta rodada.' : 'Três em linha! O placar foi atualizado.'"
+            :winner-mark="$state->winner?->value"
+            :score-x="$score['x']"
+            :score-o="$score['o']"
+            :draws="$score['draws']"
+            x-ref="resultDialog"
+            x-on:close="restoreRoundResultFocus()"
+            data-testid="result-dialog"
+        >
+            <button type="button" wire:click="restart" wire:loading.attr="disabled" x-on:click="closeRoundResult()" autofocus class="min-h-12 rounded-ds-control bg-ds-primary px-3 py-2.5 text-sm font-extrabold text-ds-on-primary hover:bg-ds-primary-hover focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-ds-focus disabled:opacity-60">Próxima rodada</button>
+            <button type="button" x-on:click="closeRoundResult()" class="min-h-12 rounded-ds-control border-2 border-ds-border bg-ds-surface px-3 py-2.5 text-sm font-bold text-ds-text hover:bg-ds-hover focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-ds-focus">Fechar</button>
+        </x-design-system.result-dialog>
+    @endif
 </div>

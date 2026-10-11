@@ -113,6 +113,20 @@ class Classic3x3Rules implements GameRules
         ));
     }
 
+    /**
+     * @return array{int, int, int}|null
+     */
+    public function winningLine(MatchState $state): ?array
+    {
+        $this->assertModality($state->modality);
+
+        if ($state->status !== MatchStatus::Completed || $state->winner === null) {
+            return null;
+        }
+
+        return $this->matchingWinningLine($this->board($state), $state->winner);
+    }
+
     private function assertModality(Modality $modality): void
     {
         if ($modality->key !== '3-basic') {
@@ -145,14 +159,23 @@ class Classic3x3Rules implements GameRules
      */
     private function hasWinningLine(array $board, PlayerMark $player): bool
     {
+        return $this->matchingWinningLine($board, $player) !== null;
+    }
+
+    /**
+     * @param  list<string>  $board
+     * @return array{int, int, int}|null
+     */
+    private function matchingWinningLine(array $board, PlayerMark $player): ?array
+    {
         foreach (self::WINNING_LINES as [$first, $second, $third]) {
             if ($board[$first] === $player->value
                 && $board[$second] === $player->value
                 && $board[$third] === $player->value) {
-                return true;
+                return [$first, $second, $third];
             }
         }
 
-        return false;
+        return null;
     }
 }

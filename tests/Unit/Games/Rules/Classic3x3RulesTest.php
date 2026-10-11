@@ -152,6 +152,30 @@ test('recognizes a winning line for either player', function (PlayerMark $winner
     'O ascending diagonal' => [PlayerMark::O, [2, 0, 4, 1, 6]],
 ]);
 
+test('exposes the completed winning cells without changing the state', function (PlayerMark $winner, array $moves, array $line) {
+    $rules = new Classic3x3Rules;
+    $initial = $rules->initialState(new Modality('3-basic'), classicParticipants(), $winner);
+    $state = playClassicMoves($rules, $initial, $moves);
+
+    expect($rules->winningLine($state))->toBe($line);
+    expect($state->data['board'][$line[0]])->toBe($winner->value);
+    expect($state->status)->toBe(MatchStatus::Completed);
+})->with([
+    'X horizontal' => [PlayerMark::X, [0, 3, 1, 4, 2], [0, 1, 2]],
+    'O vertical' => [PlayerMark::O, [0, 1, 3, 2, 6], [0, 3, 6]],
+    'X descending diagonal' => [PlayerMark::X, [0, 1, 4, 2, 8], [0, 4, 8]],
+    'O ascending diagonal' => [PlayerMark::O, [2, 0, 4, 1, 6], [2, 4, 6]],
+]);
+
+test('does not report winning cells before completion or after a draw', function () {
+    $rules = new Classic3x3Rules;
+    $initial = $rules->initialState(new Modality('3-basic'), classicParticipants(), PlayerMark::X);
+    $draw = playClassicMoves($rules, $initial, [0, 1, 2, 4, 3, 5, 7, 6, 8]);
+
+    expect($rules->winningLine($initial))->toBeNull();
+    expect($rules->winningLine($draw))->toBeNull();
+});
+
 test('declares a draw when the ninth move fills the board without a winner', function () {
     $rules = new Classic3x3Rules;
     $initial = $rules->initialState(new Modality('3-basic'), classicParticipants(), PlayerMark::X);

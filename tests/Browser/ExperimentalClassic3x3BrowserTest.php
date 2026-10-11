@@ -100,6 +100,7 @@ it('shows a reactive scoreboard that survives restarting a round', function (int
         ->assertSeeIn('[data-testid="score-x"]', '1')
         ->assertSeeIn('[data-testid="score-o"]', '0')
         ->assertSeeIn('[data-testid="score-draws"]', '0')
+        ->click('Fechar')
         ->click('Reiniciar partida')
         ->assertSeeIn('[data-testid="match-status"]', 'Vez do jogador O')
         ->assertSeeIn('[data-testid="score-x"]', '1')
@@ -109,4 +110,112 @@ it('shows a reactive scoreboard that survives restarting a round', function (int
 })->with([
     'phone scoreboard' => [360, 800],
     'desktop scoreboard' => [1280, 900],
+]);
+
+it('opens the result only after a winning move and continues with the next round', function () {
+    $page = visit('/experimental/3-basico')
+        ->assertScript('document.querySelector("[data-testid=result-dialog]") === null', true);
+
+    $page->script('window.__resultPageMarker = "same-document";');
+
+    foreach ([0, 3, 1, 4] as $cell) {
+        $page->click('[data-testid="cell-'.$cell.'"]');
+    }
+
+    $page->assertScript('document.querySelector("[data-testid=result-dialog]") === null', true)
+        ->click('[data-testid="cell-2"]')
+        ->assertScript('document.querySelector("[data-testid=result-dialog]").open', true)
+        ->assertSeeIn('[data-testid="result-dialog"]', 'Jogador X venceu!')
+        ->assertSeeIn('[data-testid="result-score-x"]', '1')
+        ->assertScript('JSON.stringify([...document.querySelectorAll("[data-winning-cell=true]")].map(cell => Number(cell.dataset.testid.slice(5))))', '[0,1,2]')
+        ->assertScript('document.activeElement.closest("dialog") !== null', true)
+        ->assertScript('getComputedStyle(document.documentElement).overflowY', 'hidden')
+        ->click('Próxima rodada')
+        ->assertScript('document.querySelector("[data-testid=result-dialog]") === null', true)
+        ->assertSeeIn('[data-testid="match-status"]', 'Vez do jogador O')
+        ->assertSeeIn('[data-testid="score-x"]', '1')
+        ->click('[data-testid="cell-0"]')
+        ->assertSeeIn('[data-testid="match-status"]', 'Vez do jogador X')
+        ->assertScript('window.__resultPageMarker', 'same-document')
+        ->assertNoJavaScriptErrors();
+});
+
+it('closes by button or Escape and does not reopen on rerender or reload', function () {
+    $page = visit('/experimental/3-basico');
+
+    foreach ([0, 3, 1, 4, 2] as $cell) {
+        $page->click('[data-testid="cell-'.$cell.'"]');
+    }
+
+    $page
+        ->assertScript('document.querySelector("[data-testid=result-dialog]").open', true)
+        ->click('Fechar')
+        ->assertScript('document.querySelector("[data-testid=result-dialog]").open', false)
+        ->assertScript('document.activeElement === document.querySelector("[data-testid=match-actions] button")', true);
+
+    $page->script('window.Livewire.find(document.querySelector(".experimental-match").getAttribute("wire:id")).call("place", 5)');
+
+    $page
+        ->assertSeeIn('[data-testid="rejection-message"]', 'A partida terminou.')
+        ->assertScript('document.querySelector("[data-testid=result-dialog]").open', false)
+        ->refresh()
+        ->assertSeeIn('[data-testid="match-status"]', 'Jogador X venceu!')
+        ->assertScript('document.querySelector("[data-testid=result-dialog]").open', false)
+        ->click('Reiniciar partida')
+        ->assertSeeIn('[data-testid="match-status"]', 'Vez do jogador O');
+
+    foreach ([0, 3, 1, 4, 2] as $cell) {
+        $page->click('[data-testid="cell-'.$cell.'"]');
+    }
+
+    $page
+        ->assertSeeIn('[data-testid="result-dialog"]', 'Jogador O venceu!')
+        ->assertScript('document.querySelector("[data-testid=result-dialog]").open', true)
+        ->keys('[data-testid="result-dialog"]', 'Escape')
+        ->assertScript('document.querySelector("[data-testid=result-dialog]").open', false)
+        ->assertScript('document.activeElement === document.querySelector("[data-testid=match-actions] button")', true)
+        ->assertNoJavaScriptErrors();
+});
+
+it('opens a neutral result dialog for a draw with the updated score', function () {
+    $page = visit('/experimental/3-basico');
+
+    foreach ([0, 1, 2, 4, 3, 5, 7, 6, 8] as $cell) {
+        $page->click('[data-testid="cell-'.$cell.'"]');
+    }
+
+    $page
+        ->assertSeeIn('[data-testid="result-dialog"]', 'Empate!')
+        ->assertSeeIn('[data-testid="result-score-draws"]', '1')
+        ->assertScript('document.querySelector("[data-testid=result-dialog]").open', true)
+        ->assertScript('document.querySelectorAll("[data-winning-cell=true]").length', 0)
+        ->assertScript('(() => { const dialog = document.querySelector("[data-testid=result-dialog]"); return dialog.getAttribute("aria-modal") === "true" && Boolean(document.getElementById(dialog.getAttribute("aria-labelledby"))) && Boolean(document.getElementById(dialog.getAttribute("aria-describedby"))); })()', true)
+        ->assertNoJavaScriptErrors();
+});
+
+it('keeps the result dialog within the viewport and its actions reachable', function (int $width, int $height, string $theme) {
+    $page = $theme === 'dark'
+        ? visit('/experimental/3-basico')->inDarkMode()
+        : visit('/experimental/3-basico')->inLightMode();
+
+    $page->resize($width, $height);
+
+    foreach ([0, 3, 1, 4, 2] as $cell) {
+        $page->click('[data-testid="cell-'.$cell.'"]');
+    }
+
+    $page
+        ->assertScript('document.querySelector("[data-testid=result-dialog]").open', true)
+        ->assertScript('(() => { const dialog = document.querySelector("[data-testid=result-dialog]"); const rect = dialog.getBoundingClientRect(); return rect.top >= 0 && rect.bottom <= innerHeight && rect.left >= 0 && rect.right <= innerWidth && dialog.clientHeight <= innerHeight - 12; })()', true)
+        ->assertScript('document.documentElement.scrollWidth <= innerWidth', true)
+        ->assertVisible('[data-testid="result-dialog"] button[autofocus]')
+        ->click('Próxima rodada')
+        ->assertSeeIn('[data-testid="match-status"]', 'Vez do jogador O')
+        ->assertNoJavaScriptErrors();
+})->with([
+    'small phone result light' => [360, 800, 'light'],
+    'phone result dark' => [390, 844, 'dark'],
+    'small landscape result light' => [740, 360, 'light'],
+    'landscape result dark' => [800, 360, 'dark'],
+    'desktop result light' => [1280, 900, 'light'],
 ]);
