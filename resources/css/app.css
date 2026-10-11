@@ -101,8 +101,12 @@ html[data-design-system='experimental'][data-theme='dark'] {
 }
 
 html[data-design-system='experimental'] body {
-    background: var(--ds-canvas);
+    background:
+        radial-gradient(circle at 8% 8%, color-mix(in srgb, var(--ds-primary) 9%, transparent), transparent 26rem),
+        radial-gradient(circle at 95% 72%, color-mix(in srgb, var(--ds-turquoise) 8%, transparent), transparent 28rem),
+        var(--ds-canvas);
     color: var(--ds-text);
+    overflow-x: visible;
 }
 
 @media (prefers-reduced-motion: reduce) {

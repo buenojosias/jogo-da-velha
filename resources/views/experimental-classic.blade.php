@@ -24,7 +24,7 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 <body>
-    <main class="min-h-screen bg-ds-canvas text-ds-text">
+    <main class="min-h-screen text-ds-text">
         <livewire:experimental-classic-3x3 :match-id="$matchId" />
     </main>
 </body>

@@ -6,7 +6,7 @@ it('defaults to the system theme and exposes semantic colors', function () {
         ->assertScript('document.documentElement.dataset.themePreference', 'auto')
         ->assertScript('document.documentElement.dataset.theme', 'dark')
         ->assertSelected('[data-theme-selector]', 'auto')
-        ->assertScript('getComputedStyle(document.querySelector("main")).backgroundColor', 'rgb(23, 22, 41)')
+        ->assertScript('getComputedStyle(document.body).backgroundColor', 'rgb(23, 22, 41)')
         ->assertNoJavaScriptErrors();
 });
 
@@ -28,7 +28,7 @@ it('persists theme choices made with the selector across navigation', function (
 
     $page
         ->assertScript('document.documentElement.dataset.theme', 'light')
-        ->assertScript('getComputedStyle(document.querySelector("main")).backgroundColor', 'rgb(245, 246, 255)')
+        ->assertScript('getComputedStyle(document.body).backgroundColor', 'rgb(245, 246, 255)')
         ->navigate('/experimental/3-basico')
         ->assertScript('document.documentElement.dataset.themePreference', 'light')
         ->assertSelected('[data-theme-selector]', 'light')

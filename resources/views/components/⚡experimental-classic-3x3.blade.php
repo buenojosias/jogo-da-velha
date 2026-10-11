@@ -76,10 +76,10 @@ new class extends Component
 
 @php($state = $this->matchState)
 
-<div class="mx-auto flex min-h-screen w-full max-w-3xl flex-col gap-5 px-4 py-5 text-ds-text sm:gap-6 sm:px-6 sm:py-8">
+<div class="mx-auto flex min-h-screen w-full max-w-5xl flex-col gap-4 px-4 py-4 text-ds-text sm:px-6 sm:py-6">
     <x-design-system.match-header
         modality="Clássico 3×3"
-        title="Jogo da Velha 3×3"
+        title="Jogo da Velha"
         description="Partida local: Jogador X e Jogador O no mesmo dispositivo."
         data-testid="match-header"
     >
@@ -88,62 +88,66 @@ new class extends Component
         </x-slot:actions>
     </x-design-system.match-header>
 
-    <section aria-label="Partida local" class="flex flex-col gap-5">
-        <div class="grid grid-cols-2 gap-3" aria-label="Participantes">
-            <x-design-system.participant-card
-                label="Jogador X"
-                mark="X"
-                :active="$state->status === MatchStatus::InProgress && $state->currentPlayer === PlayerMark::X"
-                data-testid="participant-x"
-            />
-            <x-design-system.participant-card
-                label="Jogador O"
-                mark="O"
-                :active="$state->status === MatchStatus::InProgress && $state->currentPlayer === PlayerMark::O"
-                data-testid="participant-o"
-            />
-        </div>
+    <section aria-label="Partida local" class="grid items-start gap-4 md:grid-cols-[minmax(0,1fr)_15rem] md:gap-5 xl:grid-cols-[minmax(0,1fr)_17rem]">
+        <div data-testid="game-region" class="min-w-0 rounded-ds-card border border-ds-border bg-ds-surface p-3 shadow-ds-elevated sm:p-5">
+            <x-design-system.match-status
+                :tone="$state->status === MatchStatus::Completed ? 'win' : ($state->status === MatchStatus::Drawn ? 'draw' : 'turn')"
+                data-testid="match-status"
+            >
+                @if ($state->status === MatchStatus::Completed)
+                    Jogador {{ strtoupper($state->winner->value) }} venceu!
+                @elseif ($state->status === MatchStatus::Drawn)
+                    Empate!
+                @else
+                    Vez do jogador {{ strtoupper($state->currentPlayer->value) }}
+                @endif
+            </x-design-system.match-status>
 
-        <p data-testid="move-count" class="text-center text-sm font-semibold text-ds-text-secondary">Jogadas realizadas: {{ count(array_filter($state->data['board'], fn (string $cell): bool => $cell !== '')) }}</p>
+            <div data-testid="classic-board" role="group" aria-label="Tabuleiro 3 por 3" class="mx-auto mt-3 grid w-full max-w-[28rem] grid-cols-3 gap-2 sm:mt-4 sm:gap-3">
+                @foreach ($state->data['board'] as $index => $cell)
+                    <button
+                        type="button"
+                        wire:key="cell-{{ $index }}"
+                        wire:click="place({{ $index }})"
+                        wire:loading.attr="disabled"
+                        data-testid="cell-{{ $index }}"
+                        aria-label="Casa linha {{ intdiv($index, 3) + 1 }}, coluna {{ $index % 3 + 1 }}: {{ $cell === '' ? 'vazia' : strtoupper($cell) }}"
+                        @disabled($cell !== '' || $state->isFinished())
+                        class="aspect-square min-h-18 rounded-ds-control border-2 border-ds-border bg-ds-surface text-5xl font-black uppercase shadow-sm {{ $cell === 'o' ? 'text-ds-o' : 'text-ds-x' }} enabled:hover:border-ds-primary enabled:hover:bg-ds-hover enabled:active:scale-[0.98] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-ds-focus disabled:cursor-not-allowed disabled:bg-ds-surface-muted motion-safe:transition-[transform,background-color,border-color,box-shadow] motion-safe:duration-200 motion-reduce:transition-none sm:text-6xl"
+                    >{{ $cell }}</button>
+                @endforeach
+            </div>
 
-        <x-design-system.match-status
-            :tone="$state->status === MatchStatus::Completed ? 'win' : ($state->status === MatchStatus::Drawn ? 'draw' : 'turn')"
-            data-testid="match-status"
-        >
-            @if ($state->status === MatchStatus::Completed)
-                Jogador {{ strtoupper($state->winner->value) }} venceu!
-            @elseif ($state->status === MatchStatus::Drawn)
-                Empate!
-            @else
-                Vez do jogador {{ strtoupper($state->currentPlayer->value) }}
+            @if ($rejectionMessage)
+                <p data-testid="rejection-message" role="alert" class="mt-3 rounded-ds-control border border-ds-warning bg-ds-warning-surface p-3 text-sm text-ds-warning">{{ $rejectionMessage }}</p>
             @endif
-        </x-design-system.match-status>
 
-        @if ($rejectionMessage)
-            <p data-testid="rejection-message" role="alert" class="rounded-lg border border-ds-warning bg-ds-warning-surface p-3 text-sm text-ds-warning">{{ $rejectionMessage }}</p>
-        @endif
-
-        <div data-testid="classic-board" role="group" aria-label="Tabuleiro 3 por 3" class="mx-auto grid w-full max-w-md grid-cols-3 gap-2">
-            @foreach ($state->data['board'] as $index => $cell)
-                <button
-                    type="button"
-                    wire:key="cell-{{ $index }}"
-                    wire:click="place({{ $index }})"
-                    wire:loading.attr="disabled"
-                    data-testid="cell-{{ $index }}"
-                    aria-label="Casa linha {{ intdiv($index, 3) + 1 }}, coluna {{ $index % 3 + 1 }}: {{ $cell === '' ? 'vazia' : strtoupper($cell) }}"
-                    @disabled($cell !== '' || $state->isFinished())
-                    class="aspect-square min-h-20 rounded-xl border-2 border-ds-border bg-ds-surface text-4xl font-bold uppercase {{ $cell === 'o' ? 'text-ds-o' : 'text-ds-x' }} transition-colors hover:border-ds-primary hover:bg-ds-hover focus-visible:outline-4 focus-visible:outline-offset-2 focus-visible:outline-ds-focus disabled:cursor-not-allowed disabled:bg-ds-surface-muted"
-                >{{ $cell }}</button>
-            @endforeach
+            <p wire:loading role="status" class="mt-3 text-sm text-ds-text-secondary">Processando jogada…</p>
         </div>
 
-        <p wire:loading role="status" class="text-sm text-ds-text-secondary">Processando jogada…</p>
+        <div class="flex min-w-0 flex-col gap-3">
+            <div class="grid grid-cols-2 gap-2.5 md:grid-cols-1" aria-label="Participantes">
+                <x-design-system.participant-card
+                    label="Jogador X"
+                    mark="X"
+                    :active="$state->status === MatchStatus::InProgress && $state->currentPlayer === PlayerMark::X"
+                    data-testid="participant-x"
+                />
+                <x-design-system.participant-card
+                    label="Jogador O"
+                    mark="O"
+                    :active="$state->status === MatchStatus::InProgress && $state->currentPlayer === PlayerMark::O"
+                    data-testid="participant-o"
+                />
+            </div>
 
-        <x-design-system.match-actions data-testid="match-actions">
-            <button type="button" wire:click="restart" wire:loading.attr="disabled" class="min-h-12 w-full rounded-ds-control bg-ds-primary px-5 py-3 text-base font-bold text-ds-on-primary hover:bg-ds-primary-hover focus-visible:outline-4 focus-visible:outline-offset-2 focus-visible:outline-ds-focus disabled:opacity-60">
-                Reiniciar partida
-            </button>
-        </x-design-system.match-actions>
+            <x-design-system.match-actions data-testid="match-actions">
+                <button type="button" wire:click="restart" wire:loading.attr="disabled" class="min-h-12 w-full rounded-ds-control bg-ds-primary px-5 py-3 text-base font-bold text-ds-on-primary hover:bg-ds-primary-hover focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-ds-focus disabled:opacity-60 motion-safe:transition-colors motion-safe:duration-200 motion-reduce:transition-none">
+                    Reiniciar partida
+                </button>
+            </x-design-system.match-actions>
+
+            <p data-testid="move-count" class="text-center text-xs font-semibold text-ds-text-muted">Jogadas realizadas: {{ count(array_filter($state->data['board'], fn (string $cell): bool => $cell !== '')) }}</p>
+        </div>
     </section>
 </div>
