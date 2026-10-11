@@ -46,6 +46,107 @@ test('creates a local match and renders nine empty cells', function () {
     expect(app(SessionMatchStore::class)->find($matchId)->data['board'])->toBe(array_fill(0, 9, ''));
 });
 
+test('starts a local match with a zeroed scoreboard', function () {
+    $matchId = createClassicSessionMatch();
+
+    Livewire::test('experimental-classic-3x3', ['matchId' => $matchId])
+        ->assertSeeHtml('data-testid="score-x"')
+        ->assertSeeHtml('data-testid="score-o"')
+        ->assertSeeHtml('data-testid="score-draws"');
+
+    expect(app(SessionMatchStore::class)->score($matchId))->toBe(['x' => 0, 'o' => 0, 'draws' => 0]);
+});
+
+test('counts only the confirmed terminal result of a round', function (array $cells, array $expectedScore, string $resultMessage) {
+    $matchId = createClassicSessionMatch();
+    $component = Livewire::test('experimental-classic-3x3', ['matchId' => $matchId]);
+
+    foreach ($cells as $cell) {
+        $component->call('place', $cell);
+    }
+
+    $component->assertSee($resultMessage);
+    expect(app(SessionMatchStore::class)->score($matchId))->toBe($expectedScore);
+})->with([
+    'X victory' => [[0, 3, 1, 4, 2], ['x' => 1, 'o' => 0, 'draws' => 0], 'Jogador X venceu!'],
+    'O victory' => [[0, 3, 1, 4, 8, 5], ['x' => 0, 'o' => 1, 'draws' => 0], 'Jogador O venceu!'],
+    'draw' => [[0, 1, 2, 4, 3, 5, 7, 6, 8], ['x' => 0, 'o' => 0, 'draws' => 1], 'Empate!'],
+]);
+
+test('preserves the scoreboard through a restart, another round and a new request', function () {
+    $matchId = createClassicSessionMatch();
+    $component = Livewire::test('experimental-classic-3x3', ['matchId' => $matchId]);
+
+    foreach ([0, 3, 1, 4, 2] as $cell) {
+        $component->call('place', $cell);
+    }
+
+    $component->call('restart')->assertSee('Vez do jogador O');
+    expect(app(SessionMatchStore::class)->score($matchId))->toBe(['x' => 1, 'o' => 0, 'draws' => 0]);
+
+    Livewire::test('experimental-classic-3x3', ['matchId' => $matchId])
+        ->assertSee('Vez do jogador O');
+    $response = $this->get(route('experimental.classic.show', $matchId))->assertOk();
+    preg_match('/data-testid="score-x"[^>]*>(\d+)</', $response->getContent(), $renderedScore);
+    expect($renderedScore[1] ?? null)->toBe('1');
+
+    foreach ([0, 3, 1, 4, 2] as $cell) {
+        $component->call('place', $cell);
+    }
+
+    expect(app(SessionMatchStore::class)->score($matchId))->toBe(['x' => 1, 'o' => 1, 'draws' => 0]);
+});
+
+test('keeps scoreboards separate for distinct matches in the same session', function () {
+    $firstId = createClassicSessionMatch();
+    $secondId = createClassicSessionMatch();
+    $component = Livewire::test('experimental-classic-3x3', ['matchId' => $firstId]);
+
+    foreach ([0, 3, 1, 4, 2] as $cell) {
+        $component->call('place', $cell);
+    }
+
+    expect(app(SessionMatchStore::class)->score($firstId))->toBe(['x' => 1, 'o' => 0, 'draws' => 0]);
+    expect(app(SessionMatchStore::class)->score($secondId))->toBe(['x' => 0, 'o' => 0, 'draws' => 0]);
+});
+
+test('does not count rejected or repeated actions after a round ends', function () {
+    $matchId = createClassicSessionMatch();
+    $component = Livewire::test('experimental-classic-3x3', ['matchId' => $matchId])
+        ->call('place', 0)
+        ->call('place', 0)
+        ->assertSee('Esta casa já está ocupada.');
+
+    expect(app(SessionMatchStore::class)->score($matchId))->toBe(['x' => 0, 'o' => 0, 'draws' => 0]);
+
+    foreach ([3, 1, 4, 2] as $cell) {
+        $component->call('place', $cell);
+    }
+
+    $component->call('place', 5)->assertSee('A partida terminou. Reinicie para jogar novamente.');
+    app(SessionMatchStore::class)->save($matchId, app(SessionMatchStore::class)->find($matchId));
+
+    expect(app(SessionMatchStore::class)->score($matchId))->toBe(['x' => 1, 'o' => 0, 'draws' => 0]);
+});
+
+test('refuses malformed scoreboard data in the session', function (mixed $storedScore) {
+    $matchId = createClassicSessionMatch();
+    session()->put('experimental_matches.'.$matchId.'.score', $storedScore);
+
+    expect(fn () => app(SessionMatchStore::class)->score($matchId))
+        ->toThrow(UnexpectedValueException::class);
+})->with([
+    'negative total' => [['x' => -1, 'o' => 0, 'draws' => 0]],
+    'null total' => [null],
+]);
+
+test('starts an existing match without a stored scoreboard at zero', function () {
+    $matchId = createClassicSessionMatch();
+    session()->forget('experimental_matches.'.$matchId.'.score');
+
+    expect(app(SessionMatchStore::class)->score($matchId))->toBe(['x' => 0, 'o' => 0, 'draws' => 0]);
+});
+
 test('persists a valid move and alternates the turn across component requests', function () {
     $matchId = createClassicSessionMatch();
 
@@ -149,6 +250,8 @@ test('does not expose a match to a different session', function () {
 
     expect($firstStore->find($matchId))->toEqual($state);
     expect($secondStore->find($matchId))->toBeNull();
+    expect($firstStore->score($matchId))->toBe(['x' => 0, 'o' => 0, 'draws' => 0]);
+    expect(fn () => $secondStore->score($matchId))->toThrow(InvalidArgumentException::class);
 });
 
 test('returns not found for an unknown match identifier', function () {
@@ -177,6 +280,7 @@ test('rejects attempts to replace the match identifier or mutate official state 
     'board' => ['board', array_fill(0, 9, 'x'), PublicPropertyNotFoundException::class],
     'winner' => ['winner', 'x', PublicPropertyNotFoundException::class],
     'current player' => ['currentPlayer', 'o', PublicPropertyNotFoundException::class],
+    'scoreboard' => ['score', ['x' => 99, 'o' => 99, 'draws' => 99], PublicPropertyNotFoundException::class],
 ]);
 
 test('does not register experimental routes in production', function () {

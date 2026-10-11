@@ -18,6 +18,8 @@ class SessionMatchStore
 {
     private const string SESSION_PREFIX = 'experimental_matches.';
 
+    private const array INITIAL_SCORE = ['x' => 0, 'o' => 0, 'draws' => 0];
+
     public function __construct(private Session $session) {}
 
     public function create(MatchState $state): string
@@ -31,6 +33,7 @@ class SessionMatchStore
         $this->session->put($this->key($matchId), [
             'starting_player' => $startingPlayer->value,
             'state' => $this->encode($state),
+            'score' => self::INITIAL_SCORE,
         ]);
 
         return $matchId;
@@ -65,23 +68,79 @@ class SessionMatchStore
 
     public function save(string $matchId, MatchState $state): void
     {
-        if (! $this->session->has($this->key($matchId))) {
-            throw new InvalidArgumentException('The match does not belong to this session.');
+        $stored = $this->record($matchId);
+        $previousState = $this->decode($stored['state']);
+        $score = $this->scoreFromRecord($stored);
+
+        if ($previousState->status === MatchStatus::InProgress) {
+            if ($state->status === MatchStatus::Completed) {
+                $score[$state->winner->value]++;
+            } elseif ($state->status === MatchStatus::Drawn) {
+                $score['draws']++;
+            }
         }
 
-        $this->session->put($this->key($matchId).'.state', $this->encode($state));
+        $stored['state'] = $this->encode($state);
+        $stored['score'] = $score;
+        $this->session->put($this->key($matchId), $stored);
     }
 
     public function restart(string $matchId, MatchState $state): void
     {
-        if (! $this->session->has($this->key($matchId))) {
-            throw new InvalidArgumentException('The match does not belong to this session.');
-        }
+        $score = $this->scoreFromRecord($this->record($matchId));
 
         $this->session->put($this->key($matchId), [
             'starting_player' => $this->initialPlayer($state)->value,
             'state' => $this->encode($state),
+            'score' => $score,
         ]);
+    }
+
+    /**
+     * @return array{x: int, o: int, draws: int}
+     */
+    public function score(string $matchId): array
+    {
+        return $this->scoreFromRecord($this->record($matchId));
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function record(string $matchId): array
+    {
+        $stored = $this->session->get($this->key($matchId));
+
+        if ($stored === null) {
+            throw new InvalidArgumentException('The match does not belong to this session.');
+        }
+
+        if (! is_array($stored) || ! array_key_exists('state', $stored)) {
+            throw new UnexpectedValueException('Invalid stored match record.');
+        }
+
+        return $stored;
+    }
+
+    /**
+     * @param  array<string, mixed>  $stored
+     * @return array{x: int, o: int, draws: int}
+     */
+    private function scoreFromRecord(array $stored): array
+    {
+        $score = array_key_exists('score', $stored) ? $stored['score'] : self::INITIAL_SCORE;
+
+        if (! is_array($score) || count($score) !== 3) {
+            throw new UnexpectedValueException('Invalid stored match score.');
+        }
+
+        foreach (array_keys(self::INITIAL_SCORE) as $key) {
+            if (! isset($score[$key]) || ! is_int($score[$key]) || $score[$key] < 0) {
+                throw new UnexpectedValueException('Invalid stored match score.');
+            }
+        }
+
+        return ['x' => $score['x'], 'o' => $score['o'], 'draws' => $score['draws']];
     }
 
     private function initialPlayer(MatchState $state): PlayerMark

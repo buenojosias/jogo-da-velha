@@ -30,6 +30,15 @@ new class extends Component
         return app(SessionMatchStore::class)->find($this->matchId) ?? abort(404);
     }
 
+    /**
+     * @return array{x: int, o: int, draws: int}
+     */
+    #[Computed]
+    public function score(): array
+    {
+        return app(SessionMatchStore::class)->score($this->matchId);
+    }
+
     public function place(mixed $cellIndex): void
     {
         $state = $this->matchState;
@@ -52,7 +61,7 @@ new class extends Component
 
         app(SessionMatchStore::class)->save($this->matchId, $result->state);
         $this->rejectionMessage = null;
-        unset($this->matchState);
+        unset($this->matchState, $this->score);
     }
 
     public function restart(): void
@@ -69,12 +78,13 @@ new class extends Component
         );
 
         $this->rejectionMessage = null;
-        unset($this->matchState);
+        unset($this->matchState, $this->score);
     }
 };
 ?>
 
 @php($state = $this->matchState)
+@php($score = $this->score)
 
 <div class="experimental-match mx-auto flex min-h-screen w-full max-w-5xl flex-col gap-4 px-4 py-4 text-ds-text sm:px-6 sm:py-6">
     <x-design-system.match-header
@@ -130,16 +140,20 @@ new class extends Component
                 <x-design-system.participant-card
                     label="Jogador X"
                     mark="X"
+                    :wins="$score['x']"
                     :active="$state->status === MatchStatus::InProgress && $state->currentPlayer === PlayerMark::X"
                     data-testid="participant-x"
                 />
                 <x-design-system.participant-card
                     label="Jogador O"
                     mark="O"
+                    :wins="$score['o']"
                     :active="$state->status === MatchStatus::InProgress && $state->currentPlayer === PlayerMark::O"
                     data-testid="participant-o"
                 />
             </div>
+
+            <p data-testid="score-draws" class="rounded-ds-control border border-ds-border bg-ds-surface-muted px-2 py-1 text-center text-xs font-bold text-ds-text-secondary">Empates: <span class="font-black text-ds-text">{{ $score['draws'] }}</span></p>
 
             <x-design-system.match-actions data-testid="match-actions">
                 <button type="button" wire:click="restart" wire:loading.attr="disabled" class="min-h-12 w-full rounded-ds-control bg-ds-primary px-5 py-3 text-base font-bold text-ds-on-primary hover:bg-ds-primary-hover focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-ds-focus disabled:opacity-60 motion-safe:transition-colors motion-safe:duration-200 motion-reduce:transition-none">

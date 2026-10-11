@@ -84,3 +84,29 @@ it('keeps every cell and essential control in reach on a short landscape screen'
     '800 landscape light' => [800, 'light'],
     '800 landscape dark' => [800, 'dark'],
 ]);
+
+it('shows a reactive scoreboard that survives restarting a round', function (int $width, int $height) {
+    $page = visit('/experimental/3-basico')->resize($width, $height)
+        ->assertSeeIn('[data-testid="score-x"]', '0')
+        ->assertSeeIn('[data-testid="score-o"]', '0')
+        ->assertSeeIn('[data-testid="score-draws"]', '0');
+
+    foreach ([0, 3, 1, 4, 2] as $cell) {
+        $page->click('[data-testid="cell-'.$cell.'"]');
+    }
+
+    $page
+        ->assertSeeIn('[data-testid="match-status"]', 'Jogador X venceu!')
+        ->assertSeeIn('[data-testid="score-x"]', '1')
+        ->assertSeeIn('[data-testid="score-o"]', '0')
+        ->assertSeeIn('[data-testid="score-draws"]', '0')
+        ->click('Reiniciar partida')
+        ->assertSeeIn('[data-testid="match-status"]', 'Vez do jogador O')
+        ->assertSeeIn('[data-testid="score-x"]', '1')
+        ->assertVisible('[data-testid="score-draws"]')
+        ->assertScript('document.documentElement.scrollWidth <= innerWidth', true)
+        ->assertNoJavaScriptErrors();
+})->with([
+    'phone scoreboard' => [360, 800],
+    'desktop scoreboard' => [1280, 900],
+]);
