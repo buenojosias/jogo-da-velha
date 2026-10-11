@@ -76,23 +76,40 @@ new class extends Component
 
 @php($state = $this->matchState)
 
-<div class="mx-auto flex min-h-screen w-full max-w-xl flex-col gap-6 px-4 py-8 text-ds-text sm:px-6">
-    <header class="flex flex-col gap-2">
-        <p class="text-sm font-semibold uppercase tracking-wide text-ds-primary">Experimento Livewire</p>
-        <h1 class="text-3xl font-bold">Jogo da Velha 3×3</h1>
-        <p class="text-sm text-ds-text-secondary">Partida local: Jogador X e Jogador O no mesmo dispositivo.</p>
-    </header>
+<div class="mx-auto flex min-h-screen w-full max-w-3xl flex-col gap-5 px-4 py-5 text-ds-text sm:gap-6 sm:px-6 sm:py-8">
+    <x-design-system.match-header
+        modality="Clássico 3×3"
+        title="Jogo da Velha 3×3"
+        description="Partida local: Jogador X e Jogador O no mesmo dispositivo."
+        data-testid="match-header"
+    >
+        <x-slot:actions>
+            <x-design-system.theme-selector data-testid="theme-selector" />
+        </x-slot:actions>
+    </x-design-system.match-header>
 
     <section aria-label="Partida local" class="flex flex-col gap-5">
-        <div class="flex items-center justify-between gap-4 rounded-xl bg-ds-surface-muted p-4">
-            <div class="flex gap-4 font-semibold" aria-label="Participantes">
-                <span>Jogador X</span>
-                <span>Jogador O</span>
-            </div>
-            <span data-testid="move-count" class="text-sm text-ds-text-secondary">Jogadas realizadas: {{ count(array_filter($state->data['board'], fn (string $cell): bool => $cell !== '')) }}</span>
+        <div class="grid grid-cols-2 gap-3" aria-label="Participantes">
+            <x-design-system.participant-card
+                label="Jogador X"
+                mark="X"
+                :active="$state->status === MatchStatus::InProgress && $state->currentPlayer === PlayerMark::X"
+                data-testid="participant-x"
+            />
+            <x-design-system.participant-card
+                label="Jogador O"
+                mark="O"
+                :active="$state->status === MatchStatus::InProgress && $state->currentPlayer === PlayerMark::O"
+                data-testid="participant-o"
+            />
         </div>
 
-        <p data-testid="match-status" role="status" aria-live="polite" class="text-center text-xl font-semibold">
+        <p data-testid="move-count" class="text-center text-sm font-semibold text-ds-text-secondary">Jogadas realizadas: {{ count(array_filter($state->data['board'], fn (string $cell): bool => $cell !== '')) }}</p>
+
+        <x-design-system.match-status
+            :tone="$state->status === MatchStatus::Completed ? 'win' : ($state->status === MatchStatus::Drawn ? 'draw' : 'turn')"
+            data-testid="match-status"
+        >
             @if ($state->status === MatchStatus::Completed)
                 Jogador {{ strtoupper($state->winner->value) }} venceu!
             @elseif ($state->status === MatchStatus::Drawn)
@@ -100,13 +117,13 @@ new class extends Component
             @else
                 Vez do jogador {{ strtoupper($state->currentPlayer->value) }}
             @endif
-        </p>
+        </x-design-system.match-status>
 
         @if ($rejectionMessage)
             <p data-testid="rejection-message" role="alert" class="rounded-lg border border-ds-warning bg-ds-warning-surface p-3 text-sm text-ds-warning">{{ $rejectionMessage }}</p>
         @endif
 
-        <div data-testid="classic-board" role="group" aria-label="Tabuleiro 3 por 3" class="grid grid-cols-3 gap-2">
+        <div data-testid="classic-board" role="group" aria-label="Tabuleiro 3 por 3" class="mx-auto grid w-full max-w-md grid-cols-3 gap-2">
             @foreach ($state->data['board'] as $index => $cell)
                 <button
                     type="button"
@@ -123,8 +140,10 @@ new class extends Component
 
         <p wire:loading role="status" class="text-sm text-ds-text-secondary">Processando jogada…</p>
 
-        <button type="button" wire:click="restart" wire:loading.attr="disabled" class="min-h-12 rounded-xl bg-ds-primary px-5 py-3 font-semibold text-ds-on-primary hover:bg-ds-primary-hover focus-visible:outline-4 focus-visible:outline-offset-2 focus-visible:outline-ds-focus disabled:opacity-60">
-            Reiniciar partida
-        </button>
+        <x-design-system.match-actions data-testid="match-actions">
+            <button type="button" wire:click="restart" wire:loading.attr="disabled" class="min-h-12 w-full rounded-ds-control bg-ds-primary px-5 py-3 text-base font-bold text-ds-on-primary hover:bg-ds-primary-hover focus-visible:outline-4 focus-visible:outline-offset-2 focus-visible:outline-ds-focus disabled:opacity-60">
+                Reiniciar partida
+            </button>
+        </x-design-system.match-actions>
     </section>
 </div>

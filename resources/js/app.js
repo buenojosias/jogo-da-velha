@@ -17,6 +17,13 @@ if (root.dataset.designSystem === 'experimental') {
 
     let preference = readPreference();
 
+    const syncThemeSelectors = () => {
+        document.querySelectorAll('select[data-theme-selector]').forEach((selector) => {
+            selector.value = preference;
+            selector.hidden = false;
+        });
+    };
+
     const effectiveTheme = () => preference === 'auto'
         ? (systemTheme.matches ? 'dark' : 'light')
         : preference;
@@ -34,6 +41,20 @@ if (root.dataset.designSystem === 'experimental') {
             applyTheme();
         }
     });
+
+    root.addEventListener('jogo-da-velha:theme-change', syncThemeSelectors);
+
+    document.addEventListener('change', (event) => {
+        if (event.target instanceof HTMLSelectElement && event.target.matches('[data-theme-selector]')) {
+            window.JogoDaVelhaTheme.setPreference(event.target.value);
+        }
+    });
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', syncThemeSelectors, { once: true });
+    } else {
+        syncThemeSelectors();
+    }
 
     window.JogoDaVelhaTheme = Object.freeze({
         getPreference: () => preference,

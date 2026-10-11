@@ -29,9 +29,20 @@ test('creates a local match and renders nine empty cells', function () {
 
     $component = Livewire::test('experimental-classic-3x3', ['matchId' => $matchId])
         ->assertSee('Jogador X')
-        ->assertSee('Jogador O');
+        ->assertSee('Jogador O')
+        ->assertSee('Clássico 3×3')
+        ->assertSee('Automático')
+        ->assertSee('Claro')
+        ->assertSee('Escuro');
 
     expect(substr_count($component->html(), 'data-testid="cell-'))->toBe(9);
+    expect($component->html())
+        ->toContain('data-testid="match-header"')
+        ->toContain('data-testid="participant-x"')
+        ->toContain('data-testid="participant-o"')
+        ->toContain('data-testid="match-status"')
+        ->toContain('data-testid="match-actions"')
+        ->toContain('data-testid="theme-selector"');
     expect(app(SessionMatchStore::class)->find($matchId)->data['board'])->toBe(array_fill(0, 9, ''));
 });
 
