@@ -7,10 +7,17 @@ use App\Http\ClassicMatchManager;
 use App\Http\SessionMatchStore;
 use Illuminate\Session\ArraySessionHandler;
 use Illuminate\Session\Store;
+use Illuminate\Support\Facades\Route;
 use Livewire\Features\SupportLockedProperties\CannotUpdateLockedPropertyException;
 use Livewire\Livewire;
 use Random\Engine\Mt19937;
 use Random\Randomizer;
+
+test('does not register the removed classic legacy route', function () {
+    $this->get('/3-basico-legado')->assertNotFound();
+
+    expect(Route::has('legacy.classic'))->toBeFalse();
+});
 
 test('opens the public classic without login using Livewire and a new session match', function () {
     $this->app->instance(Randomizer::class, new Randomizer(new Mt19937(0)));

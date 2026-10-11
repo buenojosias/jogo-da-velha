@@ -27,7 +27,6 @@ Route::view('/ultimate', 'ultimate')->name('ultimate');
 
 if (app()->environment(['local', 'testing'])) {
     Route::view('/livewire-reference', 'livewire-reference')->name('livewire.reference');
-    Route::view('/3-basico-legado', '3-basic')->name('legacy.classic');
 
     Route::get('/experimental/3-basico', function (ClassicMatchManager $matches) {
         return redirect()->route('experimental.classic.show', ['matchId' => $matches->create()]);
