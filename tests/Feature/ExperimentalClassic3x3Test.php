@@ -15,8 +15,11 @@ use Illuminate\Support\Facades\Route;
 use Livewire\Exceptions\PublicPropertyNotFoundException;
 use Livewire\Features\SupportLockedProperties\CannotUpdateLockedPropertyException;
 use Livewire\Livewire;
+use Random\Engine\Mt19937;
+use Random\Randomizer;
 
 test('creates a local match and renders nine empty cells', function () {
+    $this->app->instance(Randomizer::class, new Randomizer(new Mt19937(0)));
     $response = $this->get(route('experimental.classic.create'));
     $response->assertRedirect();
 
@@ -44,6 +47,71 @@ test('creates a local match and renders nine empty cells', function () {
         ->toContain('data-testid="match-actions"')
         ->toContain('data-testid="theme-selector"');
     expect(app(SessionMatchStore::class)->find($matchId)->data['board'])->toBe(array_fill(0, 9, ''));
+});
+
+test('selects and records the initial player on the server without redrawing on reload', function (int $seed, PlayerMark $expectedStarter) {
+    $this->app->instance(Randomizer::class, new Randomizer(new Mt19937($seed)));
+
+    $oppositeMark = $expectedStarter === PlayerMark::X ? 'o' : 'x';
+    $response = $this->get(route('experimental.classic.create', ['starting_player' => $oppositeMark]))->assertRedirect();
+    $matchId = basename($response->headers->get('Location'));
+    $store = app(SessionMatchStore::class);
+
+    expect($store->startingPlayer($matchId))->toBe($expectedStarter);
+    expect($store->find($matchId)->currentPlayer)->toBe($expectedStarter);
+
+    $this->get(route('experimental.classic.show', $matchId))
+        ->assertOk()
+        ->assertSee('Vez do jogador '.$expectedStarter->name);
+
+    expect($store->startingPlayer($matchId))->toBe($expectedStarter);
+    expect($store->score($matchId))->toBe(['x' => 0, 'o' => 0, 'draws' => 0]);
+})->with([
+    'X starter' => [0, PlayerMark::X],
+    'O starter' => [1, PlayerMark::O],
+]);
+
+test('selects a new initial player for each independent match', function () {
+    $this->app->instance(Randomizer::class, new Randomizer(new Mt19937(0)));
+
+    $first = $this->get(route('experimental.classic.create'))->assertRedirect();
+    $firstId = basename($first->headers->get('Location'));
+    $this->get(route('experimental.classic.show', $firstId))->assertOk();
+    $second = $this->get(route('experimental.classic.create'))->assertRedirect();
+    $secondId = basename($second->headers->get('Location'));
+    $store = app(SessionMatchStore::class);
+
+    expect($firstId)->not->toBe($secondId);
+    expect($store->startingPlayer($firstId))->toBe(PlayerMark::X);
+    expect($store->startingPlayer($secondId))->toBe(PlayerMark::O);
+});
+
+test('keeps an O-started match and its score after victory, reload, and restart', function () {
+    $this->app->instance(Randomizer::class, new Randomizer(new Mt19937(1)));
+    $response = $this->get(route('experimental.classic.create'))->assertRedirect();
+    $matchId = basename($response->headers->get('Location'));
+    $component = Livewire::test('experimental-classic-3x3', ['matchId' => $matchId])
+        ->assertSee('Vez do jogador O');
+
+    foreach ([0, 3, 1, 4, 2] as $cell) {
+        $component->call('place', $cell);
+    }
+
+    $component
+        ->assertSee('Jogador O venceu!')
+        ->assertSeeHtml('data-testid="result-dialog"')
+        ->assertDispatched('classic-round-finished');
+
+    $store = app(SessionMatchStore::class);
+    expect($store->score($matchId))->toBe(['x' => 0, 'o' => 1, 'draws' => 0]);
+
+    $this->get(route('experimental.classic.show', $matchId))
+        ->assertOk()
+        ->assertSee('Jogador O venceu!');
+
+    $component->call('restart')->assertSee('Vez do jogador X');
+    expect($store->startingPlayer($matchId))->toBe(PlayerMark::X);
+    expect($store->score($matchId))->toBe(['x' => 0, 'o' => 1, 'draws' => 0]);
 });
 
 test('starts a local match with a zeroed scoreboard', function () {

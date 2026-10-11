@@ -40,6 +40,13 @@ it('persists theme choices made with the selector across navigation', function (
 
 it('keeps the selector synchronized with the theme API and during a Livewire update', function () {
     $page = visit('/experimental/3-basico');
+    $initialTurn = $page->script('document.querySelector("[data-testid=match-status]").textContent.trim()');
+
+    expect(['Vez do jogador X', 'Vez do jogador O'])->toContain($initialTurn);
+
+    if ($initialTurn === 'Vez do jogador O') {
+        $page->click('Reiniciar partida');
+    }
 
     $page->select('[data-theme-selector]', 'dark');
     $page->click('[data-testid="cell-0"]')

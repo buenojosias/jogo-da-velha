@@ -92,14 +92,16 @@ function parityPagesStartingWith(string $starter): array
     $original = visit('/3-basico')->assertCount('#board .cell', 9);
     $experimental = visit('/experimental/3-basico')->assertCount('[data-testid^="cell-"]', 9);
     $observedStarter = parityOriginalTurn($original);
+    $experimentalStarter = $experimental->script('document.querySelector("[data-testid=match-status]").textContent.trim()');
 
     expect(['x', 'o'])->toContain($observedStarter);
+    expect(['Vez do jogador X', 'Vez do jogador O'])->toContain($experimentalStarter);
 
     if ($observedStarter !== $starter) {
         $original->click('#restartBtn');
     }
 
-    if ($starter === 'o') {
+    if ($experimentalStarter !== 'Vez do jogador '.strtoupper($starter)) {
         $experimental->click('Reiniciar partida');
     }
 

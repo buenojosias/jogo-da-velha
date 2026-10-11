@@ -1,12 +1,15 @@
 <?php
 
+use Pest\Browser\Api\AwaitableWebpage;
+use Pest\Browser\Api\PendingAwaitablePage;
+
 it('plays an experimental classic match reactively without reloading the page', function () {
     $page = visit('/experimental/3-basico')
         ->assertCount('[data-testid^="cell-"]', 9)
-        ->assertSeeIn('[data-testid="match-status"]', 'Vez do jogador X')
-        ->assertSeeIn('[data-testid="participant-x"]', 'É a vez')
         ->assertSeeIn('[data-testid="move-count"]', 'Jogadas realizadas: 0');
 
+    experimentalPageStartingWith($page, 'x');
+    $page->assertSeeIn('[data-testid="participant-x"]', 'É a vez');
     $page->script('window.__experimentalMatchMarker = "same-document";');
 
     $page
@@ -31,6 +34,7 @@ it('keeps the board and controls usable without clipping or overlap', function (
         ? visit('/experimental/3-basico')->inDarkMode()
         : visit('/experimental/3-basico')->inLightMode();
 
+    experimentalPageStartingWith($page, 'x');
     $page
         ->resize($width, $height)
         ->assertScript('document.documentElement.dataset.theme', $theme)
@@ -65,6 +69,7 @@ it('keeps every cell and essential control in reach on a short landscape screen'
         ? visit('/experimental/3-basico')->inDarkMode()
         : visit('/experimental/3-basico')->inLightMode();
 
+    experimentalPageStartingWith($page, 'x');
     $page
         ->resize($width, 360)
         ->assertScript('document.documentElement.dataset.theme', $theme)
@@ -91,6 +96,7 @@ it('shows a reactive scoreboard that survives restarting a round', function (int
         ->assertSeeIn('[data-testid="score-o"]', '0')
         ->assertSeeIn('[data-testid="score-draws"]', '0');
 
+    experimentalPageStartingWith($page, 'x');
     foreach ([0, 3, 1, 4, 2] as $cell) {
         $page->click('[data-testid="cell-'.$cell.'"]');
     }
@@ -116,6 +122,7 @@ it('opens the result only after a winning move and continues with the next round
     $page = visit('/experimental/3-basico')
         ->assertScript('document.querySelector("[data-testid=result-dialog]") === null', true);
 
+    experimentalPageStartingWith($page, 'x');
     $page->script('window.__resultPageMarker = "same-document";');
 
     foreach ([0, 3, 1, 4] as $cell) {
@@ -143,6 +150,7 @@ it('opens the result only after a winning move and continues with the next round
 it('closes by button or Escape and does not reopen on rerender or reload', function () {
     $page = visit('/experimental/3-basico');
 
+    experimentalPageStartingWith($page, 'x');
     foreach ([0, 3, 1, 4, 2] as $cell) {
         $page->click('[data-testid="cell-'.$cell.'"]');
     }
@@ -180,6 +188,7 @@ it('closes by button or Escape and does not reopen on rerender or reload', funct
 it('opens a neutral result dialog for a draw with the updated score', function () {
     $page = visit('/experimental/3-basico');
 
+    experimentalPageStartingWith($page, 'x');
     foreach ([0, 1, 2, 4, 3, 5, 7, 6, 8] as $cell) {
         $page->click('[data-testid="cell-'.$cell.'"]');
     }
@@ -198,6 +207,7 @@ it('keeps the result dialog within the viewport and its actions reachable', func
         ? visit('/experimental/3-basico')->inDarkMode()
         : visit('/experimental/3-basico')->inLightMode();
 
+    experimentalPageStartingWith($page, 'x');
     $page->resize($width, $height);
 
     foreach ([0, 3, 1, 4, 2] as $cell) {
@@ -219,3 +229,16 @@ it('keeps the result dialog within the viewport and its actions reachable', func
     'landscape result dark' => [800, 360, 'dark'],
     'desktop result light' => [1280, 900, 'light'],
 ]);
+
+function experimentalPageStartingWith(AwaitableWebpage|PendingAwaitablePage $page, string $expectedMark): void
+{
+    $observedTurn = $page->script('document.querySelector("[data-testid=match-status]").textContent.trim()');
+
+    expect(['Vez do jogador X', 'Vez do jogador O'])->toContain($observedTurn);
+
+    if ($observedTurn !== 'Vez do jogador '.strtoupper($expectedMark)) {
+        $page->click('Reiniciar partida');
+    }
+
+    $page->assertSeeIn('[data-testid="match-status"]', 'Vez do jogador '.strtoupper($expectedMark));
+}
