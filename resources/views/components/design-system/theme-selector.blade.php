@@ -1,7 +1,7 @@
 @props(['id' => 'theme-preference'])
 
-<div {{ $attributes->class(['flex flex-col gap-1']) }} wire:ignore>
-    <label for="{{ $id }}" class="text-xs font-bold text-ds-text-secondary">Tema</label>
+<div {{ $attributes->class(['ds-theme-selector flex flex-col gap-1']) }} wire:ignore>
+    <label for="{{ $id }}" class="ds-theme-label text-xs font-bold text-ds-text-secondary">Tema</label>
     <select
         id="{{ $id }}"
         data-theme-selector

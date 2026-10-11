@@ -76,7 +76,7 @@ new class extends Component
 
 @php($state = $this->matchState)
 
-<div class="mx-auto flex min-h-screen w-full max-w-5xl flex-col gap-4 px-4 py-4 text-ds-text sm:px-6 sm:py-6">
+<div class="experimental-match mx-auto flex min-h-screen w-full max-w-5xl flex-col gap-4 px-4 py-4 text-ds-text sm:px-6 sm:py-6">
     <x-design-system.match-header
         modality="Clássico 3×3"
         title="Jogo da Velha"
@@ -88,8 +88,8 @@ new class extends Component
         </x-slot:actions>
     </x-design-system.match-header>
 
-    <section aria-label="Partida local" class="grid items-start gap-4 md:grid-cols-[minmax(0,1fr)_15rem] md:gap-5 xl:grid-cols-[minmax(0,1fr)_17rem]">
-        <div data-testid="game-region" class="min-w-0 rounded-ds-card border border-ds-border bg-ds-surface p-3 shadow-ds-elevated sm:p-5">
+    <section aria-label="Partida local" class="experimental-match-layout grid items-start gap-4 md:grid-cols-[minmax(0,1fr)_15rem] md:gap-5 xl:grid-cols-[minmax(0,1fr)_17rem]">
+        <div data-testid="game-region" class="experimental-game-region min-w-0 rounded-ds-card border border-t-4 border-ds-border border-t-ds-primary bg-ds-surface p-3 shadow-ds-elevated sm:p-5">
             <x-design-system.match-status
                 :tone="$state->status === MatchStatus::Completed ? 'win' : ($state->status === MatchStatus::Drawn ? 'draw' : 'turn')"
                 data-testid="match-status"
@@ -103,7 +103,7 @@ new class extends Component
                 @endif
             </x-design-system.match-status>
 
-            <div data-testid="classic-board" role="group" aria-label="Tabuleiro 3 por 3" class="mx-auto mt-3 grid w-full max-w-[28rem] grid-cols-3 gap-2 sm:mt-4 sm:gap-3">
+            <div data-testid="classic-board" role="group" aria-label="Tabuleiro 3 por 3" class="experimental-board mx-auto mt-3 grid w-full max-w-[28rem] grid-cols-3 gap-2 sm:mt-4 sm:gap-3">
                 @foreach ($state->data['board'] as $index => $cell)
                     <button
                         type="button"
@@ -113,7 +113,7 @@ new class extends Component
                         data-testid="cell-{{ $index }}"
                         aria-label="Casa linha {{ intdiv($index, 3) + 1 }}, coluna {{ $index % 3 + 1 }}: {{ $cell === '' ? 'vazia' : strtoupper($cell) }}"
                         @disabled($cell !== '' || $state->isFinished())
-                        class="aspect-square min-h-18 rounded-ds-control border-2 border-ds-border bg-ds-surface text-5xl font-black uppercase shadow-sm {{ $cell === 'o' ? 'text-ds-o' : 'text-ds-x' }} enabled:hover:border-ds-primary enabled:hover:bg-ds-hover enabled:active:scale-[0.98] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-ds-focus disabled:cursor-not-allowed disabled:bg-ds-surface-muted motion-safe:transition-[transform,background-color,border-color,box-shadow] motion-safe:duration-200 motion-reduce:transition-none sm:text-6xl"
+                        class="aspect-square min-h-18 rounded-ds-control border-2 border-ds-border bg-ds-surface text-5xl font-black uppercase shadow-sm {{ $cell === 'o' ? 'text-ds-o' : 'text-ds-x' }} enabled:hover:border-ds-primary enabled:hover:bg-ds-hover enabled:hover:shadow-ds-card enabled:active:scale-[0.98] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-ds-focus disabled:cursor-not-allowed disabled:bg-ds-surface-muted motion-safe:transition-[transform,background-color,border-color,box-shadow] motion-safe:duration-200 motion-reduce:transition-none sm:text-6xl"
                     >{{ $cell }}</button>
                 @endforeach
             </div>
@@ -125,8 +125,8 @@ new class extends Component
             <p wire:loading role="status" class="mt-3 text-sm text-ds-text-secondary">Processando jogada…</p>
         </div>
 
-        <div class="flex min-w-0 flex-col gap-3">
-            <div class="grid grid-cols-2 gap-2.5 md:grid-cols-1" aria-label="Participantes">
+        <div class="experimental-match-sidebar flex min-w-0 flex-col gap-3">
+            <div class="experimental-participants grid grid-cols-2 gap-2.5 md:grid-cols-1" aria-label="Participantes">
                 <x-design-system.participant-card
                     label="Jogador X"
                     mark="X"

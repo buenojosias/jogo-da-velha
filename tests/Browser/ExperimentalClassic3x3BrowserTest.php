@@ -59,3 +59,28 @@ it('keeps the board and controls usable without clipping or overlap', function (
     'desktop light' => [1280, 900, 'light'],
     'desktop dark' => [1280, 900, 'dark'],
 ]);
+
+it('keeps every cell and essential control in reach on a short landscape screen', function (int $width, string $theme) {
+    $page = $theme === 'dark'
+        ? visit('/experimental/3-basico')->inDarkMode()
+        : visit('/experimental/3-basico')->inLightMode();
+
+    $page
+        ->resize($width, 360)
+        ->assertScript('document.documentElement.dataset.theme', $theme)
+        ->assertScript('document.documentElement.scrollWidth <= innerWidth', true)
+        ->assertScript('document.documentElement.scrollHeight <= innerHeight + 24', true)
+        ->assertScript('(() => { const board = document.querySelector("[data-testid=classic-board]").getBoundingClientRect(); const participant = document.querySelector("[data-testid=participant-x]").getBoundingClientRect(); return board.right < participant.left && Math.abs(board.width - board.height) < 2; })()', true)
+        ->assertScript('(() => { const cells = [...document.querySelectorAll("[data-testid^=cell-]")]; return cells.length === 9 && cells.every(cell => { const rect = cell.getBoundingClientRect(); return rect.width >= 44 && rect.height >= 44 && rect.top >= 0 && rect.bottom <= innerHeight && rect.left >= 0 && rect.right <= innerWidth && document.elementFromPoint(rect.left + rect.width / 2, rect.top + rect.height / 2) === cell; }); })()', true)
+        ->assertScript('(() => { const selectors = ["[data-testid=match-status]", "[data-testid=participant-x]", "[data-testid=participant-o]", "[data-theme-selector]", "[data-testid=match-actions] button"]; return selectors.every(selector => { const element = document.querySelector(selector); const rect = element.getBoundingClientRect(); const topmost = document.elementFromPoint(rect.left + rect.width / 2, rect.top + rect.height / 2); return rect.top >= 0 && rect.bottom <= innerHeight && rect.left >= 0 && rect.right <= innerWidth && (topmost === element || element.contains(topmost)); }); })()', true)
+        ->click('[data-testid="cell-8"]')
+        ->assertSeeIn('[data-testid="match-status"]', 'Vez do jogador O')
+        ->click('Reiniciar partida')
+        ->assertSeeIn('[data-testid="match-status"]', 'Vez do jogador O')
+        ->assertNoJavaScriptErrors();
+})->with([
+    '740 landscape light' => [740, 'light'],
+    '740 landscape dark' => [740, 'dark'],
+    '800 landscape light' => [800, 'light'],
+    '800 landscape dark' => [800, 'dark'],
+]);
