@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Clássico 3×3 experimental</title>
+    <title>Clássico 3×3 | Jogo da Velha</title>
     <script>
         (() => {
             let preference = 'auto';
@@ -25,7 +25,7 @@
 </head>
 <body>
     <main class="min-h-screen text-ds-text">
-        <livewire:experimental-classic-3x3 :match-id="$matchId" />
+        <livewire:experimental-classic-3x3 :match-id="$matchId" :public-entry="$publicEntry ?? false" />
     </main>
 </body>
 </html>

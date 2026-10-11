@@ -3,19 +3,25 @@
 it('keeps the classic board usable without horizontal page overflow at :dataset', function (int $width, int $height) {
     $page = visit('/3-basico')
         ->resize($width, $height)
-        ->assertVisible('#board')
-        ->assertVisible('#restartBtn')
-        ->assertVisible(browserCellSelector(0))
+        ->assertVisible('[data-testid="classic-board"]')
+        ->assertVisible('[data-testid="match-actions"]')
+        ->assertVisible('[data-testid="new-match-button"]')
+        ->assertVisible('[data-testid="cell-0"]')
         ->assertScript('document.documentElement.scrollWidth <= document.documentElement.clientWidth')
-        ->assertScript('function() { const cell = document.querySelector("#board .cell"); const box = cell.getBoundingClientRect(); const target = document.elementFromPoint(box.left + box.width / 2, box.top + box.height / 2); return cell === target || cell.contains(target); }');
+        ->assertScript('(() => { const cell = document.querySelector("[data-testid=cell-0]"); const box = cell.getBoundingClientRect(); return document.elementFromPoint(box.left + box.width / 2, box.top + box.height / 2) === cell; })()', true);
 
     $page
-        ->click(browserCellSelector(0))
-        ->assertScript('board[0] !== ""')
+        ->click('[data-testid="cell-0"]')
+        ->assertSeeIn('[data-testid="move-count"]', 'Jogadas realizadas: 1')
+        ->click('[data-testid="new-match-button"]')
+        ->assertScript('document.querySelector("[data-testid=new-match-dialog]").open', true)
+        ->click('Cancelar')
         ->assertNoJavaScriptErrors();
 })->with([
     'small phone (360px)' => [360, 800],
     'common phone (390px)' => [390, 844],
+    'short landscape (740px)' => [740, 360],
+    'short landscape (800px)' => [800, 360],
     'tablet (768px)' => [768, 1024],
     'desktop (1280px)' => [1280, 900],
 ]);

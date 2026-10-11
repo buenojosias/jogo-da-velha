@@ -1,50 +1,86 @@
 <?php
 
+use Pest\Browser\Api\AwaitableWebpage;
+use Pest\Browser\Api\PendingAwaitablePage;
+
 it('plays, wins, scores, and restarts a classic 3x3 match', function () {
     $page = visit('/3-basico')
-        ->assertCount('#board .cell', 9)
-        ->assertScript('board.every((cell) => cell === "")')
-        ->assertScript('currentPlayer === startingPlayer')
-        ->assertScript('currentPlayer === "x" ? playerXIcon.style.display === "inline" : playerOIcon.style.display === "inline"');
+        ->assertCount('[data-testid^="cell-"]', 9)
+        ->assertSeeIn('[data-testid="move-count"]', 'Jogadas realizadas: 0');
 
-    $initialPlayer = $page->script('currentPlayer');
+    $initialPlayer = publicClassicStarter($page);
     $otherPlayer = $initialPlayer === 'x' ? 'o' : 'x';
 
     $page
-        ->click(browserCellSelector(0))
-        ->assertScript('board[0]', $initialPlayer)
-        ->assertScript('currentPlayer', $otherPlayer)
-        ->click(browserCellSelector(0))
-        ->assertScript('board[0]', $initialPlayer)
-        ->assertScript('currentPlayer', $otherPlayer);
+        ->click('[data-testid="cell-0"]')
+        ->assertSeeIn('[data-testid="cell-0"]', $initialPlayer)
+        ->assertSeeIn('[data-testid="match-status"]', 'Vez do jogador '.strtoupper($otherPlayer))
+        ->assertDisabled('[data-testid="cell-0"]')
+        ->script('document.querySelector("[data-testid=cell-0]").click()');
 
-    clickBrowserCells($page, [3, 1, 4, 2]);
+    $page->assertSeeIn('[data-testid="move-count"]', 'Jogadas realizadas: 1');
+
+    foreach ([3, 1, 4, 2] as $cell) {
+        $page->click('[data-testid="cell-'.$cell.'"]');
+    }
 
     $page
-        ->assertScript('gameOver')
-        ->assertScript('modalWinElement.style.display', 'flex')
-        ->assertVisible('#modal-win')
-        ->assertScript(sprintf('score.%s', $initialPlayer), 1)
-        ->assertScript(sprintf('score.%s', $otherPlayer), 0)
-        ->assertScript('document.querySelectorAll(".winner-" + startingPlayer).length', 3)
-        ->click('#modal-restart-btn')
-        ->assertScript('board.every((cell) => cell === "")')
-        ->assertScript('gameOver', false)
-        ->assertScript('startingPlayer', $otherPlayer)
-        ->assertScript('currentPlayer', $otherPlayer)
-        ->assertScript('modalWinElement.style.display', 'none')
+        ->assertSeeIn('[data-testid="match-status"]', 'Jogador '.strtoupper($initialPlayer).' venceu!')
+        ->assertScript('document.querySelector("[data-testid=result-dialog]").open', true)
+        ->assertSeeIn('[data-testid="score-'.$initialPlayer.'"]', '1')
+        ->assertScript('document.querySelectorAll("[data-winning-cell=true]").length', 3)
+        ->click('Próxima rodada')
+        ->assertSeeIn('[data-testid="match-status"]', 'Vez do jogador '.strtoupper($otherPlayer))
+        ->assertSeeIn('[data-testid="move-count"]', 'Jogadas realizadas: 0')
+        ->assertSeeIn('[data-testid="score-'.$initialPlayer.'"]', '1')
         ->assertNoJavaScriptErrors();
 });
 
 it('alternates the classic starting player on the regular restart button', function () {
     $page = visit('/3-basico');
-    $initialPlayer = $page->script('startingPlayer');
+    $initialPlayer = publicClassicStarter($page);
     $expectedPlayer = $initialPlayer === 'x' ? 'o' : 'x';
 
     $page
-        ->click('#restartBtn')
-        ->assertScript('startingPlayer', $expectedPlayer)
-        ->assertScript('currentPlayer', $expectedPlayer)
-        ->assertScript('board.every((cell) => cell === "")')
+        ->click('Reiniciar partida')
+        ->assertSeeIn('[data-testid="match-status"]', 'Vez do jogador '.strtoupper($expectedPlayer))
+        ->assertSeeIn('[data-testid="move-count"]', 'Jogadas realizadas: 0')
         ->assertNoJavaScriptErrors();
 });
+
+it('resumes a public match and confirms before creating a new one', function () {
+    $page = visit('/3-basico');
+    $initialPlayer = publicClassicStarter($page);
+
+    $page
+        ->click('[data-testid="cell-0"]')
+        ->refresh()
+        ->assertSeeIn('[data-testid="cell-0"]', $initialPlayer)
+        ->assertSeeIn('[data-testid="move-count"]', 'Jogadas realizadas: 1')
+        ->click('[data-testid="new-match-button"]')
+        ->assertScript('document.querySelector("[data-testid=new-match-dialog]").open', true)
+        ->assertScript('document.querySelector("[data-testid=new-match-dialog]").getAttribute("aria-modal")', 'true')
+        ->keys('[data-testid="new-match-dialog"]', 'Escape')
+        ->assertScript('document.querySelector("[data-testid=new-match-dialog]").open', false)
+        ->click('[data-testid="new-match-button"]')
+        ->click('Cancelar')
+        ->assertScript('document.querySelector("[data-testid=new-match-dialog]").open', false)
+        ->assertSeeIn('[data-testid="move-count"]', 'Jogadas realizadas: 1')
+        ->click('[data-testid="new-match-button"]')
+        ->click('[data-testid="confirm-new-match"]')
+        ->assertScript('location.pathname', '/3-basico')
+        ->assertSeeIn('[data-testid="move-count"]', 'Jogadas realizadas: 0')
+        ->assertSeeIn('[data-testid="score-x"]', '0')
+        ->assertSeeIn('[data-testid="score-o"]', '0')
+        ->assertSeeIn('[data-testid="score-draws"]', '0')
+        ->assertNoJavaScriptErrors();
+});
+
+function publicClassicStarter(AwaitableWebpage|PendingAwaitablePage $page): string
+{
+    $turn = $page->script('document.querySelector("[data-testid=match-status]").textContent.trim()');
+
+    expect(['Vez do jogador X', 'Vez do jogador O'])->toContain($turn);
+
+    return strtolower(substr($turn, -1));
+}

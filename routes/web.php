@@ -1,20 +1,16 @@
 <?php
 
-use App\Games\Modality;
-use App\Games\Participant;
-use App\Games\ParticipantKind;
-use App\Games\Participants;
-use App\Games\PlayerMark;
-use App\Games\Rules\Classic3x3Rules;
+use App\Http\ClassicMatchManager;
 use App\Http\SessionMatchStore;
 use Illuminate\Support\Facades\Route;
-use Random\Randomizer;
 
 Route::get('/', function () {
     return view('welcome');
 })->name('welcome');
 
-Route::view('/3-basico', '3-basic')->name('3-basic');
+Route::get('/3-basico', function (ClassicMatchManager $matches) {
+    return view('experimental-classic', ['matchId' => $matches->resumeOrCreate(), 'publicEntry' => true]);
+})->name('3-basic');
 Route::view('/3-mover', '3-move')->name('3-move');
 Route::view('/3-rotacao', '3-rotation')->name('3-rotation');
 Route::view('/4-3-basico', '4x3-basic')->name('4x3-basic');
@@ -31,18 +27,10 @@ Route::view('/ultimate', 'ultimate')->name('ultimate');
 
 if (app()->environment(['local', 'testing'])) {
     Route::view('/livewire-reference', 'livewire-reference')->name('livewire.reference');
+    Route::view('/3-basico-legado', '3-basic')->name('legacy.classic');
 
-    Route::get('/experimental/3-basico', function (SessionMatchStore $store, Classic3x3Rules $rules, Randomizer $randomizer) {
-        $state = $rules->initialState(
-            new Modality('3-basic'),
-            new Participants(
-                new Participant(ParticipantKind::Guest, 'local-x'),
-                new Participant(ParticipantKind::Guest, 'local-o'),
-            ),
-            $randomizer->getInt(0, 1) === 0 ? PlayerMark::X : PlayerMark::O,
-        );
-
-        return redirect()->route('experimental.classic.show', ['matchId' => $store->create($state)]);
+    Route::get('/experimental/3-basico', function (ClassicMatchManager $matches) {
+        return redirect()->route('experimental.classic.show', ['matchId' => $matches->create()]);
     })->name('experimental.classic.create');
 
     Route::get('/experimental/3-basico/{matchId}', function (string $matchId, SessionMatchStore $store) {

@@ -17,7 +17,7 @@ it('renders the :dataset modality route with its expected view and structure', f
         expect($response->getContent())->toContain($structuralMarker);
     }
 })->with([
-    'classic 3x3' => ['/3-basico', '3-basic', 'Clássico 3x3', ['id="board"', 'cells-9', 'id="status"', 'id="restartBtn"', 'id="modal-win"', 'function startGame()']],
+    'classic 3x3' => ['/3-basico', 'experimental-classic', 'Clássico 3×3', ['data-testid="classic-board"', 'data-testid="cell-0"', 'data-testid="cell-8"', 'data-testid="match-status"', 'data-testid="new-match-button"']],
     'movement 3x3' => ['/3-mover', '3-move', 'Movimento 3x3', ['id="board"', 'cells-9', 'id="status"', 'id="restartBtn"', 'id="modal-win"', 'let selectedPiece = null']],
     'rotation 3x3' => ['/3-rotacao', '3-rotation', 'Rotação 3x3', ['id="board"', 'cells-9', 'id="status"', 'id="restartBtn"', 'id="modal-win"', 'let placedPiecesOrder']],
     'classic 4x4 with lines of 3' => ['/4-3-basico', '4x3-basic', 'Clássico 4x4', ['id="board"', 'cells-16', 'id="status"', 'id="restartBtn"', 'id="modal-win"', 'const winningCombinations']],
@@ -40,7 +40,6 @@ it('renders the expected number of cells for the :dataset shared-layout modality
 
     expect(substr_count($response->getContent(), 'class="cell"'))->toBe($cellCount);
 })->with([
-    'classic 3x3' => ['/3-basico', 9],
     'movement 3x3' => ['/3-mover', 9],
     'rotation 3x3' => ['/3-rotacao', 9],
     'classic 4x4 with lines of 3' => ['/4-3-basico', 16],

@@ -89,7 +89,7 @@ it('keeps an occupied cell unchanged and alternates the starter on restart', fun
  */
 function parityPagesStartingWith(string $starter): array
 {
-    $original = visit('/3-basico')->assertCount('#board .cell', 9);
+    $original = visit('/3-basico-legado')->assertCount('#board .cell', 9);
     $experimental = visit('/experimental/3-basico')->assertCount('[data-testid^="cell-"]', 9);
     $observedStarter = parityOriginalTurn($original);
     $experimentalStarter = $experimental->script('document.querySelector("[data-testid=match-status]").textContent.trim()');

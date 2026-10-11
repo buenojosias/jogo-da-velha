@@ -413,9 +413,12 @@ test('does not register experimental routes in production', function () {
         app()->detectEnvironment(fn () => 'production');
         Route::setRoutes(new RouteCollection);
         require base_path('routes/web.php');
+        Route::getRoutes()->refreshNameLookups();
 
         expect(Route::has('experimental.classic.create'))->toBeFalse();
         expect(Route::has('experimental.classic.show'))->toBeFalse();
+        expect(Route::has('legacy.classic'))->toBeFalse();
+        expect(Route::has('3-basic'))->toBeTrue();
     } finally {
         Route::setRoutes($originalRoutes);
         app()->detectEnvironment(fn () => $originalEnvironment);
