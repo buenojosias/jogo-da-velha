@@ -119,6 +119,7 @@ new class extends Component
 @php($state = $this->matchState)
 @php($score = $this->score)
 @php($winningCells = $this->winningCells)
+@php($unavailableCells = $state->isFinished() ? array_keys($state->data['board']) : array_keys(array_filter($state->data['board'])))
 
 <div
     class="experimental-match mx-auto flex min-h-screen w-full max-w-5xl flex-col gap-4 px-4 py-4 text-ds-text sm:px-6 sm:py-6"
@@ -170,22 +171,15 @@ new class extends Component
                 @endif
             </x-design-system.match-status>
 
-            <div data-testid="classic-board" role="group" aria-label="Tabuleiro 3 por 3" class="experimental-board mx-auto mt-3 grid w-full max-w-[28rem] grid-cols-3 gap-2 sm:mt-4 sm:gap-3">
-                @foreach ($state->data['board'] as $index => $cell)
-                    @php($isWinningCell = in_array($index, $winningCells, true))
-                    <button
-                        type="button"
-                        wire:key="cell-{{ $index }}"
-                        wire:click="place({{ $index }})"
-                        wire:loading.attr="disabled"
-                        data-testid="cell-{{ $index }}"
-                        data-winning-cell="{{ $isWinningCell ? 'true' : 'false' }}"
-                        aria-label="Casa linha {{ intdiv($index, 3) + 1 }}, coluna {{ $index % 3 + 1 }}: {{ $cell === '' ? 'vazia' : strtoupper($cell) }}{{ $isWinningCell ? ', casa vencedora' : '' }}"
-                        @disabled($cell !== '' || $state->isFinished())
-                        class="relative aspect-square min-h-18 rounded-ds-control border-2 border-ds-border bg-ds-surface text-5xl font-black uppercase shadow-sm {{ $cell === 'o' ? 'text-ds-o' : 'text-ds-x' }} enabled:hover:border-ds-primary enabled:hover:bg-ds-hover enabled:hover:shadow-ds-card enabled:active:scale-[0.98] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-ds-focus disabled:cursor-not-allowed disabled:bg-ds-surface-muted motion-safe:transition-[transform,background-color,border-color,box-shadow] motion-safe:duration-200 motion-reduce:transition-none sm:text-6xl"
-                    >{{ $cell }}@if ($isWinningCell)<span aria-hidden="true" class="pointer-events-none absolute top-1 right-1 text-base text-ds-success">✦</span>@endif</button>
-                @endforeach
-            </div>
+            <x-design-system.game-board
+                :cells="$state->data['board']"
+                :columns="3"
+                label="Tabuleiro 3 por 3"
+                :highlighted-cells="$winningCells"
+                :unavailable-cells="$unavailableCells"
+                highlight-label="casa vencedora"
+                data-testid="classic-board"
+            />
 
             @if ($rejectionMessage)
                 <p data-testid="rejection-message" role="alert" class="mt-3 rounded-ds-control border border-ds-warning bg-ds-warning-surface p-3 text-sm text-ds-warning">{{ $rejectionMessage }}</p>

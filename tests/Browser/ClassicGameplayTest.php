@@ -10,6 +10,8 @@ it('plays, wins, scores, and restarts a classic 3x3 match', function () {
 
     $initialPlayer = publicClassicStarter($page);
     $otherPlayer = $initialPlayer === 'x' ? 'o' : 'x';
+    $page->select('[data-theme-selector]', 'dark');
+    $page->script('window.__publicBoardMarker = "same-document";');
 
     $page
         ->click('[data-testid="cell-0"]')
@@ -29,10 +31,13 @@ it('plays, wins, scores, and restarts a classic 3x3 match', function () {
         ->assertScript('document.querySelector("[data-testid=result-dialog]").open', true)
         ->assertSeeIn('[data-testid="score-'.$initialPlayer.'"]', '1')
         ->assertScript('document.querySelectorAll("[data-winning-cell=true]").length', 3)
+        ->assertScript('window.__publicBoardMarker', 'same-document')
+        ->assertScript('document.documentElement.dataset.theme', 'dark')
         ->click('Próxima rodada')
         ->assertSeeIn('[data-testid="match-status"]', 'Vez do jogador '.strtoupper($otherPlayer))
         ->assertSeeIn('[data-testid="move-count"]', 'Jogadas realizadas: 0')
         ->assertSeeIn('[data-testid="score-'.$initialPlayer.'"]', '1')
+        ->assertScript('document.documentElement.dataset.theme', 'dark')
         ->assertNoJavaScriptErrors();
 });
 
