@@ -106,7 +106,7 @@ test('scores an O victory during placement without entering movement', function 
 test('rejects invalid or cross-modality session records and keeps classics untouched', function () {
     $matchId = movementSessionMatch();
     $store = app(SessionMatchStore::class);
-    $this->get(route('3-move'))->assertOk()->assertViewIs('3-move');
+    $this->get(route('3-move'))->assertOk()->assertViewIs('experimental-move-3x3');
     $this->get(route('3-basic'))->assertOk();
     expect(session('classic.active_match_id'))->not->toBe($matchId);
     Livewire::test('experimental-classic-3x3', ['matchId' => $matchId])->assertNotFound();

@@ -18,7 +18,7 @@ it('renders the :dataset modality route with its expected view and structure', f
     }
 })->with([
     'classic 3x3' => ['/3-basico', 'experimental-classic', 'Clássico 3×3', ['data-testid="classic-board"', 'data-testid="cell-0"', 'data-testid="cell-8"', 'data-testid="match-status"', 'data-testid="new-match-button"']],
-    'movement 3x3' => ['/3-mover', '3-move', 'Movimento 3x3', ['id="board"', 'cells-9', 'id="status"', 'id="restartBtn"', 'id="modal-win"', 'let selectedPiece = null']],
+    'movement 3x3' => ['/3-mover', 'experimental-move-3x3', 'Movimento 3×3', ['data-testid="movement-board"', 'data-testid="cell-0"', 'data-testid="cell-8"', 'data-testid="match-status"', 'data-testid="new-match-button"']],
     'rotation 3x3' => ['/3-rotacao', '3-rotation', 'Rotação 3x3', ['id="board"', 'cells-9', 'id="status"', 'id="restartBtn"', 'id="modal-win"', 'let placedPiecesOrder']],
     'classic 4x4 with lines of 3' => ['/4-3-basico', 'experimental-classic-4x3', 'Clássico 4×4', ['data-testid="classic-board"', 'data-testid="cell-0"', 'data-testid="cell-15"', 'data-testid="match-status"', 'data-testid="new-match-button"']],
     'movement 4x4 with lines of 3' => ['/4-3-mover', '4x3-move', 'Movimento 4x4 (3 peças)', ['id="board"', 'cells-16', 'id="status"', 'id="restartBtn"', 'id="modal-win"', 'let selectedPiece = null']],
@@ -38,7 +38,8 @@ it('renders the expected number of cells for the :dataset shared-layout modality
 
     $response->assertOk();
 
-    expect(substr_count($response->getContent(), 'class="cell"'))->toBe($cellCount);
+    $cellMarker = $uri === '/3-mover' ? 'data-testid="cell-' : 'class="cell"';
+    expect(substr_count($response->getContent(), $cellMarker))->toBe($cellCount);
 })->with([
     'movement 3x3' => ['/3-mover', 9],
     'rotation 3x3' => ['/3-rotacao', 9],

@@ -13,7 +13,9 @@ Route::get('/', function () {
 Route::get('/3-basico', function (ClassicMatchManager $matches) {
     return view('experimental-classic', ['matchId' => $matches->resumeOrCreate(), 'publicEntry' => true]);
 })->name('3-basic');
-Route::view('/3-mover', '3-move')->name('3-move');
+Route::get('/3-mover', function (MovementMatchManager $matches) {
+    return view('experimental-move-3x3', ['matchId' => $matches->resumeOrCreate(), 'publicEntry' => true]);
+})->name('3-move');
 Route::view('/3-rotacao', '3-rotation')->name('3-rotation');
 Route::get('/4-3-basico', function (ClassicMatchManager $matches, Classic4x3Rules $rules) {
     return view('experimental-classic-4x3', [

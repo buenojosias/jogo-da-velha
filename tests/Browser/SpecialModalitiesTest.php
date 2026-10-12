@@ -3,16 +3,18 @@
 it('moves a placed piece after the movement placement phase', function () {
     $page = visit('/3-mover');
 
-    clickBrowserCells($page, [0, 1, 3, 4, 8, 6]);
+    foreach ([0, 1, 3, 4, 8, 6] as $cell) {
+        $page->click('[data-testid="cell-'.$cell.'"]');
+    }
 
     $page
-        ->assertScript('placedPieces.x === 3 && placedPieces.o === 3')
-        ->click(browserCellSelector(8))
-        ->assertScript('selectedPiece', 8)
-        ->click(browserCellSelector(2))
-        ->assertScript('board[8]', '')
-        ->assertScript('board[2] !== ""')
-        ->assertScript('selectedPiece', null)
+        ->assertSeeIn('[data-testid="phase-instruction"]', 'Selecione uma peça e depois uma casa vazia')
+        ->click('[data-testid="cell-8"]')
+        ->assertScript('document.querySelector("[data-testid=cell-8]").dataset.selected', 'true')
+        ->click('[data-testid="cell-2"]')
+        ->assertScript('document.querySelector("[data-testid=cell-8]").dataset.mark', '')
+        ->assertScript('document.querySelector("[data-testid=cell-2]").dataset.mark !== ""', true)
+        ->assertScript('document.querySelectorAll("[data-selected=true]").length', 0)
         ->assertNoJavaScriptErrors();
 });
 

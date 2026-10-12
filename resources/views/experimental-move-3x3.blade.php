@@ -25,7 +25,7 @@
 </head>
 <body>
     <main class="min-h-screen text-ds-text">
-        <livewire:experimental-move-3x3 :match-id="$matchId" />
+        <livewire:experimental-move-3x3 :match-id="$matchId" :public-entry="$publicEntry ?? false" />
     </main>
 </body>
 </html>

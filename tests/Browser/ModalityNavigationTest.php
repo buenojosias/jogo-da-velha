@@ -31,6 +31,15 @@ it('opens the public Livewire four by four classic from the catalogue', function
         ->assertNoJavaScriptErrors();
 });
 
+it('opens the public Livewire movement game from the catalogue', function () {
+    visit('/')
+        ->click('a[href$="/3-mover"]')
+        ->assertScript('location.pathname', '/3-mover')
+        ->assertVisible('[data-testid="movement-board"]')
+        ->assertCount('[data-testid^="cell-"]', 9)
+        ->assertNoJavaScriptErrors();
+});
+
 it('renders the :dataset modality in a real browser', function (array $modality) {
     $page = visit($modality['uri']);
 
@@ -59,7 +68,14 @@ function browserModalities(): array
             'cell_count' => 9,
             'additional' => ['[data-testid="new-match-button"]' => 1],
         ]],
-        'movement 3x3' => [modality('/3-mover', 'Movimento 3x3', 9)],
+        'movement 3x3' => [[
+            'uri' => '/3-mover',
+            'title' => 'Movimento 3×3',
+            'board' => '[data-testid="movement-board"]',
+            'cells' => '[data-testid^="cell-"]',
+            'cell_count' => 9,
+            'additional' => ['[data-testid="new-match-button"]' => 1],
+        ]],
         'rotation 3x3' => [modality('/3-rotacao', 'Rotação 3x3', 9)],
         'classic 4x4' => [[
             'uri' => '/4-3-basico',

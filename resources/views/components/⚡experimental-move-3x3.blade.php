@@ -6,6 +6,7 @@ use App\Games\MatchStatus;
 use App\Games\Modality;
 use App\Games\PlayerMark;
 use App\Games\Rules\Move3x3Rules;
+use App\Http\MovementMatchManager;
 use App\Http\SessionMatchStore;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Locked;
@@ -16,17 +17,23 @@ new class extends Component
     #[Locked]
     public string $matchId;
 
+    #[Locked]
+    public bool $publicEntry = false;
+
     public ?string $rejectionMessage = null;
 
-    public function mount(string $matchId): void
+    public function mount(string $matchId, bool $publicEntry = false): void
     {
         $this->matchId = $matchId;
+        $this->publicEntry = $publicEntry;
         $this->matchState();
     }
 
     #[Computed]
     public function matchState(): MatchState
     {
+        abort_if($this->publicEntry && ! app(MovementMatchManager::class)->isActive($this->matchId), 404);
+
         try {
             $state = app(SessionMatchStore::class)->find($this->matchId);
         } catch (InvalidArgumentException|UnexpectedValueException) {
@@ -115,6 +122,18 @@ new class extends Component
         $this->rejectionMessage = null;
         unset($this->matchState, $this->score, $this->winningCells);
         $this->dispatch('movement-state-changed');
+    }
+
+    public function newMatch(): void
+    {
+        $matches = app(MovementMatchManager::class);
+        abort_unless($this->publicEntry && $matches->isActive($this->matchId), 404);
+
+        $this->matchId = $matches->createNewActive();
+        $this->rejectionMessage = null;
+        unset($this->matchState, $this->score, $this->winningCells);
+
+        $this->redirectRoute('3-move');
     }
 };
 ?>
@@ -220,10 +239,26 @@ new class extends Component
             <p data-testid="score-draws" class="rounded-ds-control border border-ds-border bg-ds-surface-muted px-2 py-1 text-center text-xs font-bold text-ds-text-secondary">Empates: <span class="font-black text-ds-text">{{ $score['draws'] }}</span></p>
             <x-design-system.match-actions data-testid="match-actions">
                 <button type="button" x-ref="restartButton" wire:click="restart" wire:loading.attr="disabled" class="min-h-12 w-full rounded-ds-control bg-ds-primary px-5 py-3 text-base font-bold text-ds-on-primary hover:bg-ds-primary-hover focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-ds-focus disabled:opacity-60">Reiniciar partida</button>
+                @if ($publicEntry)
+                    <button type="button" x-on:click="$refs.newMatchDialog.showModal()" data-testid="new-match-button" class="mt-2 min-h-11 w-full rounded-ds-control border border-ds-border bg-ds-surface px-4 py-2 text-sm font-semibold text-ds-text-secondary hover:bg-ds-hover focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-ds-focus">
+                        Nova partida
+                    </button>
+                @endif
             </x-design-system.match-actions>
             <p data-testid="move-count" class="text-center text-xs font-semibold text-ds-text-muted">Peças no tabuleiro: {{ count(array_filter($board)) }}</p>
         </div>
     </section>
+
+    @if ($publicEntry)
+        <dialog x-ref="newMatchDialog" data-testid="new-match-dialog" aria-modal="true" aria-labelledby="new-match-title" aria-describedby="new-match-description" class="ds-result-dialog m-auto w-[min(27rem,calc(100vw-1.5rem))] max-h-[calc(100dvh-1.5rem)] max-w-none overflow-y-auto rounded-ds-card border border-ds-border bg-ds-elevated p-4 text-ds-text shadow-ds-elevated sm:p-5">
+            <h2 id="new-match-title" class="text-xl font-black">Criar nova partida?</h2>
+            <p id="new-match-description" class="mt-2 text-sm leading-relaxed text-ds-text-secondary">O tabuleiro e o placar atuais serão deixados para trás. A próxima rodada mantém o placar; uma nova partida começa do zero.</p>
+            <div class="mt-4 grid grid-cols-2 gap-2.5">
+                <button type="button" x-on:click="$refs.newMatchDialog.close()" class="min-h-12 rounded-ds-control border-2 border-ds-border bg-ds-surface px-3 py-2.5 text-sm font-bold text-ds-text hover:bg-ds-hover focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-ds-focus">Cancelar</button>
+                <button type="button" wire:click="newMatch" wire:loading.attr="disabled" wire:target="newMatch" data-testid="confirm-new-match" class="min-h-12 rounded-ds-control bg-ds-primary px-3 py-2.5 text-sm font-extrabold text-ds-on-primary hover:bg-ds-primary-hover focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-ds-focus disabled:opacity-60">Criar nova partida</button>
+            </div>
+        </dialog>
+    @endif
 
     @if ($state->isFinished())
         <x-design-system.result-dialog
