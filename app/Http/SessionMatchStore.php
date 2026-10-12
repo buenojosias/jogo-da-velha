@@ -18,7 +18,7 @@ class SessionMatchStore
 {
     private const string SESSION_PREFIX = 'experimental_matches.';
 
-    private const array BOARD_SIZES = ['3-basic' => 9, '4x3-basic' => 16];
+    private const array BOARD_SIZES = ['3-basic' => 9, '4x3-basic' => 16, '3-move' => 9];
 
     private const array INITIAL_SCORE = ['x' => 0, 'o' => 0, 'draws' => 0];
 
@@ -239,6 +239,15 @@ class SessionMatchStore
         foreach ($board as $cell) {
             if (! in_array($cell, ['', 'x', 'o'], true)) {
                 throw new UnexpectedValueException('Invalid stored match board.');
+            }
+        }
+
+        if ($modalityKey === '3-move') {
+            $xCount = count(array_keys($board, 'x', true));
+            $oCount = count(array_keys($board, 'o', true));
+
+            if ($xCount > 3 || $oCount > 3 || abs($xCount - $oCount) > 1) {
+                throw new UnexpectedValueException('Invalid stored movement board.');
             }
         }
     }
