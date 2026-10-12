@@ -127,27 +127,35 @@ it('scores maximal sequences of three, four, and five pieces', function () {
 
 it('rolls the die, rejects another column, and accepts the allowed move', function () {
     $page = visit('/dado')
-        ->assertCount('.boards .cell', 18);
-
-    $initialPlayer = $page->script('currentPlayer');
-    $page->script('window.__browserTestAlerts = []; window.alert = (message) => window.__browserTestAlerts.push(message);');
-
-    $page
-        ->click('#rollBtn')
-        ->assertScript('currentColumn !== null');
-
-    $column = $page->script('currentColumn');
-    $allowedBoard = $column <= 3 ? 1 : 2;
-    $allowedLocalColumn = $column <= 3 ? $column : $column - 3;
-    $wrongBoard = $allowedBoard === 1 ? 2 : 1;
-
-    $page
-        ->click(sprintf('#board%d .cell:nth-child(1)', $wrongBoard))
-        ->assertScript('boardState.flat().every((cell) => cell === "")')
-        ->assertScript('window.__browserTestAlerts.some((message) => typeof message === "string" && message.includes("coluna"))')
-        ->click(sprintf('#board%d .cell:nth-child(%d)', $allowedBoard, $allowedLocalColumn))
-        ->assertScript(sprintf('boardState[%d][%d]', $allowedBoard - 1, $allowedLocalColumn - 1), $initialPlayer)
-        ->assertScript('currentColumn', null)
+        ->assertCount('[data-testid^="cell-"]', 18);
+    $initialPlayer = strtolower(substr($page->script('document.querySelector("[data-testid=match-status]").textContent.trim()'), -1));
+    $page->click('[data-testid="roll-button"]');
+    $page->script(<<<'JS'
+        (async () => {
+            if (document.querySelector('[data-testid=dice-face]')?.dataset.face) return true;
+            return await new Promise((resolve, reject) => {
+                const observer = new MutationObserver(() => {
+                    if (document.querySelector('[data-testid=dice-face]')?.dataset.face) {
+                        observer.disconnect();
+                        clearTimeout(timeout);
+                        resolve(true);
+                    }
+                });
+                observer.observe(document.body, { subtree: true, attributes: true });
+                const timeout = setTimeout(() => { observer.disconnect(); reject(new Error('Dice roll did not finish')); }, 10000);
+            });
+        })()
+        JS);
+    $face = $page->script('document.querySelector("[data-testid=dice-face]").dataset.face');
+    expect((int) $face)->toBeGreaterThanOrEqual(1)->toBeLessThanOrEqual(6);
+    $board = (int) $face <= 3 ? 'esquerdo' : 'direito';
+    $wrongBoard = $board === 'esquerdo' ? 'direito' : 'esquerdo';
+    $column = ((int) $face - 1) % 3;
+    $page->click('[data-testid="dice-board-'.$wrongBoard.'"] [data-testid="cell-'.$column.'"]')
+        ->assertSeeIn('[data-testid="rejection-message"]', 'coluna indicada')
+        ->click('[data-testid="dice-board-'.$board.'"] [data-testid="cell-'.$column.'"]');
+    $page->assertScript('document.querySelector("[data-testid=dice-board-'.$board.'] [data-testid=cell-'.$column.']").dataset.mark', $initialPlayer)
+        ->assertSeeIn('[data-testid="match-status"]', 'Vez do jogador '.($initialPlayer === 'x' ? 'O' : 'X'))
         ->assertNoJavaScriptErrors();
 });
 

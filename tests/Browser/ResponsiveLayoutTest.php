@@ -46,7 +46,7 @@ it('renders special modality controls at :dataset', function (
 function specialResponsiveCases(): array
 {
     $modalities = [
-        'dice' => ['/dado', '#board1', '#rollBtn'],
+        'dice' => ['/dado', '[data-testid="dice-board-esquerdo"]', '[data-testid="roll-button"]'],
         'crazy' => ['/maluca', '#board', '#piecesX .select-piece:nth-child(1)'],
         'ultimate' => ['/ultimate', '#game', '#game .sub-board:nth-child(1) .cell:nth-child(1)'],
     ];

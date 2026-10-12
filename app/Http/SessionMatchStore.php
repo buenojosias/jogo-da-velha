@@ -9,6 +9,7 @@ use App\Games\Participant;
 use App\Games\ParticipantKind;
 use App\Games\Participants;
 use App\Games\PlayerMark;
+use App\Games\Rules\DiceRules;
 use App\Games\Rules\Full5x5Rules;
 use App\Games\Rules\Hidden4x3Rules;
 use App\Games\Rules\TwoLines5x5Rules;
@@ -174,12 +175,16 @@ class SessionMatchStore
      */
     private function encode(MatchState $state): array
     {
-        $this->assertBoard($state->modality->key, $state->data['board'] ?? null);
-        $this->assertRotationOrder($state->modality->key, $state->data['board'], $state->data['order'] ?? null);
-        $this->assertHiddenOrder($state->modality->key, $state->data['board'], $state->data['order'] ?? null);
-        $this->assertHiddenOutcome($state);
-        $this->assertTwoLinesOutcome($state);
-        $this->assertFullOutcome($state);
+        if ($state->modality->key === 'dice') {
+            $this->assertDiceState($state);
+        } else {
+            $this->assertBoard($state->modality->key, $state->data['board'] ?? null);
+            $this->assertRotationOrder($state->modality->key, $state->data['board'], $state->data['order'] ?? null);
+            $this->assertHiddenOrder($state->modality->key, $state->data['board'], $state->data['order'] ?? null);
+            $this->assertHiddenOutcome($state);
+            $this->assertTwoLinesOutcome($state);
+            $this->assertFullOutcome($state);
+        }
 
         return [
             'modality' => $state->modality->key,
@@ -200,13 +205,15 @@ class SessionMatchStore
             || ! is_string($stored['modality'] ?? null)
             || ! is_array($stored['participants'] ?? null)
             || ! is_array($stored['data'] ?? null)
-            || ! array_key_exists('board', $stored['data'])) {
+            || ($stored['modality'] !== 'dice' && ! array_key_exists('board', $stored['data']))) {
             throw new UnexpectedValueException('Invalid stored match state.');
         }
 
-        $this->assertBoard($stored['modality'], $stored['data']['board']);
-        $this->assertRotationOrder($stored['modality'], $stored['data']['board'], $stored['data']['order'] ?? null);
-        $this->assertHiddenOrder($stored['modality'], $stored['data']['board'], $stored['data']['order'] ?? null);
+        if ($stored['modality'] !== 'dice') {
+            $this->assertBoard($stored['modality'], $stored['data']['board']);
+            $this->assertRotationOrder($stored['modality'], $stored['data']['board'], $stored['data']['order'] ?? null);
+            $this->assertHiddenOrder($stored['modality'], $stored['data']['board'], $stored['data']['order'] ?? null);
+        }
 
         $status = is_string($stored['status'] ?? null) ? MatchStatus::tryFrom($stored['status']) : null;
 
@@ -223,14 +230,20 @@ class SessionMatchStore
                 ),
                 $status,
                 $this->playerMark($stored['current_player'] ?? null),
-                in_array($stored['modality'], ['3-rotation', '4x3-rotation', '4x3-hidden'], true)
-                    ? ['board' => $stored['data']['board'], 'order' => $stored['data']['order']]
-                    : ['board' => $stored['data']['board']],
+                $stored['modality'] === 'dice'
+                    ? $stored['data']
+                    : (in_array($stored['modality'], ['3-rotation', '4x3-rotation', '4x3-hidden'], true)
+                        ? ['board' => $stored['data']['board'], 'order' => $stored['data']['order']]
+                        : ['board' => $stored['data']['board']]),
                 $this->playerMark($stored['winner'] ?? null),
             );
-            $this->assertHiddenOutcome($state);
-            $this->assertTwoLinesOutcome($state);
-            $this->assertFullOutcome($state);
+            if ($stored['modality'] === 'dice') {
+                $this->assertDiceState($state);
+            } else {
+                $this->assertHiddenOutcome($state);
+                $this->assertTwoLinesOutcome($state);
+                $this->assertFullOutcome($state);
+            }
 
             return $state;
         } catch (InvalidArgumentException $exception) {
@@ -375,6 +388,54 @@ class SessionMatchStore
             || ($state->status === MatchStatus::Completed && $state->winner !== $expectedWinner)
             || ($state->status === MatchStatus::Drawn && $expectedWinner !== null)) {
             throw new UnexpectedValueException('Invalid stored full-board result.');
+        }
+    }
+
+    private function assertDiceState(MatchState $state): void
+    {
+        $data = $state->data;
+        if (array_keys($data) !== ['boards', 'pending_roll', 'last_roll']
+            || ! is_array($data['boards']) || ! array_is_list($data['boards']) || count($data['boards']) !== 2) {
+            throw new UnexpectedValueException('Invalid stored dice state.');
+        }
+        foreach ($data['boards'] as $board) {
+            if (! is_array($board) || ! array_is_list($board) || count($board) !== 9) {
+                throw new UnexpectedValueException('Invalid stored dice board.');
+            }
+            foreach ($board as $cell) {
+                if (! in_array($cell, ['', 'x', 'o'], true)) {
+                    throw new UnexpectedValueException('Invalid stored dice board.');
+                }
+            }
+        }
+        $pending = $data['pending_roll'];
+        $last = $data['last_roll'];
+        if (($last !== null && (! is_int($last) || $last < 1 || $last > 6))
+            || ($pending !== null && (! is_int($pending) || $pending < 1 || $pending > 6 || $pending !== $last))) {
+            throw new UnexpectedValueException('Invalid stored dice roll.');
+        }
+        if ($pending !== null) {
+            $board = intdiv($pending - 1, 3);
+            $column = ($pending - 1) % 3;
+            if ($state->status !== MatchStatus::InProgress
+                || ($data['boards'][$board][$column] !== ''
+                    && $data['boards'][$board][$column + 3] !== ''
+                    && $data['boards'][$board][$column + 6] !== '')) {
+                throw new UnexpectedValueException('Invalid stored pending dice roll.');
+            }
+        }
+
+        $rules = app(DiceRules::class);
+        $xLine = $rules->lineForPlayer($state, PlayerMark::X);
+        $oLine = $rules->lineForPlayer($state, PlayerMark::O);
+        $full = ! in_array('', $data['boards'][0], true) && ! in_array('', $data['boards'][1], true);
+        if ($state->status === MatchStatus::Awaiting
+            || ($state->status === MatchStatus::InProgress && ($full || $xLine !== null || $oLine !== null))
+            || ($state->status === MatchStatus::Completed
+                && (($state->winner === PlayerMark::X ? $xLine : $oLine) === null
+                    || ($state->winner === PlayerMark::X ? $oLine : $xLine) !== null))
+            || ($state->status === MatchStatus::Drawn && (! $full || $xLine !== null || $oLine !== null))) {
+            throw new UnexpectedValueException('Invalid stored dice result.');
         }
     }
 

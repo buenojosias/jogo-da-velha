@@ -123,10 +123,10 @@ function browserModalities(): array
         'dice' => [[
             'uri' => '/dado',
             'title' => 'Dados da Velha',
-            'board' => '#board1',
-            'cells' => '.boards .cell',
+            'board' => '[data-testid="dice-board-esquerdo"]',
+            'cells' => '[data-testid^="cell-"]',
             'cell_count' => 18,
-            'additional' => ['.boards .board' => 2, '#dice' => 1, '#rollBtn' => 1],
+            'additional' => ['[data-testid="dice-board-direito"]' => 1, '[data-testid="dice-face"]' => 1, '[data-testid="roll-button"]' => 1],
         ]],
         'crazy' => [[
             'uri' => '/maluca',
