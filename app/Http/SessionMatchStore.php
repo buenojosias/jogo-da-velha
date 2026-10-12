@@ -18,7 +18,7 @@ class SessionMatchStore
 {
     private const string SESSION_PREFIX = 'experimental_matches.';
 
-    private const array BOARD_SIZES = ['3-basic' => 9, '4x3-basic' => 16, '3-move' => 9, '4x3-move' => 16, '4x4-move' => 16, '3-rotation' => 9, '4x3-rotation' => 16];
+    private const array BOARD_SIZES = ['3-basic' => 9, '4x3-basic' => 16, '4x3-block' => 16, '3-move' => 9, '4x3-move' => 16, '4x4-move' => 16, '3-rotation' => 9, '4x3-rotation' => 16];
 
     private const array INITIAL_SCORE = ['x' => 0, 'o' => 0, 'draws' => 0];
 
@@ -244,6 +244,11 @@ class SessionMatchStore
             if (! in_array($cell, ['', 'x', 'o'], true)) {
                 throw new UnexpectedValueException('Invalid stored match board.');
             }
+        }
+
+        if ($modalityKey === '4x3-block'
+            && abs(count(array_keys($board, 'x', true)) - count(array_keys($board, 'o', true))) > 1) {
+            throw new UnexpectedValueException('Invalid stored blocking board.');
         }
 
         if (in_array($modalityKey, ['3-move', '4x3-move', '4x4-move', '3-rotation', '4x3-rotation'], true)) {

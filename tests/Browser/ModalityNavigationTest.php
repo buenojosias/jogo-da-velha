@@ -100,7 +100,10 @@ function browserModalities(): array
             'uri' => '/4-3-rotacao', 'title' => 'Rotação 4×4', 'board' => '[data-testid="rotation-board"]',
             'cells' => '[data-testid^="cell-"]', 'cell_count' => 16, 'additional' => ['[data-testid="new-match-button"]' => 1],
         ]],
-        'blocking 4x4' => [modality('/4-3-bloqueio', 'Bloqueio 4x4', 16)],
+        'blocking 4x4' => [[
+            'uri' => '/4-3-bloqueio', 'title' => 'Bloqueio 4×4', 'board' => '[data-testid="classic-board"]',
+            'cells' => '[data-testid^="cell-"]', 'cell_count' => 16, 'additional' => ['[data-testid="new-match-button"]' => 1],
+        ]],
         'hidden 4x4' => [modality('/4-3-oculto', 'Oculto 4x4', 16)],
         'line of four' => [[
             'uri' => '/4-mover', 'title' => 'Linha de 4 com Movimento', 'board' => '[data-testid="movement-board"]',

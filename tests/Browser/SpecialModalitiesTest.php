@@ -37,18 +37,21 @@ it('removes the oldest piece in rotation mode', function () {
 
 it('distinguishes a blocked horizontal line from a valid line', function () {
     $page = visit('/4-3-bloqueio');
+    $starter = strtolower(substr($page->script('document.querySelector("[data-testid=match-status]").textContent.trim()'), -1));
+    $other = $starter === 'x' ? 'o' : 'x';
+    foreach ([0, 3, 1, 4, 2] as $turn => $cell) {
+        $page->click('[data-testid="cell-'.$cell.'"]');
+        awaitBrowserCellMark($page, $cell, $turn % 2 === 0 ? $starter : $other);
+    }
+    $page->assertSeeIn('[data-testid="match-status"]', 'Vez do jogador '.strtoupper($other))
+        ->assertScript('document.querySelector("[data-testid=result-dialog]")?.open ?? false', false);
 
-    clickBrowserCells($page, [0, 3, 1, 4, 2]);
-
-    $page
-        ->assertScript('gameOver', false)
-        ->assertScript('modalWinElement.style.display', 'none');
-
-    clickBrowserCells($page, [6, 8, 12, 9, 15, 10]);
-
-    $page
-        ->assertScript('gameOver')
-        ->assertVisible('#modal-win')
+    foreach ([6, 8, 12, 9, 15, 10] as $turn => $cell) {
+        $page->click('[data-testid="cell-'.$cell.'"]');
+        awaitBrowserCellMark($page, $cell, $turn % 2 === 0 ? $other : $starter);
+    }
+    $page->assertSeeIn('[data-testid="match-status"]', 'Jogador '.strtoupper($starter).' venceu!')
+        ->assertScript('document.querySelector("[data-testid=result-dialog]").open', true)
         ->assertNoJavaScriptErrors();
 });
 

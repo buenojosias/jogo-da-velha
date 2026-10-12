@@ -3,6 +3,7 @@
 use App\Games\Rules\Classic4x3Rules;
 use App\Games\Rules\Move4x3Rules;
 use App\Games\Rules\Move4x4Rules;
+use App\Http\BlockMatchManager;
 use App\Http\ClassicMatchManager;
 use App\Http\MovementMatchManager;
 use App\Http\RotationMatchManager;
@@ -37,7 +38,9 @@ Route::get('/4-3-mover', function (MovementMatchManager $matches, Move4x3Rules $
 Route::get('/4-3-rotacao', function (RotationMatchManager $matches) {
     return view('rotation-match', ['matchId' => $matches->resumeOrCreate4x3(), 'modalityKey' => '4x3-rotation']);
 })->name('4x3-rotation');
-Route::view('/4-3-bloqueio', '4x3-block')->name('4x3-block');
+Route::get('/4-3-bloqueio', function (BlockMatchManager $matches) {
+    return view('block-4x3', ['matchId' => $matches->resumeOrCreate()]);
+})->name('4x3-block');
 Route::view('/4-3-oculto', '4x3-hidden')->name('4x3-hidden');
 Route::get('/4-mover', function (MovementMatchManager $matches, Move4x4Rules $rules) {
     return view('experimental-move-4x4', [
