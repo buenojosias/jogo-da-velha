@@ -69,13 +69,17 @@ it('hides pieces during play and reveals them after a hidden-mode win', function
 
 it('recognizes four pieces in sequence', function () {
     $page = visit('/4-mover');
-
-    clickBrowserCells($page, [0, 4, 1, 5, 2, 8, 3]);
+    $starter = strtolower(substr($page->script('document.querySelector("[data-testid=match-status]").textContent.trim()'), -1));
+    $other = $starter === 'x' ? 'o' : 'x';
+    foreach ([0, 4, 1, 5, 2, 6, 3] as $turn => $cell) {
+        $page->click('[data-testid="cell-'.$cell.'"]');
+        awaitBrowserCellMark($page, $cell, $turn % 2 === 0 ? $starter : $other);
+    }
 
     $page
-        ->assertScript('gameOver')
-        ->assertVisible('#modal-win')
-        ->assertScript('document.querySelectorAll("#board .winner-" + startingPlayer).length', 4)
+        ->assertSeeIn('[data-testid="match-status"]', 'Jogador '.strtoupper($starter).' venceu!')
+        ->assertScript('document.querySelector("[data-testid=result-dialog]").open', true)
+        ->assertScript('document.querySelectorAll("[data-winning-cell=true]").length', 4)
         ->assertNoJavaScriptErrors();
 });
 

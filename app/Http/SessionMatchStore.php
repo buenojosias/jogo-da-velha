@@ -18,7 +18,7 @@ class SessionMatchStore
 {
     private const string SESSION_PREFIX = 'experimental_matches.';
 
-    private const array BOARD_SIZES = ['3-basic' => 9, '4x3-basic' => 16, '3-move' => 9, '4x3-move' => 16, '3-rotation' => 9, '4x3-rotation' => 16];
+    private const array BOARD_SIZES = ['3-basic' => 9, '4x3-basic' => 16, '3-move' => 9, '4x3-move' => 16, '4x4-move' => 16, '3-rotation' => 9, '4x3-rotation' => 16];
 
     private const array INITIAL_SCORE = ['x' => 0, 'o' => 0, 'draws' => 0];
 
@@ -246,11 +246,12 @@ class SessionMatchStore
             }
         }
 
-        if (in_array($modalityKey, ['3-move', '4x3-move', '3-rotation', '4x3-rotation'], true)) {
+        if (in_array($modalityKey, ['3-move', '4x3-move', '4x4-move', '3-rotation', '4x3-rotation'], true)) {
             $xCount = count(array_keys($board, 'x', true));
             $oCount = count(array_keys($board, 'o', true));
+            $pieceLimit = $modalityKey === '4x4-move' ? 4 : 3;
 
-            if ($xCount > 3 || $oCount > 3 || abs($xCount - $oCount) > 1) {
+            if ($xCount > $pieceLimit || $oCount > $pieceLimit || abs($xCount - $oCount) > 1) {
                 throw new UnexpectedValueException('Invalid stored movement board.');
             }
         }

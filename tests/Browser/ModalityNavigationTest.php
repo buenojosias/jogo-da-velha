@@ -102,7 +102,10 @@ function browserModalities(): array
         ]],
         'blocking 4x4' => [modality('/4-3-bloqueio', 'Bloqueio 4x4', 16)],
         'hidden 4x4' => [modality('/4-3-oculto', 'Oculto 4x4', 16)],
-        'line of four' => [modality('/4-mover', 'Linha de 4 com Movimento', 16)],
+        'line of four' => [[
+            'uri' => '/4-mover', 'title' => 'Linha de 4 com Movimento', 'board' => '[data-testid="movement-board"]',
+            'cells' => '[data-testid^="cell-"]', 'cell_count' => 16, 'additional' => ['[data-testid="new-match-button"]' => 1],
+        ]],
         'two lines 5x5' => [modality('/2-linhas', '2 Linhas 5x5', 25)],
         'score 5x5' => [modality('/5-cheia', 'Pontuação 5x5', 25)],
         'dice' => [[
