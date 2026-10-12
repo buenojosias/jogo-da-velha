@@ -76,7 +76,10 @@ function browserModalities(): array
             'cell_count' => 9,
             'additional' => ['[data-testid="new-match-button"]' => 1],
         ]],
-        'rotation 3x3' => [modality('/3-rotacao', 'Rotação 3x3', 9)],
+        'rotation 3x3' => [[
+            'uri' => '/3-rotacao', 'title' => 'Rotação 3×3', 'board' => '[data-testid="rotation-board"]',
+            'cells' => '[data-testid^="cell-"]', 'cell_count' => 9, 'additional' => ['[data-testid="new-match-button"]' => 1],
+        ]],
         'classic 4x4' => [[
             'uri' => '/4-3-basico',
             'title' => 'Clássico 4×4',
@@ -93,7 +96,10 @@ function browserModalities(): array
             'cell_count' => 16,
             'additional' => ['[data-testid="new-match-button"]' => 1],
         ]],
-        'rotation 4x4' => [modality('/4-3-rotacao', 'Rotação 4x4', 16)],
+        'rotation 4x4' => [[
+            'uri' => '/4-3-rotacao', 'title' => 'Rotação 4×4', 'board' => '[data-testid="rotation-board"]',
+            'cells' => '[data-testid^="cell-"]', 'cell_count' => 16, 'additional' => ['[data-testid="new-match-button"]' => 1],
+        ]],
         'blocking 4x4' => [modality('/4-3-bloqueio', 'Bloqueio 4x4', 16)],
         'hidden 4x4' => [modality('/4-3-oculto', 'Oculto 4x4', 16)],
         'line of four' => [modality('/4-mover', 'Linha de 4 com Movimento', 16)],

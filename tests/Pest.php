@@ -65,3 +65,32 @@ function clickBrowserCells(AwaitableWebpage|PendingAwaitablePage $page, array $i
         $page->click(browserCellSelector($index));
     }
 }
+
+function awaitBrowserCellMark(AwaitableWebpage|PendingAwaitablePage $page, int $cell, string $mark): void
+{
+    $selector = json_encode('[data-testid=cell-'.$cell.']', JSON_THROW_ON_ERROR);
+    $expected = json_encode($mark, JSON_THROW_ON_ERROR);
+    $expression = <<<JS
+        (async () => {
+            const selector = {$selector};
+            const expected = {$expected};
+            if (document.querySelector(selector)?.dataset.mark === expected) return true;
+            return await new Promise((resolve, reject) => {
+                const observer = new MutationObserver(() => {
+                    if (document.querySelector(selector)?.dataset.mark === expected) {
+                        observer.disconnect();
+                        clearTimeout(timeout);
+                        resolve(true);
+                    }
+                });
+                observer.observe(document.body, { subtree: true, childList: true, attributes: true });
+                const timeout = setTimeout(() => {
+                    observer.disconnect();
+                    reject(new Error('Livewire did not confirm the selected cell'));
+                }, 10000);
+            });
+        })()
+        JS;
+
+    expect($page->script($expression))->toBeTrue();
+}

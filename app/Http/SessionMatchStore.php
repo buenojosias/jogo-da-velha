@@ -18,7 +18,7 @@ class SessionMatchStore
 {
     private const string SESSION_PREFIX = 'experimental_matches.';
 
-    private const array BOARD_SIZES = ['3-basic' => 9, '4x3-basic' => 16, '3-move' => 9, '4x3-move' => 16];
+    private const array BOARD_SIZES = ['3-basic' => 9, '4x3-basic' => 16, '3-move' => 9, '4x3-move' => 16, '3-rotation' => 9, '4x3-rotation' => 16];
 
     private const array INITIAL_SCORE = ['x' => 0, 'o' => 0, 'draws' => 0];
 
@@ -172,6 +172,7 @@ class SessionMatchStore
     private function encode(MatchState $state): array
     {
         $this->assertBoard($state->modality->key, $state->data['board'] ?? null);
+        $this->assertRotationOrder($state->modality->key, $state->data['board'], $state->data['order'] ?? null);
 
         return [
             'modality' => $state->modality->key,
@@ -197,6 +198,7 @@ class SessionMatchStore
         }
 
         $this->assertBoard($stored['modality'], $stored['data']['board']);
+        $this->assertRotationOrder($stored['modality'], $stored['data']['board'], $stored['data']['order'] ?? null);
 
         $status = is_string($stored['status'] ?? null) ? MatchStatus::tryFrom($stored['status']) : null;
 
@@ -213,7 +215,9 @@ class SessionMatchStore
                 ),
                 $status,
                 $this->playerMark($stored['current_player'] ?? null),
-                ['board' => $stored['data']['board']],
+                in_array($stored['modality'], ['3-rotation', '4x3-rotation'], true)
+                    ? ['board' => $stored['data']['board'], 'order' => $stored['data']['order']]
+                    : ['board' => $stored['data']['board']],
                 $this->playerMark($stored['winner'] ?? null),
             );
         } catch (InvalidArgumentException $exception) {
@@ -242,12 +246,38 @@ class SessionMatchStore
             }
         }
 
-        if (in_array($modalityKey, ['3-move', '4x3-move'], true)) {
+        if (in_array($modalityKey, ['3-move', '4x3-move', '3-rotation', '4x3-rotation'], true)) {
             $xCount = count(array_keys($board, 'x', true));
             $oCount = count(array_keys($board, 'o', true));
 
             if ($xCount > 3 || $oCount > 3 || abs($xCount - $oCount) > 1) {
                 throw new UnexpectedValueException('Invalid stored movement board.');
+            }
+        }
+    }
+
+    private function assertRotationOrder(string $modalityKey, array $board, mixed $order): void
+    {
+        if (! in_array($modalityKey, ['3-rotation', '4x3-rotation'], true)) {
+            return;
+        }
+
+        if (! is_array($order) || array_keys($order) !== ['x', 'o']) {
+            throw new UnexpectedValueException('Invalid stored rotation order.');
+        }
+
+        foreach (['x', 'o'] as $mark) {
+            $indices = $order[$mark];
+            if (! is_array($indices) || ! array_is_list($indices) || count($indices) > 3
+                || count($indices) !== count(array_keys($board, $mark, true))
+                || count(array_unique($indices)) !== count($indices)) {
+                throw new UnexpectedValueException('Invalid stored rotation order.');
+            }
+
+            foreach ($indices as $index) {
+                if (! is_int($index) || ! array_key_exists($index, $board) || $board[$index] !== $mark) {
+                    throw new UnexpectedValueException('Invalid stored rotation order.');
+                }
             }
         }
     }

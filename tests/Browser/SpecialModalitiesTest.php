@@ -20,14 +20,18 @@ it('moves a placed piece after the movement placement phase', function () {
 
 it('removes the oldest piece in rotation mode', function () {
     $page = visit('/3-rotacao');
+    $starter = strtolower(substr($page->script('document.querySelector("[data-testid=match-status]").textContent.trim()'), -1));
+    $other = $starter === 'x' ? 'o' : 'x';
+    foreach ([0, 1, 2, 3, 4, 6] as $turn => $cell) {
+        $page->click('[data-testid="cell-'.$cell.'"]');
+        awaitBrowserCellMark($page, $cell, $turn % 2 === 0 ? $starter : $other);
+    }
 
-    clickBrowserCells($page, [0, 1, 3, 4, 8, 6]);
-
-    $page
-        ->assertScript('placedPiecesOrder[currentPlayer][0]', 0)
-        ->click(browserCellSelector(2))
-        ->assertScript('board[0]', '')
-        ->assertScript('board[2] !== ""')
+    $page->assertScript('document.querySelector("[data-testid=cell-0]").dataset.oldestCell', 'true')
+        ->click('[data-testid="cell-5"]');
+    awaitBrowserCellMark($page, 5, $starter);
+    $page->assertScript('document.querySelector("[data-testid=cell-0]").dataset.mark', '')
+        ->assertScript('document.querySelector("[data-testid=cell-2]").dataset.oldestCell', 'true')
         ->assertNoJavaScriptErrors();
 });
 

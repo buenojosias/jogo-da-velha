@@ -9,14 +9,16 @@ it('places three pieces per player, selects and moves a piece without a full rel
         ->assertSeeIn('[data-testid="phase-instruction"]', 'Coloque uma peça');
     movementStartingWith($page, 'X');
 
-    foreach ([0, 1, 2] as $cell) {
+    foreach ([0, 1, 2] as $turn => $cell) {
         $page->click('[data-testid="cell-'.$cell.'"]');
+        awaitBrowserCellMark($page, $cell, $turn % 2 === 0 ? 'x' : 'o');
     }
     $page->refresh()->assertSeeIn('[data-testid="match-status"]', 'Vez do jogador O');
     $page->script('window.__movementMarker = "same-document";');
 
-    foreach ([3, 4, 6] as $cell) {
+    foreach ([3, 4, 6] as $turn => $cell) {
         $page->click('[data-testid="cell-'.$cell.'"]');
+        awaitBrowserCellMark($page, $cell, $turn % 2 === 0 ? 'o' : 'x');
     }
     $page->assertSeeIn('[data-testid="phase-instruction"]', 'Selecione uma peça e depois uma casa vazia');
 
@@ -43,8 +45,9 @@ it('shows a movement victory, score and modal, then restarts with the other play
     $page = visit('/experimental/3-mover');
     movementStartingWith($page, 'X');
 
-    foreach ([0, 1, 2, 3, 4, 6] as $cell) {
+    foreach ([0, 1, 2, 3, 4, 6] as $turn => $cell) {
         $page->click('[data-testid="cell-'.$cell.'"]');
+        awaitBrowserCellMark($page, $cell, $turn % 2 === 0 ? 'x' : 'o');
     }
 
     $page->click('[data-testid="cell-2"]')->click('[data-testid="cell-8"]')
@@ -70,8 +73,9 @@ it('resets temporary selection on reload and preserves the theme', function () {
     $page->select('[data-theme-selector]', 'dark')
         ->assertScript('document.documentElement.dataset.theme', 'dark');
 
-    foreach ([0, 1, 2, 3, 4, 6] as $cell) {
+    foreach ([0, 1, 2, 3, 4, 6] as $turn => $cell) {
         $page->click('[data-testid="cell-'.$cell.'"]');
+        awaitBrowserCellMark($page, $cell, $turn % 2 === 0 ? 'x' : 'o');
     }
 
     $page->click('[data-testid="cell-0"]')

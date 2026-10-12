@@ -4,6 +4,7 @@ use App\Games\Rules\Classic4x3Rules;
 use App\Games\Rules\Move4x3Rules;
 use App\Http\ClassicMatchManager;
 use App\Http\MovementMatchManager;
+use App\Http\RotationMatchManager;
 use App\Http\SessionMatchStore;
 use Illuminate\Support\Facades\Route;
 
@@ -17,7 +18,9 @@ Route::get('/3-basico', function (ClassicMatchManager $matches) {
 Route::get('/3-mover', function (MovementMatchManager $matches) {
     return view('experimental-move-3x3', ['matchId' => $matches->resumeOrCreate(), 'publicEntry' => true]);
 })->name('3-move');
-Route::view('/3-rotacao', '3-rotation')->name('3-rotation');
+Route::get('/3-rotacao', function (RotationMatchManager $matches) {
+    return view('rotation-match', ['matchId' => $matches->resumeOrCreate3x3(), 'modalityKey' => '3-rotation']);
+})->name('3-rotation');
 Route::get('/4-3-basico', function (ClassicMatchManager $matches, Classic4x3Rules $rules) {
     return view('experimental-classic-4x3', [
         'matchId' => $matches->resumeOrCreate4x3($rules),
@@ -30,7 +33,9 @@ Route::get('/4-3-mover', function (MovementMatchManager $matches, Move4x3Rules $
         'publicEntry' => true,
     ]);
 })->name('4x3-move');
-Route::view('/4-3-rotacao', '4x3-rotation')->name('4x3-rotation');
+Route::get('/4-3-rotacao', function (RotationMatchManager $matches) {
+    return view('rotation-match', ['matchId' => $matches->resumeOrCreate4x3(), 'modalityKey' => '4x3-rotation']);
+})->name('4x3-rotation');
 Route::view('/4-3-bloqueio', '4x3-block')->name('4x3-block');
 Route::view('/4-3-oculto', '4x3-hidden')->name('4x3-hidden');
 Route::view('/4-mover', '4x4-move')->name('4x4-move');
