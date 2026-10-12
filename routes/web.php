@@ -1,5 +1,6 @@
 <?php
 
+use App\Games\Rules\Classic4x3Rules;
 use App\Http\ClassicMatchManager;
 use App\Http\SessionMatchStore;
 use Illuminate\Support\Facades\Route;
@@ -37,6 +38,24 @@ if (app()->environment(['local', 'testing'])) {
 
         return view('experimental-classic', ['matchId' => $matchId]);
     })->where('matchId', '[A-Za-z0-9]{40}')->name('experimental.classic.show');
+
+    Route::get('/experimental/4-3-basico', function (ClassicMatchManager $matches, Classic4x3Rules $rules) {
+        return redirect()->route('experimental.classic4x3.show', ['matchId' => $matches->create4x3($rules)]);
+    })->name('experimental.classic4x3.create');
+
+    Route::get('/experimental/4-3-basico/{matchId}', function (string $matchId, SessionMatchStore $store) {
+        try {
+            $state = $store->find($matchId);
+            $store->startingPlayer($matchId);
+            $store->score($matchId);
+        } catch (InvalidArgumentException|\UnexpectedValueException) {
+            abort(404);
+        }
+
+        abort_if($state === null || $state->modality->key !== '4x3-basic', 404);
+
+        return view('experimental-classic-4x3', ['matchId' => $matchId]);
+    })->where('matchId', '[A-Za-z0-9]{40}')->name('experimental.classic4x3.show');
 }
 
 Route::view('/teste', 'teste')->name('teste');

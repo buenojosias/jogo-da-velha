@@ -18,6 +18,8 @@ class SessionMatchStore
 {
     private const string SESSION_PREFIX = 'experimental_matches.';
 
+    private const array BOARD_SIZES = ['3-basic' => 9, '4x3-basic' => 16];
+
     private const array INITIAL_SCORE = ['x' => 0, 'o' => 0, 'draws' => 0];
 
     public function __construct(private Session $session) {}
@@ -70,6 +72,7 @@ class SessionMatchStore
     {
         $stored = $this->record($matchId);
         $previousState = $this->decode($stored['state']);
+        $this->assertSameModality($previousState, $state);
         $score = $this->scoreFromRecord($stored);
 
         if ($previousState->status === MatchStatus::InProgress) {
@@ -87,7 +90,9 @@ class SessionMatchStore
 
     public function restart(string $matchId, MatchState $state): void
     {
-        $score = $this->scoreFromRecord($this->record($matchId));
+        $stored = $this->record($matchId);
+        $this->assertSameModality($this->decode($stored['state']), $state);
+        $score = $this->scoreFromRecord($stored);
 
         $this->session->put($this->key($matchId), [
             'starting_player' => $this->initialPlayer($state)->value,
@@ -166,6 +171,8 @@ class SessionMatchStore
      */
     private function encode(MatchState $state): array
     {
+        $this->assertBoard($state->modality->key, $state->data['board'] ?? null);
+
         return [
             'modality' => $state->modality->key,
             'participants' => [
@@ -182,21 +189,14 @@ class SessionMatchStore
     private function decode(mixed $stored): MatchState
     {
         if (! is_array($stored)
-            || ($stored['modality'] ?? null) !== '3-basic'
+            || ! is_string($stored['modality'] ?? null)
             || ! is_array($stored['participants'] ?? null)
             || ! is_array($stored['data'] ?? null)
-            || ! isset($stored['data']['board'])
-            || ! is_array($stored['data']['board'])
-            || ! array_is_list($stored['data']['board'])
-            || count($stored['data']['board']) !== 9) {
+            || ! array_key_exists('board', $stored['data'])) {
             throw new UnexpectedValueException('Invalid stored match state.');
         }
 
-        foreach ($stored['data']['board'] as $cell) {
-            if (! in_array($cell, ['', 'x', 'o'], true)) {
-                throw new UnexpectedValueException('Invalid stored match board.');
-            }
-        }
+        $this->assertBoard($stored['modality'], $stored['data']['board']);
 
         $status = is_string($stored['status'] ?? null) ? MatchStatus::tryFrom($stored['status']) : null;
 
@@ -206,7 +206,7 @@ class SessionMatchStore
 
         try {
             return new MatchState(
-                new Modality('3-basic'),
+                new Modality($stored['modality']),
                 new Participants(
                     $this->participant($stored['participants']['x'] ?? null),
                     $this->participant($stored['participants']['o'] ?? null),
@@ -218,6 +218,28 @@ class SessionMatchStore
             );
         } catch (InvalidArgumentException $exception) {
             throw new UnexpectedValueException('Invalid stored match state.', previous: $exception);
+        }
+    }
+
+    private function assertSameModality(MatchState $previous, MatchState $next): void
+    {
+        if ($previous->modality->key !== $next->modality->key) {
+            throw new InvalidArgumentException('A match cannot change modality.');
+        }
+    }
+
+    private function assertBoard(string $modalityKey, mixed $board): void
+    {
+        $size = self::BOARD_SIZES[$modalityKey] ?? null;
+
+        if ($size === null || ! is_array($board) || ! array_is_list($board) || count($board) !== $size) {
+            throw new UnexpectedValueException('Invalid stored match state.');
+        }
+
+        foreach ($board as $cell) {
+            if (! in_array($cell, ['', 'x', 'o'], true)) {
+                throw new UnexpectedValueException('Invalid stored match board.');
+            }
         }
     }
 

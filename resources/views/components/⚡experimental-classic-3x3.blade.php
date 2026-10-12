@@ -26,7 +26,8 @@ new class extends Component
         $this->matchId = $matchId;
         $this->publicEntry = $publicEntry;
 
-        abort_if(app(SessionMatchStore::class)->find($matchId) === null, 404);
+        $state = app(SessionMatchStore::class)->find($matchId);
+        abort_if($state === null || $state->modality->key !== '3-basic', 404);
         abort_if($publicEntry && ! app(ClassicMatchManager::class)->isActive($matchId), 404);
     }
 
@@ -35,7 +36,10 @@ new class extends Component
     {
         abort_if($this->publicEntry && ! app(ClassicMatchManager::class)->isActive($this->matchId), 404);
 
-        return app(SessionMatchStore::class)->find($this->matchId) ?? abort(404);
+        $state = app(SessionMatchStore::class)->find($this->matchId);
+        abort_if($state === null || $state->modality->key !== '3-basic', 404);
+
+        return $state;
     }
 
     /**

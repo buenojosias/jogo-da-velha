@@ -2,12 +2,14 @@
 
 namespace App\Http;
 
+use App\Games\GameRules;
 use App\Games\Modality;
 use App\Games\Participant;
 use App\Games\ParticipantKind;
 use App\Games\Participants;
 use App\Games\PlayerMark;
 use App\Games\Rules\Classic3x3Rules;
+use App\Games\Rules\Classic4x3Rules;
 use Illuminate\Contracts\Session\Session;
 use InvalidArgumentException;
 use Random\Randomizer;
@@ -39,8 +41,18 @@ class ClassicMatchManager
 
     public function create(): string
     {
-        $state = $this->rules->initialState(
-            new Modality('3-basic'),
+        return $this->createWithRules(new Modality('3-basic'), $this->rules);
+    }
+
+    public function create4x3(Classic4x3Rules $rules): string
+    {
+        return $this->createWithRules(new Modality('4x3-basic'), $rules);
+    }
+
+    private function createWithRules(Modality $modality, GameRules $rules): string
+    {
+        $state = $rules->initialState(
+            $modality,
             new Participants(
                 new Participant(ParticipantKind::Guest, 'local-x'),
                 new Participant(ParticipantKind::Guest, 'local-o'),
@@ -65,7 +77,9 @@ class ClassicMatchManager
         }
 
         try {
-            if ($this->store->find($matchId) === null) {
+            $state = $this->store->find($matchId);
+
+            if ($state === null || $state->modality->key !== '3-basic') {
                 return null;
             }
 
