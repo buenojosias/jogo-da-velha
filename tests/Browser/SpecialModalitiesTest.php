@@ -113,12 +113,16 @@ it('requires two distinct lines in the 5x5 two-lines mode', function () {
 
 it('scores maximal sequences of three, four, and five pieces', function () {
     $page = visit('/5-cheia');
-
-    $page
-        ->assertScript('function() { board = ["x", "x", "x", "", "", ...Array(20).fill("")]; return calculateScore("x"); }', 3)
-        ->assertScript('function() { board = ["x", "x", "x", "x", "", ...Array(20).fill("")]; return calculateScore("x"); }', 6)
-        ->assertScript('function() { board = ["x", "x", "x", "x", "x", ...Array(20).fill("")]; return calculateScore("x"); }', 10)
-        ->assertNoJavaScriptErrors();
+    $starter = strtolower(substr($page->script('document.querySelector("[data-testid=match-status]").textContent.trim()'), -1));
+    $other = $starter === 'x' ? 'o' : 'x';
+    foreach ([0, 5, 1, 6, 2, 7, 3, 8, 4] as $turn => $cell) {
+        $page->click('[data-testid="cell-'.$cell.'"]');
+        awaitBrowserCellMark($page, $cell, $turn % 2 === 0 ? $starter : $other);
+        if (in_array($turn, [4, 6, 8], true)) {
+            $page->assertSeeIn('[data-testid="round-points-'.$starter.'"]', (string) ([4 => 3, 6 => 6, 8 => 10][$turn]));
+        }
+    }
+    $page->assertNoJavaScriptErrors();
 });
 
 it('rolls the die, rejects another column, and accepts the allowed move', function () {

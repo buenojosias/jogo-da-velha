@@ -5,6 +5,7 @@ use App\Games\Rules\Move4x3Rules;
 use App\Games\Rules\Move4x4Rules;
 use App\Http\BlockMatchManager;
 use App\Http\ClassicMatchManager;
+use App\Http\FullMatchManager;
 use App\Http\HiddenMatchManager;
 use App\Http\MovementMatchManager;
 use App\Http\RotationMatchManager;
@@ -55,7 +56,9 @@ Route::get('/4-mover', function (MovementMatchManager $matches, Move4x4Rules $ru
 Route::get('/2-linhas', function (TwoLinesMatchManager $matches) {
     return view('two-lines-5x5', ['matchId' => $matches->resumeOrCreate()]);
 })->name('5x5-2-lines');
-Route::view('/5-cheia', '5-full')->name('5-full');
+Route::get('/5-cheia', function (FullMatchManager $matches) {
+    return view('full-5x5', ['matchId' => $matches->resumeOrCreate()]);
+})->name('5-full');
 Route::view('/dado', 'dice')->name('dice');
 Route::view('/maluca', 'crazy')->name('crazy');
 Route::view('/ultimate', 'ultimate')->name('ultimate');

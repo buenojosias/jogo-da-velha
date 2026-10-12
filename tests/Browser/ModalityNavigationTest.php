@@ -116,7 +116,10 @@ function browserModalities(): array
             'uri' => '/2-linhas', 'title' => 'Duas Linhas 5×5', 'board' => '[data-testid="classic-board"]',
             'cells' => '[data-testid^="cell-"]', 'cell_count' => 25, 'additional' => ['[data-testid="new-match-button"]' => 1],
         ]],
-        'score 5x5' => [modality('/5-cheia', 'Pontuação 5x5', 25)],
+        'score 5x5' => [[
+            'uri' => '/5-cheia', 'title' => 'Pontuação 5×5', 'board' => '[data-testid="classic-board"]',
+            'cells' => '[data-testid^="cell-"]', 'cell_count' => 25, 'additional' => ['[data-testid="round-points-x"]' => 1],
+        ]],
         'dice' => [[
             'uri' => '/dado',
             'title' => 'Dados da Velha',

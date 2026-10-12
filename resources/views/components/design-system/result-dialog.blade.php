@@ -1,4 +1,4 @@
-@props(['title', 'eyebrow', 'description', 'winnerMark' => null, 'scoreX' => 0, 'scoreO' => 0, 'draws' => 0, 'dialogId' => 'round-result'])
+@props(['title', 'eyebrow', 'description', 'winnerMark' => null, 'scoreX' => 0, 'scoreO' => 0, 'draws' => 0, 'dialogId' => 'round-result', 'roundPoints' => null])
 
 <dialog {{ $attributes->class(['ds-result-dialog m-auto w-[min(27rem,calc(100vw-1.5rem))] max-h-[calc(100dvh-1.5rem)] max-w-none overflow-y-auto rounded-ds-card border border-ds-border bg-ds-elevated p-0 text-ds-text shadow-ds-elevated']) }} aria-modal="true" aria-labelledby="{{ $dialogId }}-title" aria-describedby="{{ $dialogId }}-description">
     <div class="p-4 sm:p-5">
@@ -16,6 +16,10 @@
         </div>
 
         <p id="{{ $dialogId }}-description" class="mt-3 text-sm leading-relaxed text-ds-text-secondary">{{ $description }}</p>
+
+        @if ($roundPoints !== null)
+            <p data-testid="result-round-points" class="mt-3 rounded-ds-control border border-ds-border bg-ds-surface-muted px-3 py-2 text-center text-sm font-bold text-ds-text">Pontos finais: X {{ $roundPoints['x'] }} · O {{ $roundPoints['o'] }}</p>
+        @endif
 
         <dl aria-label="Placar da partida" class="mt-4 grid grid-cols-3 gap-2 text-center">
             <div @class([

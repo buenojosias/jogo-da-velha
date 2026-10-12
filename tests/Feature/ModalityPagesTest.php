@@ -27,7 +27,7 @@ it('renders the :dataset modality route with its expected view and structure', f
     'hidden 4x4' => ['/4-3-oculto', 'hidden-4x3', 'Oculto 4×4', ['data-testid="hidden-board"', 'data-testid="cell-0"', 'data-testid="cell-15"', 'data-testid="match-status"', 'data-testid="new-match-button"']],
     'movement 4x4 with lines of 4' => ['/4-mover', 'experimental-move-4x4', 'Linha de 4 com Movimento', ['data-testid="movement-board"', 'data-testid="cell-0"', 'data-testid="cell-15"', 'data-testid="match-status"', 'data-testid="new-match-button"']],
     'two lines 5x5' => ['/2-linhas', 'two-lines-5x5', 'Duas Linhas 5×5', ['data-testid="classic-board"', 'data-testid="cell-0"', 'data-testid="cell-24"', 'data-testid="match-status"', 'data-testid="new-match-button"']],
-    'score 5x5' => ['/5-cheia', '5-full', 'Pontuação 5x5 (Blade)', ['id="board"', 'cells-25', 'id="status"', 'id="restartBtn"', 'id="modal-win"', 'function calculateScore']],
+    'score 5x5' => ['/5-cheia', 'full-5x5', 'Pontuação 5×5', ['data-testid="classic-board"', 'data-testid="cell-0"', 'data-testid="cell-24"', 'data-testid="round-points-x"', 'data-testid="new-match-button"']],
     'dice' => ['/dado', 'dice', 'Dados da Velha', ['id="board1"', 'id="board2"', 'id="dice"', 'id="rollBtn"', 'id="restartBtn"', 'function rotateDice']],
     'crazy' => ['/maluca', 'crazy', 'Jogo da Velha Maluca', ['id="board"', 'id="piecesX"', 'id="piecesO"', 'id="status"', 'function sizeValue', 'function placePiece']],
     'ultimate' => ['/ultimate', 'ultimate', 'Jogo da Velha 2.0', ['id="game"', 'id="currentPlayer"', 'id="targetBoardText"', 'id="winnerOverlay"', 'function isBoardPlayable', 'function makeMove']],
@@ -38,7 +38,7 @@ it('renders the expected number of cells for the :dataset shared-layout modality
 
     $response->assertOk();
 
-    $cellMarker = in_array($uri, ['/3-mover', '/4-3-mover', '/4-mover', '/3-rotacao', '/4-3-rotacao', '/4-3-bloqueio', '/4-3-oculto', '/2-linhas'], true) ? 'data-testid="cell-' : 'class="cell"';
+    $cellMarker = in_array($uri, ['/3-mover', '/4-3-mover', '/4-mover', '/3-rotacao', '/4-3-rotacao', '/4-3-bloqueio', '/4-3-oculto', '/2-linhas', '/5-cheia'], true) ? 'data-testid="cell-' : 'class="cell"';
     expect(substr_count($response->getContent(), $cellMarker))->toBe($cellCount);
 })->with([
     'movement 3x3' => ['/3-mover', 9],

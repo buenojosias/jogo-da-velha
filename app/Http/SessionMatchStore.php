@@ -9,6 +9,7 @@ use App\Games\Participant;
 use App\Games\ParticipantKind;
 use App\Games\Participants;
 use App\Games\PlayerMark;
+use App\Games\Rules\Full5x5Rules;
 use App\Games\Rules\Hidden4x3Rules;
 use App\Games\Rules\TwoLines5x5Rules;
 use Illuminate\Contracts\Session\Session;
@@ -20,7 +21,7 @@ class SessionMatchStore
 {
     private const string SESSION_PREFIX = 'experimental_matches.';
 
-    private const array BOARD_SIZES = ['3-basic' => 9, '4x3-basic' => 16, '4x3-block' => 16, '3-move' => 9, '4x3-move' => 16, '4x4-move' => 16, '3-rotation' => 9, '4x3-rotation' => 16, '4x3-hidden' => 16, '5x5-2-lines' => 25];
+    private const array BOARD_SIZES = ['3-basic' => 9, '4x3-basic' => 16, '4x3-block' => 16, '3-move' => 9, '4x3-move' => 16, '4x4-move' => 16, '3-rotation' => 9, '4x3-rotation' => 16, '4x3-hidden' => 16, '5x5-2-lines' => 25, '5-full' => 25];
 
     private const array INITIAL_SCORE = ['x' => 0, 'o' => 0, 'draws' => 0];
 
@@ -178,6 +179,7 @@ class SessionMatchStore
         $this->assertHiddenOrder($state->modality->key, $state->data['board'], $state->data['order'] ?? null);
         $this->assertHiddenOutcome($state);
         $this->assertTwoLinesOutcome($state);
+        $this->assertFullOutcome($state);
 
         return [
             'modality' => $state->modality->key,
@@ -228,6 +230,7 @@ class SessionMatchStore
             );
             $this->assertHiddenOutcome($state);
             $this->assertTwoLinesOutcome($state);
+            $this->assertFullOutcome($state);
 
             return $state;
         } catch (InvalidArgumentException $exception) {
@@ -256,7 +259,7 @@ class SessionMatchStore
             }
         }
 
-        if (in_array($modalityKey, ['4x3-block', '5x5-2-lines'], true)
+        if (in_array($modalityKey, ['4x3-block', '5x5-2-lines', '5-full'], true)
             && abs(count(array_keys($board, 'x', true)) - count(array_keys($board, 'o', true))) > 1) {
             throw new UnexpectedValueException('Invalid stored placement board.');
         }
@@ -351,6 +354,27 @@ class SessionMatchStore
                     || $rules->lineCount($state, PlayerMark::O) >= 2))
             || ($state->status === MatchStatus::InProgress && ! in_array('', $state->data['board'], true))) {
             throw new UnexpectedValueException('Invalid stored two-lines result.');
+        }
+    }
+
+    private function assertFullOutcome(MatchState $state): void
+    {
+        if ($state->modality->key !== '5-full') {
+            return;
+        }
+
+        $isFull = ! in_array('', $state->data['board'], true);
+        $scores = app(Full5x5Rules::class)->scores($state);
+        $expectedWinner = $scores['x'] === $scores['o']
+            ? null
+            : ($scores['x'] > $scores['o'] ? PlayerMark::X : PlayerMark::O);
+
+        if ($state->status === MatchStatus::Awaiting
+            || ($state->status === MatchStatus::InProgress && $isFull)
+            || ($state->isFinished() && ! $isFull)
+            || ($state->status === MatchStatus::Completed && $state->winner !== $expectedWinner)
+            || ($state->status === MatchStatus::Drawn && $expectedWinner !== null)) {
+            throw new UnexpectedValueException('Invalid stored full-board result.');
         }
     }
 

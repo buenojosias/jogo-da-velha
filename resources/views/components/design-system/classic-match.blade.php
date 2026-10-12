@@ -12,6 +12,7 @@
     'instruction' => null,
     'resultDescription' => 'Três em linha! O placar foi atualizado.',
     'drawDescription' => 'Ninguém completou uma linha nesta rodada.',
+    'roundPoints' => null,
 ])
 @use('App\Games\{MatchStatus, PlayerMark}')
 @php($unavailableCells = $state->isFinished() ? array_keys($state->data['board']) : array_keys(array_filter($state->data['board'])))
@@ -68,6 +69,19 @@
 
             @if ($instruction && ! $state->isFinished())
                 <p data-testid="game-instruction" class="mx-auto mt-2 max-w-[28rem] text-center text-sm font-semibold text-ds-text-secondary">{{ $instruction }}</p>
+            @endif
+
+            @if ($roundPoints !== null)
+                <dl aria-label="Pontos da rodada" class="mx-auto mt-3 grid max-w-[28rem] grid-cols-2 gap-2 text-center">
+                    <div class="rounded-ds-control border border-ds-border bg-ds-surface-muted px-2 py-1.5">
+                        <dt class="text-xs font-bold text-ds-text-secondary">Pontos X</dt>
+                        <dd data-testid="round-points-x" class="text-xl font-black text-ds-x">{{ $roundPoints['x'] }}</dd>
+                    </div>
+                    <div class="rounded-ds-control border border-ds-border bg-ds-surface-muted px-2 py-1.5">
+                        <dt class="text-xs font-bold text-ds-text-secondary">Pontos O</dt>
+                        <dd data-testid="round-points-o" class="text-xl font-black text-ds-o">{{ $roundPoints['o'] }}</dd>
+                    </div>
+                </dl>
             @endif
 
             <x-design-system.game-board
@@ -143,6 +157,7 @@
             :score-x="$score['x']"
             :score-o="$score['o']"
             :draws="$score['draws']"
+            :round-points="$roundPoints"
             x-ref="resultDialog"
             x-on:close="restoreRoundResultFocus()"
             data-testid="result-dialog"
