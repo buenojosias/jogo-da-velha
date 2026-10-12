@@ -21,7 +21,7 @@ it('renders the :dataset modality route with its expected view and structure', f
     'movement 3x3' => ['/3-mover', 'experimental-move-3x3', 'Movimento 3×3', ['data-testid="movement-board"', 'data-testid="cell-0"', 'data-testid="cell-8"', 'data-testid="match-status"', 'data-testid="new-match-button"']],
     'rotation 3x3' => ['/3-rotacao', '3-rotation', 'Rotação 3x3', ['id="board"', 'cells-9', 'id="status"', 'id="restartBtn"', 'id="modal-win"', 'let placedPiecesOrder']],
     'classic 4x4 with lines of 3' => ['/4-3-basico', 'experimental-classic-4x3', 'Clássico 4×4', ['data-testid="classic-board"', 'data-testid="cell-0"', 'data-testid="cell-15"', 'data-testid="match-status"', 'data-testid="new-match-button"']],
-    'movement 4x4 with lines of 3' => ['/4-3-mover', '4x3-move', 'Movimento 4x4 (3 peças)', ['id="board"', 'cells-16', 'id="status"', 'id="restartBtn"', 'id="modal-win"', 'let selectedPiece = null']],
+    'movement 4x4 with lines of 3' => ['/4-3-mover', 'experimental-move-4x3', 'Movimento 4×4', ['data-testid="movement-board"', 'data-testid="cell-0"', 'data-testid="cell-15"', 'data-testid="match-status"', 'data-testid="new-match-button"']],
     'rotation 4x4 with lines of 3' => ['/4-3-rotacao', '4x3-rotation', 'Rotação 4x4 (3 peças)', ['id="board"', 'cells-16', 'id="status"', 'id="restartBtn"', 'id="modal-win"', 'let placedPiecesOrder']],
     'blocking 4x4' => ['/4-3-bloqueio', '4x3-block', 'Bloqueio 4x4', ['id="board"', 'cells-16', 'id="status"', 'id="restartBtn"', 'id="modal-win"', 'function getBlockers']],
     'hidden 4x4' => ['/4-3-oculto', '4x3-hidden', 'Oculto 4x4', ['id="board"', 'cells-16', 'id="status"', 'id="restartBtn"', 'id="modal-win"', 'piece-hidden']],
@@ -38,7 +38,7 @@ it('renders the expected number of cells for the :dataset shared-layout modality
 
     $response->assertOk();
 
-    $cellMarker = $uri === '/3-mover' ? 'data-testid="cell-' : 'class="cell"';
+    $cellMarker = in_array($uri, ['/3-mover', '/4-3-mover'], true) ? 'data-testid="cell-' : 'class="cell"';
     expect(substr_count($response->getContent(), $cellMarker))->toBe($cellCount);
 })->with([
     'movement 3x3' => ['/3-mover', 9],

@@ -1,6 +1,7 @@
 <?php
 
 use App\Games\Rules\Classic4x3Rules;
+use App\Games\Rules\Move4x3Rules;
 use App\Http\ClassicMatchManager;
 use App\Http\MovementMatchManager;
 use App\Http\SessionMatchStore;
@@ -23,7 +24,12 @@ Route::get('/4-3-basico', function (ClassicMatchManager $matches, Classic4x3Rule
         'publicEntry' => true,
     ]);
 })->name('4x3-basic');
-Route::view('/4-3-mover', '4x3-move')->name('4x3-move');
+Route::get('/4-3-mover', function (MovementMatchManager $matches, Move4x3Rules $rules) {
+    return view('experimental-move-4x3', [
+        'matchId' => $matches->resumeOrCreate4x3($rules),
+        'publicEntry' => true,
+    ]);
+})->name('4x3-move');
 Route::view('/4-3-rotacao', '4x3-rotation')->name('4x3-rotation');
 Route::view('/4-3-bloqueio', '4x3-block')->name('4x3-block');
 Route::view('/4-3-oculto', '4x3-hidden')->name('4x3-hidden');

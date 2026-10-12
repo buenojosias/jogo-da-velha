@@ -18,7 +18,7 @@ class SessionMatchStore
 {
     private const string SESSION_PREFIX = 'experimental_matches.';
 
-    private const array BOARD_SIZES = ['3-basic' => 9, '4x3-basic' => 16, '3-move' => 9];
+    private const array BOARD_SIZES = ['3-basic' => 9, '4x3-basic' => 16, '3-move' => 9, '4x3-move' => 16];
 
     private const array INITIAL_SCORE = ['x' => 0, 'o' => 0, 'draws' => 0];
 
@@ -242,7 +242,7 @@ class SessionMatchStore
             }
         }
 
-        if ($modalityKey === '3-move') {
+        if (in_array($modalityKey, ['3-move', '4x3-move'], true)) {
             $xCount = count(array_keys($board, 'x', true));
             $oCount = count(array_keys($board, 'o', true));
 

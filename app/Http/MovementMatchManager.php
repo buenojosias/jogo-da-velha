@@ -2,12 +2,14 @@
 
 namespace App\Http;
 
+use App\Games\GameRules;
 use App\Games\Modality;
 use App\Games\Participant;
 use App\Games\ParticipantKind;
 use App\Games\Participants;
 use App\Games\PlayerMark;
 use App\Games\Rules\Move3x3Rules;
+use App\Games\Rules\Move4x3Rules;
 use Illuminate\Contracts\Session\Session;
 use InvalidArgumentException;
 use Random\Randomizer;
@@ -16,6 +18,8 @@ use UnexpectedValueException;
 class MovementMatchManager
 {
     private const string ACTIVE_MATCH_KEY = 'movement3x3.active_match_id';
+
+    private const string ACTIVE_4X3_MATCH_KEY = 'movement4x3.active_match_id';
 
     public function __construct(
         private Session $session,
@@ -26,7 +30,7 @@ class MovementMatchManager
 
     public function resumeOrCreate(): string
     {
-        return $this->validActiveId() ?? $this->createNewActive();
+        return $this->validActiveId(self::ACTIVE_MATCH_KEY, '3-move') ?? $this->createNewActive();
     }
 
     public function createNewActive(): string
@@ -39,13 +43,41 @@ class MovementMatchManager
 
     public function isActive(string $matchId): bool
     {
-        return $this->validActiveId() === $matchId;
+        return $this->validActiveId(self::ACTIVE_MATCH_KEY, '3-move') === $matchId;
     }
 
     public function create(): string
     {
-        return $this->store->create($this->rules->initialState(
-            new Modality('3-move'),
+        return $this->createWithRules(new Modality('3-move'), $this->rules);
+    }
+
+    public function resumeOrCreate4x3(Move4x3Rules $rules): string
+    {
+        return $this->validActiveId(self::ACTIVE_4X3_MATCH_KEY, '4x3-move') ?? $this->createNewActive4x3($rules);
+    }
+
+    public function createNewActive4x3(Move4x3Rules $rules): string
+    {
+        $matchId = $this->create4x3($rules);
+        $this->session->put(self::ACTIVE_4X3_MATCH_KEY, $matchId);
+
+        return $matchId;
+    }
+
+    public function isActive4x3(string $matchId): bool
+    {
+        return $this->validActiveId(self::ACTIVE_4X3_MATCH_KEY, '4x3-move') === $matchId;
+    }
+
+    public function create4x3(Move4x3Rules $rules): string
+    {
+        return $this->createWithRules(new Modality('4x3-move'), $rules);
+    }
+
+    private function createWithRules(Modality $modality, GameRules $rules): string
+    {
+        return $this->store->create($rules->initialState(
+            $modality,
             new Participants(
                 new Participant(ParticipantKind::Guest, 'local-x'),
                 new Participant(ParticipantKind::Guest, 'local-o'),
@@ -54,9 +86,9 @@ class MovementMatchManager
         ));
     }
 
-    private function validActiveId(): ?string
+    private function validActiveId(string $sessionKey, string $modalityKey): ?string
     {
-        $matchId = $this->session->get(self::ACTIVE_MATCH_KEY);
+        $matchId = $this->session->get($sessionKey);
 
         if (! is_string($matchId)) {
             return null;
@@ -65,7 +97,7 @@ class MovementMatchManager
         try {
             $state = $this->store->find($matchId);
 
-            if ($state === null || $state->modality->key !== '3-move') {
+            if ($state === null || $state->modality->key !== $modalityKey) {
                 return null;
             }
 
