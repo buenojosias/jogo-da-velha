@@ -9,6 +9,9 @@
     'rejectionMessage',
     'publicEntry',
     'roundFinishedEvent',
+    'instruction' => null,
+    'resultDescription' => 'Três em linha! O placar foi atualizado.',
+    'drawDescription' => 'Ninguém completou uma linha nesta rodada.',
 ])
 @use('App\Games\{MatchStatus, PlayerMark}')
 @php($unavailableCells = $state->isFinished() ? array_keys($state->data['board']) : array_keys(array_filter($state->data['board'])))
@@ -62,6 +65,10 @@
                     Vez do jogador {{ strtoupper($state->currentPlayer->value) }}
                 @endif
             </x-design-system.match-status>
+
+            @if ($instruction && ! $state->isFinished())
+                <p data-testid="game-instruction" class="mx-auto mt-2 max-w-[28rem] text-center text-sm font-semibold text-ds-text-secondary">{{ $instruction }}</p>
+            @endif
 
             <x-design-system.game-board
                 :cells="$state->data['board']"
@@ -131,7 +138,7 @@
         <x-design-system.result-dialog
             :title="$state->status === MatchStatus::Drawn ? 'Empate!' : 'Jogador '.strtoupper($state->winner->value).' venceu!'"
             :eyebrow="$state->status === MatchStatus::Drawn ? 'Rodada empatada' : 'Vitória da rodada'"
-            :description="$state->status === MatchStatus::Drawn ? 'Ninguém completou uma linha nesta rodada.' : 'Três em linha! O placar foi atualizado.'"
+            :description="$state->status === MatchStatus::Drawn ? $drawDescription : $resultDescription"
             :winner-mark="$state->winner?->value"
             :score-x="$score['x']"
             :score-o="$score['o']"

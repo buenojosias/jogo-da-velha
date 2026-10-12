@@ -9,6 +9,7 @@ use App\Http\HiddenMatchManager;
 use App\Http\MovementMatchManager;
 use App\Http\RotationMatchManager;
 use App\Http\SessionMatchStore;
+use App\Http\TwoLinesMatchManager;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -51,7 +52,9 @@ Route::get('/4-mover', function (MovementMatchManager $matches, Move4x4Rules $ru
         'publicEntry' => true,
     ]);
 })->name('4x4-move');
-Route::view('/2-linhas', '5x5-2-lines')->name('5x5-2-lines');
+Route::get('/2-linhas', function (TwoLinesMatchManager $matches) {
+    return view('two-lines-5x5', ['matchId' => $matches->resumeOrCreate()]);
+})->name('5x5-2-lines');
 Route::view('/5-cheia', '5-full')->name('5-full');
 Route::view('/dado', 'dice')->name('dice');
 Route::view('/maluca', 'crazy')->name('crazy');

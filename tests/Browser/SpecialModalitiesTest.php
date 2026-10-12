@@ -90,16 +90,24 @@ it('recognizes four pieces in sequence', function () {
 
 it('requires two distinct lines in the 5x5 two-lines mode', function () {
     $page = visit('/2-linhas');
+    $starter = strtolower(substr($page->script('document.querySelector("[data-testid=match-status]").textContent.trim()'), -1));
+    $other = $starter === 'x' ? 'o' : 'x';
 
-    clickBrowserCells($page, [0, 5, 1, 6, 2]);
+    foreach ([0, 5, 1, 6, 2] as $turn => $cell) {
+        $page->click('[data-testid="cell-'.$cell.'"]');
+        awaitBrowserCellMark($page, $cell, $turn % 2 === 0 ? $starter : $other);
+    }
 
-    $page->assertScript('gameOver', false);
+    $page->assertScript('document.querySelector("[data-testid=result-dialog]")?.open ?? false', false);
 
-    clickBrowserCells($page, [9, 10, 14, 11, 19, 12]);
+    foreach ([9, 10, 14, 11, 19, 12] as $turn => $cell) {
+        $page->click('[data-testid="cell-'.$cell.'"]');
+        awaitBrowserCellMark($page, $cell, $turn % 2 === 0 ? $other : $starter);
+    }
 
     $page
-        ->assertScript('gameOver')
-        ->assertVisible('#modal-win')
+        ->assertSeeIn('[data-testid="match-status"]', 'venceu!')
+        ->assertScript('document.querySelector("[data-testid=result-dialog]").open', true)
         ->assertNoJavaScriptErrors();
 });
 

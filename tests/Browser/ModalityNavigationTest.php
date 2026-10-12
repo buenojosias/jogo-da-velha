@@ -112,7 +112,10 @@ function browserModalities(): array
             'uri' => '/4-mover', 'title' => 'Linha de 4 com Movimento', 'board' => '[data-testid="movement-board"]',
             'cells' => '[data-testid^="cell-"]', 'cell_count' => 16, 'additional' => ['[data-testid="new-match-button"]' => 1],
         ]],
-        'two lines 5x5' => [modality('/2-linhas', '2 Linhas 5x5', 25)],
+        'two lines 5x5' => [[
+            'uri' => '/2-linhas', 'title' => 'Duas Linhas 5×5', 'board' => '[data-testid="classic-board"]',
+            'cells' => '[data-testid^="cell-"]', 'cell_count' => 25, 'additional' => ['[data-testid="new-match-button"]' => 1],
+        ]],
         'score 5x5' => [modality('/5-cheia', 'Pontuação 5x5', 25)],
         'dice' => [[
             'uri' => '/dado',
