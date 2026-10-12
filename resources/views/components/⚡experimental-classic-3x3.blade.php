@@ -1,11 +1,11 @@
 <?php
 
-use App\Games\GameAction;
 use App\Games\MatchState;
 use App\Games\MatchStatus;
 use App\Games\PlayerMark;
 use App\Games\Rules\Classic3x3Rules;
 use App\Http\ClassicMatchManager;
+use App\Http\ClassicRoundActions;
 use App\Http\SessionMatchStore;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Locked;
@@ -63,10 +63,11 @@ new class extends Component
     public function place(mixed $cellIndex): void
     {
         $state = $this->matchState;
-        $actingPlayer = $state->currentPlayer ?? PlayerMark::X;
-        $result = app(Classic3x3Rules::class)->apply(
+        $result = app(ClassicRoundActions::class)->place(
+            $this->matchId,
             $state,
-            new GameAction($actingPlayer, 'place', ['cell' => $cellIndex]),
+            app(Classic3x3Rules::class),
+            $cellIndex,
         );
 
         if (! $result->validation->valid) {
@@ -80,7 +81,6 @@ new class extends Component
             return;
         }
 
-        app(SessionMatchStore::class)->save($this->matchId, $result->state);
         $this->rejectionMessage = null;
         unset($this->matchState, $this->score, $this->winningCells);
 
@@ -91,15 +91,10 @@ new class extends Component
 
     public function restart(): void
     {
-        $store = app(SessionMatchStore::class);
-        $state = $this->matchState;
-        $nextStarter = $store->startingPlayer($this->matchId) === PlayerMark::X
-            ? PlayerMark::O
-            : PlayerMark::X;
-
-        $store->restart(
+        app(ClassicRoundActions::class)->restart(
             $this->matchId,
-            app(Classic3x3Rules::class)->initialState($state->modality, $state->participants, $nextStarter),
+            $this->matchState,
+            app(Classic3x3Rules::class),
         );
 
         $this->rejectionMessage = null;
