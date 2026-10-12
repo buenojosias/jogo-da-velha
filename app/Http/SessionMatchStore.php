@@ -9,6 +9,7 @@ use App\Games\Participant;
 use App\Games\ParticipantKind;
 use App\Games\Participants;
 use App\Games\PlayerMark;
+use App\Games\Rules\Hidden4x3Rules;
 use Illuminate\Contracts\Session\Session;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
@@ -18,7 +19,7 @@ class SessionMatchStore
 {
     private const string SESSION_PREFIX = 'experimental_matches.';
 
-    private const array BOARD_SIZES = ['3-basic' => 9, '4x3-basic' => 16, '4x3-block' => 16, '3-move' => 9, '4x3-move' => 16, '4x4-move' => 16, '3-rotation' => 9, '4x3-rotation' => 16];
+    private const array BOARD_SIZES = ['3-basic' => 9, '4x3-basic' => 16, '4x3-block' => 16, '3-move' => 9, '4x3-move' => 16, '4x4-move' => 16, '3-rotation' => 9, '4x3-rotation' => 16, '4x3-hidden' => 16];
 
     private const array INITIAL_SCORE = ['x' => 0, 'o' => 0, 'draws' => 0];
 
@@ -173,6 +174,8 @@ class SessionMatchStore
     {
         $this->assertBoard($state->modality->key, $state->data['board'] ?? null);
         $this->assertRotationOrder($state->modality->key, $state->data['board'], $state->data['order'] ?? null);
+        $this->assertHiddenOrder($state->modality->key, $state->data['board'], $state->data['order'] ?? null);
+        $this->assertHiddenOutcome($state);
 
         return [
             'modality' => $state->modality->key,
@@ -199,6 +202,7 @@ class SessionMatchStore
 
         $this->assertBoard($stored['modality'], $stored['data']['board']);
         $this->assertRotationOrder($stored['modality'], $stored['data']['board'], $stored['data']['order'] ?? null);
+        $this->assertHiddenOrder($stored['modality'], $stored['data']['board'], $stored['data']['order'] ?? null);
 
         $status = is_string($stored['status'] ?? null) ? MatchStatus::tryFrom($stored['status']) : null;
 
@@ -207,7 +211,7 @@ class SessionMatchStore
         }
 
         try {
-            return new MatchState(
+            $state = new MatchState(
                 new Modality($stored['modality']),
                 new Participants(
                     $this->participant($stored['participants']['x'] ?? null),
@@ -215,11 +219,14 @@ class SessionMatchStore
                 ),
                 $status,
                 $this->playerMark($stored['current_player'] ?? null),
-                in_array($stored['modality'], ['3-rotation', '4x3-rotation'], true)
+                in_array($stored['modality'], ['3-rotation', '4x3-rotation', '4x3-hidden'], true)
                     ? ['board' => $stored['data']['board'], 'order' => $stored['data']['order']]
                     : ['board' => $stored['data']['board']],
                 $this->playerMark($stored['winner'] ?? null),
             );
+            $this->assertHiddenOutcome($state);
+
+            return $state;
         } catch (InvalidArgumentException $exception) {
             throw new UnexpectedValueException('Invalid stored match state.', previous: $exception);
         }
@@ -285,6 +292,44 @@ class SessionMatchStore
                     throw new UnexpectedValueException('Invalid stored rotation order.');
                 }
             }
+        }
+    }
+
+    private function assertHiddenOrder(string $modalityKey, array $board, mixed $order): void
+    {
+        if ($modalityKey !== '4x3-hidden') {
+            return;
+        }
+        if (! is_array($order) || array_keys($order) !== ['x', 'o']) {
+            throw new UnexpectedValueException('Invalid stored hidden order.');
+        }
+        foreach (['x', 'o'] as $mark) {
+            $indices = $order[$mark];
+            if (! is_array($indices) || ! array_is_list($indices) || count($indices) > 5
+                || count($indices) !== count(array_keys($board, $mark, true))
+                || count(array_unique($indices)) !== count($indices)) {
+                throw new UnexpectedValueException('Invalid stored hidden order.');
+            }
+            foreach ($indices as $index) {
+                if (! is_int($index) || ! array_key_exists($index, $board) || $board[$index] !== $mark) {
+                    throw new UnexpectedValueException('Invalid stored hidden order.');
+                }
+            }
+        }
+        if (abs(count($order['x']) - count($order['o'])) > 1) {
+            throw new UnexpectedValueException('Invalid stored hidden order.');
+        }
+    }
+
+    private function assertHiddenOutcome(MatchState $state): void
+    {
+        if ($state->modality->key !== '4x3-hidden') {
+            return;
+        }
+        if ($state->status === MatchStatus::Awaiting || $state->status === MatchStatus::Drawn
+            || ($state->status === MatchStatus::Completed
+                && app(Hidden4x3Rules::class)->winningLine($state) === null)) {
+            throw new UnexpectedValueException('Invalid stored hidden result.');
         }
     }
 

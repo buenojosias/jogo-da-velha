@@ -1,0 +1,13 @@
+# Etapa 10 — Oculto 4×4
+
+- A rota pública `/4-3-oculto` (`4x3-hidden`) usa `Hidden4x3Rules` e o componente Livewire `hidden-4x3`. A view exclusiva `4x3-hidden.blade.php` foi removida após a busca por referências. `public/js/game.js`, componentes e CSS compartilhados permanecem intactos.
+- Estado oficial: `data.board` contém 16 valores `'' | 'x' | 'o'`; `data.order.x/o` contém os índices das peças do respectivo jogador, do mais antigo ao mais recente, com máximo de cinco. A ação `choose` recebe somente o índice. Casa vazia coloca ou substitui a peça mais antiga (FIFO); casa adversária consome o turno sem mudar posições; casa própria move para uma casa vazia sorteada por `Randomizer` no servidor. Vitória usa as 24 linhas de três. Não há empate automático.
+- `SessionMatchStore` valida tamanho, marcas, ordem, limite, correspondência ordem/tabuleiro e resultado terminal. A chave `hidden4x3.active_match_id` é exclusiva desta modalidade; os registros continuam sob `experimental_matches.`, sem mudança de formato nas oito modalidades anteriores. A partida ativa é retomada; próxima rodada mantém ID/placar e alterna o inicial; Nova partida confirmada cria ID e placar zerado. Ações de abas públicas antigas são recusadas.
+- Enquanto a rodada está ativa, a view envia ao componente de apresentação apenas 16 células vazias. Os 16 botões têm o mesmo conteúdo, classes, disponibilidade e rótulos que diferem somente nas coordenadas. O estado real não é propriedade Livewire pública e não aparece em `data-*`, HTML, snapshot ou efeito de atualização. Após vitória, o tabuleiro é revelado, a linha vencedora destacada e o modal apresenta o placar.
+- Limite de confidencialidade: esta é uma partida local sem autenticação individual. Quem controla o mesmo navegador/sessão pode agir por ambos os lados e inferir informações pela escolha ativa de casas e seus resultados; não há sigilo criptográfico entre jogadores locais. O requisito atendido é não transmitir passivamente o tabuleiro real durante a rodada. A hipótese de tabuleiro completamente cheio é inalcançável em um estado válido: há no máximo dez peças em dezesseis casas.
+
+## Verificação
+
+- Testes novos: 34 unitários do motor, 10 de integração pública/segurança e 8 de navegador. Cobrem as 24 linhas, sorteio injetável, FIFO, escolha de peça própria/adversária, imutabilidade, sessão, placar, retomada, isolamento, snapshot/DOM sem marcas, modal, temas e 360×800, 740×360, 800×360 e 1280×900.
+- Testes direcionados dos motores, armazenamento, Bloqueio, Rotação e navegação: 426 aprovados, 1.728 asserções. Testes novos de navegador: 8 aprovados, 88 asserções. Pint, build Vite e `git diff --check` aprovados.
+- Validação global única: 730 testes aprovados, 4.364 asserções.

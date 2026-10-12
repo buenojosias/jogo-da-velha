@@ -5,6 +5,7 @@ use App\Games\Rules\Move4x3Rules;
 use App\Games\Rules\Move4x4Rules;
 use App\Http\BlockMatchManager;
 use App\Http\ClassicMatchManager;
+use App\Http\HiddenMatchManager;
 use App\Http\MovementMatchManager;
 use App\Http\RotationMatchManager;
 use App\Http\SessionMatchStore;
@@ -41,7 +42,9 @@ Route::get('/4-3-rotacao', function (RotationMatchManager $matches) {
 Route::get('/4-3-bloqueio', function (BlockMatchManager $matches) {
     return view('block-4x3', ['matchId' => $matches->resumeOrCreate()]);
 })->name('4x3-block');
-Route::view('/4-3-oculto', '4x3-hidden')->name('4x3-hidden');
+Route::get('/4-3-oculto', function (HiddenMatchManager $matches) {
+    return view('hidden-4x3', ['matchId' => $matches->resumeOrCreate()]);
+})->name('4x3-hidden');
 Route::get('/4-mover', function (MovementMatchManager $matches, Move4x4Rules $rules) {
     return view('experimental-move-4x4', [
         'matchId' => $matches->resumeOrCreate4x4($rules),

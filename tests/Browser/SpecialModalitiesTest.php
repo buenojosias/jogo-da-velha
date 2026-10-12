@@ -58,15 +58,17 @@ it('distinguishes a blocked horizontal line from a valid line', function () {
 it('hides pieces during play and reveals them after a hidden-mode win', function () {
     $page = visit('/4-3-oculto');
 
-    clickBrowserCells($page, [0, 3, 1, 4]);
+    foreach ([0, 4, 1, 5] as $cell) {
+        $page->click('[data-testid="cell-'.$cell.'"]');
+    }
 
-    $page->assertScript('Array.from(document.querySelectorAll("#board .cell svg")).every((svg) => svg.classList.contains("piece-hidden"))');
+    $page->assertScript('Array.from(document.querySelectorAll("[data-testid^=cell-]")).every((cell) => !cell.hasAttribute("data-mark") && cell.textContent.trim() === "?" && !cell.disabled)', true);
 
     $page
-        ->click(browserCellSelector(2))
-        ->assertScript('gameOver')
-        ->assertScript('document.querySelectorAll("#board .piece-hidden").length', 0)
-        ->assertVisible('#modal-win')
+        ->click('[data-testid="cell-2"]')
+        ->assertSeeIn('[data-testid="match-status"]', 'venceu!')
+        ->assertScript('document.querySelectorAll("[data-winning-cell=true]").length', 3)
+        ->assertScript('document.querySelector("[data-testid=result-dialog]").open', true)
         ->assertNoJavaScriptErrors();
 });
 
