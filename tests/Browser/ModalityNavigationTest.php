@@ -22,6 +22,15 @@ it('opens the public Livewire classic from the catalogue', function () {
         ->assertNoJavaScriptErrors();
 });
 
+it('opens the public Livewire four by four classic from the catalogue', function () {
+    visit('/')
+        ->click('a[href$="/4-3-basico"]')
+        ->assertScript('location.pathname', '/4-3-basico')
+        ->assertVisible('[data-testid="classic-board"]')
+        ->assertCount('[data-testid^="cell-"]', 16)
+        ->assertNoJavaScriptErrors();
+});
+
 it('renders the :dataset modality in a real browser', function (array $modality) {
     $page = visit($modality['uri']);
 
@@ -52,7 +61,14 @@ function browserModalities(): array
         ]],
         'movement 3x3' => [modality('/3-mover', 'Movimento 3x3', 9)],
         'rotation 3x3' => [modality('/3-rotacao', 'Rotação 3x3', 9)],
-        'classic 4x4' => [modality('/4-3-basico', 'Clássico 4x4', 16)],
+        'classic 4x4' => [[
+            'uri' => '/4-3-basico',
+            'title' => 'Clássico 4×4',
+            'board' => '[data-testid="classic-board"]',
+            'cells' => '[data-testid^="cell-"]',
+            'cell_count' => 16,
+            'additional' => ['[data-testid="new-match-button"]' => 1],
+        ]],
         'movement 4x4' => [modality('/4-3-mover', 'Movimento 4x4', 16)],
         'rotation 4x4' => [modality('/4-3-rotacao', 'Rotação 4x4', 16)],
         'blocking 4x4' => [modality('/4-3-bloqueio', 'Bloqueio 4x4', 16)],

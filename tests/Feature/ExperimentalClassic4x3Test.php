@@ -146,7 +146,7 @@ test('keeps classic modalities and their scoreboards independent', function () {
     Livewire::test('experimental-classic-4x3', ['matchId' => $classic3Id])->assertNotFound();
 });
 
-test('does not change the public three by three active match or the legacy four by four route', function () {
+test('does not change the public three by three active match when creating an experimental four by four match', function () {
     $this->app->instance(Randomizer::class, new Randomizer(new Mt19937(0)));
     $this->get(route('3-basic'))->assertOk();
     $publicMatchId = session('classic.active_match_id');
@@ -155,7 +155,7 @@ test('does not change the public three by three active match or the legacy four 
 
     expect(session('classic.active_match_id'))->toBe($publicMatchId);
     expect(app(SessionMatchStore::class)->find($publicMatchId)->data['board'])->toBe(array_fill(0, 9, ''));
-    $this->get(route('4x3-basic'))->assertOk()->assertViewIs('4x3-basic');
+    $this->get(route('4x3-basic'))->assertOk()->assertViewIs('experimental-classic-4x3');
 });
 
 test('replaces a public pointer that accidentally targets a four by four match', function () {

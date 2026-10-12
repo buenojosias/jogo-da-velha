@@ -59,6 +59,7 @@ it('resumes a public match and confirms before creating a new one', function () 
 
     $page
         ->click('[data-testid="cell-0"]')
+        ->assertSeeIn('[data-testid="move-count"]', 'Jogadas realizadas: 1')
         ->refresh()
         ->assertSeeIn('[data-testid="cell-0"]', $initialPlayer)
         ->assertSeeIn('[data-testid="move-count"]', 'Jogadas realizadas: 1')

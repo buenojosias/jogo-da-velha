@@ -19,6 +19,8 @@ class ClassicMatchManager
 {
     private const string ACTIVE_MATCH_KEY = 'classic.active_match_id';
 
+    private const string ACTIVE_4X3_MATCH_KEY = 'classic4x3.active_match_id';
+
     public function __construct(
         private Session $session,
         private SessionMatchStore $store,
@@ -28,7 +30,7 @@ class ClassicMatchManager
 
     public function resumeOrCreate(): string
     {
-        return $this->validActiveId() ?? $this->createNewActive();
+        return $this->validActiveId(self::ACTIVE_MATCH_KEY, '3-basic') ?? $this->createNewActive();
     }
 
     public function createNewActive(): string
@@ -49,6 +51,19 @@ class ClassicMatchManager
         return $this->createWithRules(new Modality('4x3-basic'), $rules);
     }
 
+    public function resumeOrCreate4x3(Classic4x3Rules $rules): string
+    {
+        return $this->validActiveId(self::ACTIVE_4X3_MATCH_KEY, '4x3-basic') ?? $this->createNewActive4x3($rules);
+    }
+
+    public function createNewActive4x3(Classic4x3Rules $rules): string
+    {
+        $matchId = $this->create4x3($rules);
+        $this->session->put(self::ACTIVE_4X3_MATCH_KEY, $matchId);
+
+        return $matchId;
+    }
+
     private function createWithRules(Modality $modality, GameRules $rules): string
     {
         $state = $rules->initialState(
@@ -65,12 +80,17 @@ class ClassicMatchManager
 
     public function isActive(string $matchId): bool
     {
-        return $this->validActiveId() === $matchId;
+        return $this->validActiveId(self::ACTIVE_MATCH_KEY, '3-basic') === $matchId;
     }
 
-    private function validActiveId(): ?string
+    public function isActive4x3(string $matchId): bool
     {
-        $matchId = $this->session->get(self::ACTIVE_MATCH_KEY);
+        return $this->validActiveId(self::ACTIVE_4X3_MATCH_KEY, '4x3-basic') === $matchId;
+    }
+
+    private function validActiveId(string $sessionKey, string $modalityKey): ?string
+    {
+        $matchId = $this->session->get($sessionKey);
 
         if (! is_string($matchId)) {
             return null;
@@ -79,7 +99,7 @@ class ClassicMatchManager
         try {
             $state = $this->store->find($matchId);
 
-            if ($state === null || $state->modality->key !== '3-basic') {
+            if ($state === null || $state->modality->key !== $modalityKey) {
                 return null;
             }
 
