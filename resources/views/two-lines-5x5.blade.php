@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Duas Linhas 5×5 | Jogo da Velha</title>
+    <x-public-meta route-name="5x5-2-lines" />
     <script>
         (() => {
             let preference = 'auto';

@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <rect width="1200" height="630" fill="#f5f6ff"/>
+  <circle cx="1060" cy="560" r="240" fill="#087f7b" opacity=".08"/>
+  <g font-family="DejaVu Sans, sans-serif" fill="#211d37">
+    <text x="74" y="92" font-size="27" font-weight="700" letter-spacing="3" fill="#087f7b">14 MODALIDADES</text>
+    <text x="74" y="205" font-size="59" font-weight="800">PLATAFORMA</text>
+    <text x="74" y="283" font-size="67" font-weight="800">JOGO DA VELHA</text>
+    <text x="78" y="350" font-size="29" fill="#4d4963">Escolha uma partida. Joguem juntos.</text>
+  </g>
+  <g transform="translate(748 105)">
+    <rect width="410" height="410" rx="38" fill="#6943e9"/>
+    <g fill="#fff">
+      <rect x="20" y="20" width="116" height="116" rx="15"/>
+      <rect x="147" y="20" width="116" height="116" rx="15"/>
+      <rect x="274" y="20" width="116" height="116" rx="15"/>
+      <rect x="20" y="147" width="116" height="116" rx="15"/>
+      <rect x="147" y="147" width="116" height="116" rx="15"/>
+      <rect x="274" y="147" width="116" height="116" rx="15"/>
+      <rect x="20" y="274" width="116" height="116" rx="15"/>
+      <rect x="147" y="274" width="116" height="116" rx="15"/>
+      <rect x="274" y="274" width="116" height="116" rx="15"/>
+    </g>
+    <g fill="none" stroke="#3752bb" stroke-width="15" stroke-linecap="round">
+      <path d="M49 49l58 58m0-58l-58 58"/>
+      <path d="M176 176l58 58m0-58l-58 58"/>
+      <path d="M303 303l58 58m0-58l-58 58"/>
+    </g>
+    <g fill="none" stroke="#ad4160" stroke-width="15">
+      <circle cx="332" cy="78" r="31"/>
+      <circle cx="78" cy="332" r="31"/>
+    </g>
+  </g>
+  <rect x="73" y="515" width="428" height="67" rx="34" fill="#6943e9"/>
+  <text x="109" y="559" font-family="DejaVu Sans, sans-serif" font-weight="700" font-size="25" fill="#fff">GRÁTIS · SEM CADASTRO</text>
+</svg>

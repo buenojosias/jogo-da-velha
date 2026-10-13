@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Conquista Maluca | Jogo da Velha</title>
+    <x-public-meta route-name="crazy" />
     <script>
         (() => {
             let preference = 'auto';

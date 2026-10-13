@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ $modalityKey === '3-rotation' ? 'Rotação 3×3' : 'Rotação 4×4 (3 peças)' }} | Jogo da Velha</title>
+    <x-public-meta :route-name="$modalityKey" />
     <script>
         (() => {
             let preference = 'auto';

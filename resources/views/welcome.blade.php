@@ -29,8 +29,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="description" content="14 modalidades de Jogo da Velha para duas pessoas no mesmo dispositivo. Grátis e sem cadastro.">
-    <title>Plataforma Jogo da Velha</title>
+    <x-public-meta route-name="welcome" />
     <script>
         (() => {
             let preference = 'auto';
@@ -104,7 +103,7 @@
             </section>
         </main>
         <footer class="flex flex-wrap justify-between gap-2 border-t border-ds-divider py-6 text-sm text-ds-text-secondary">
-            <span>Plataforma Jogo da Velha</span><span>14 modalidades · duas pessoas · uma tela</span>
+            <span>Plataforma Jogo da Velha</span><a href="{{ route('privacy') }}" class="rounded-ds-control font-bold text-ds-primary hover:underline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-ds-focus">Privacidade (rascunho)</a><span>14 modalidades · duas pessoas · uma tela</span>
         </footer>
     </div>
 </body>

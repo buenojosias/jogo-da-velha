@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pontuação 5×5 | Jogo da Velha</title>
+    <x-public-meta route-name="5-full" />
     <script>
         (() => {
             let preference = 'auto';

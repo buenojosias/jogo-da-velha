@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ultimate Tic-Tac-Toe | Jogo da Velha</title>
+    <x-public-meta route-name="ultimate" />
     <script>
         (() => {
             let preference = 'auto';

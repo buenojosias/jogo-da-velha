@@ -19,6 +19,19 @@ Route::get('/', function () {
     return view('welcome');
 })->name('welcome');
 
+Route::get('/sitemap.xml', function () {
+    return response()->view('sitemap', [
+        'routeNames' => array_keys(config('public_pages')),
+    ])->header('Content-Type', 'application/xml; charset=UTF-8');
+})->name('sitemap');
+
+Route::get('/robots.txt', function () {
+    return response("User-agent: *\nAllow: /\n\nSitemap: ".rtrim((string) config('app.url'), '/')."/sitemap.xml\n")
+        ->header('Content-Type', 'text/plain; charset=UTF-8');
+})->name('robots');
+
+Route::view('/privacidade', 'privacy')->name('privacy');
+
 Route::get('/3-basico', function (ClassicMatchManager $matches) {
     return view('experimental-classic', ['matchId' => $matches->resumeOrCreate(), 'publicEntry' => true]);
 })->name('3-basic');
