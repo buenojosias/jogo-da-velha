@@ -5,6 +5,7 @@ use App\Games\Rules\Move4x3Rules;
 use App\Games\Rules\Move4x4Rules;
 use App\Http\BlockMatchManager;
 use App\Http\ClassicMatchManager;
+use App\Http\CrazyMatchManager;
 use App\Http\DiceMatchManager;
 use App\Http\FullMatchManager;
 use App\Http\HiddenMatchManager;
@@ -63,7 +64,9 @@ Route::get('/5-cheia', function (FullMatchManager $matches) {
 Route::get('/dado', function (DiceMatchManager $matches) {
     return view('dice-match', ['matchId' => $matches->resumeOrCreate()]);
 })->name('dice');
-Route::view('/maluca', 'crazy')->name('crazy');
+Route::get('/maluca', function (CrazyMatchManager $matches) {
+    return view('crazy-match', ['matchId' => $matches->resumeOrCreate()]);
+})->name('crazy');
 Route::view('/ultimate', 'ultimate')->name('ultimate');
 
 if (app()->environment(['local', 'testing'])) {

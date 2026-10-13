@@ -131,10 +131,10 @@ function browserModalities(): array
         'crazy' => [[
             'uri' => '/maluca',
             'title' => 'Conquista Maluca',
-            'board' => '#board',
-            'cells' => '#board .cell',
+            'board' => '[data-testid="crazy-board"]',
+            'cells' => '[data-testid^="crazy-cell-"]',
             'cell_count' => 9,
-            'additional' => ['#piecesX .select-piece' => 9, '#piecesO .select-piece' => 9],
+            'additional' => ['[data-testid^="piece-x-"]' => 9, '[data-testid^="piece-o-"]' => 9],
         ]],
         'ultimate' => [[
             'uri' => '/ultimate',

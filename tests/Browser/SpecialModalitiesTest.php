@@ -161,23 +161,23 @@ it('rolls the die, rejects another column, and accepts the allowed move', functi
 
 it('selects, places, and covers a smaller piece in crazy mode', function () {
     $page = visit('/maluca')
-        ->assertCount('#board .cell', 9)
-        ->assertCount('#piecesX .select-piece', 9)
-        ->assertCount('#piecesO .select-piece', 9);
+        ->assertCount('[data-testid^="crazy-cell-"]', 9)
+        ->assertCount('[data-testid^="piece-x-"]', 9)
+        ->assertCount('[data-testid^="piece-o-"]', 9);
 
-    $starter = $page->script('currentPlayer');
-    $opponent = $starter === 'X' ? 'O' : 'X';
+    $starter = strtolower(substr($page->script('document.querySelector("[data-testid=match-status]").textContent.trim()'), -1));
+    $opponent = $starter === 'x' ? 'o' : 'x';
 
     $page
-        ->click(sprintf('#pieces%s .select-piece:nth-child(1)', $starter))
-        ->click('#board .cell:nth-child(1)')
-        ->click(sprintf('#pieces%s .select-piece:nth-child(1)', $opponent))
-        ->click('#board .cell:nth-child(2)')
-        ->click(sprintf('#pieces%s .select-piece:nth-child(4)', $starter))
-        ->click('#board .cell:nth-child(2)')
-        ->assertScript('board[1].length', 2)
-        ->assertScript('visibleOwner(1)', $starter)
-        ->assertCount('#board .cell:nth-child(2) .piece', 2)
+        ->click('[data-testid="piece-'.$starter.'-1-1"]')
+        ->click('[data-testid="crazy-cell-0"]')
+        ->assertAttribute('[data-testid="crazy-cell-0"]', 'data-top', $starter.'-1-1')
+        ->click('[data-testid="piece-'.$opponent.'-1-1"]')
+        ->click('[data-testid="crazy-cell-1"]')
+        ->click('[data-testid="piece-'.$starter.'-2-1"]')
+        ->click('[data-testid="crazy-cell-1"]')
+        ->assertAttribute('[data-testid="crazy-cell-1"]', 'data-stack-count', '2')
+        ->assertAttribute('[data-testid="crazy-cell-1"]', 'data-top', $starter.'-2-1')
         ->assertNoJavaScriptErrors();
 });
 

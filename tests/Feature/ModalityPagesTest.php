@@ -29,7 +29,7 @@ it('renders the :dataset modality route with its expected view and structure', f
     'two lines 5x5' => ['/2-linhas', 'two-lines-5x5', 'Duas Linhas 5×5', ['data-testid="classic-board"', 'data-testid="cell-0"', 'data-testid="cell-24"', 'data-testid="match-status"', 'data-testid="new-match-button"']],
     'score 5x5' => ['/5-cheia', 'full-5x5', 'Pontuação 5×5', ['data-testid="classic-board"', 'data-testid="cell-0"', 'data-testid="cell-24"', 'data-testid="round-points-x"', 'data-testid="new-match-button"']],
     'dice' => ['/dado', 'dice-match', 'Dados da Velha', ['data-testid="dice-board-esquerdo"', 'data-testid="dice-board-direito"', 'data-testid="dice-face"', 'data-testid="roll-button"', 'data-testid="new-match-button"']],
-    'crazy' => ['/maluca', 'crazy', 'Jogo da Velha Maluca', ['id="board"', 'id="piecesX"', 'id="piecesO"', 'id="status"', 'function sizeValue', 'function placePiece']],
+    'crazy' => ['/maluca', 'crazy-match', 'Conquista Maluca', ['data-testid="crazy-board"', 'data-testid="crazy-cell-0"', 'data-testid="crazy-cell-8"', 'data-testid="piece-selector"', 'data-testid="new-match-button"']],
     'ultimate' => ['/ultimate', 'ultimate', 'Jogo da Velha 2.0', ['id="game"', 'id="currentPlayer"', 'id="targetBoardText"', 'id="winnerOverlay"', 'function isBoardPlayable', 'function makeMove']],
 ]);
 

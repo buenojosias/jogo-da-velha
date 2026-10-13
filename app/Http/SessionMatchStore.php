@@ -9,6 +9,7 @@ use App\Games\Participant;
 use App\Games\ParticipantKind;
 use App\Games\Participants;
 use App\Games\PlayerMark;
+use App\Games\Rules\CrazyRules;
 use App\Games\Rules\DiceRules;
 use App\Games\Rules\Full5x5Rules;
 use App\Games\Rules\Hidden4x3Rules;
@@ -175,7 +176,9 @@ class SessionMatchStore
      */
     private function encode(MatchState $state): array
     {
-        if ($state->modality->key === 'dice') {
+        if ($state->modality->key === 'crazy') {
+            $this->assertCrazyState($state);
+        } elseif ($state->modality->key === 'dice') {
             $this->assertDiceState($state);
         } else {
             $this->assertBoard($state->modality->key, $state->data['board'] ?? null);
@@ -205,11 +208,11 @@ class SessionMatchStore
             || ! is_string($stored['modality'] ?? null)
             || ! is_array($stored['participants'] ?? null)
             || ! is_array($stored['data'] ?? null)
-            || ($stored['modality'] !== 'dice' && ! array_key_exists('board', $stored['data']))) {
+            || (! in_array($stored['modality'], ['dice', 'crazy'], true) && ! array_key_exists('board', $stored['data']))) {
             throw new UnexpectedValueException('Invalid stored match state.');
         }
 
-        if ($stored['modality'] !== 'dice') {
+        if (! in_array($stored['modality'], ['dice', 'crazy'], true)) {
             $this->assertBoard($stored['modality'], $stored['data']['board']);
             $this->assertRotationOrder($stored['modality'], $stored['data']['board'], $stored['data']['order'] ?? null);
             $this->assertHiddenOrder($stored['modality'], $stored['data']['board'], $stored['data']['order'] ?? null);
@@ -230,14 +233,16 @@ class SessionMatchStore
                 ),
                 $status,
                 $this->playerMark($stored['current_player'] ?? null),
-                $stored['modality'] === 'dice'
+                in_array($stored['modality'], ['dice', 'crazy'], true)
                     ? $stored['data']
                     : (in_array($stored['modality'], ['3-rotation', '4x3-rotation', '4x3-hidden'], true)
                         ? ['board' => $stored['data']['board'], 'order' => $stored['data']['order']]
                         : ['board' => $stored['data']['board']]),
                 $this->playerMark($stored['winner'] ?? null),
             );
-            if ($stored['modality'] === 'dice') {
+            if ($stored['modality'] === 'crazy') {
+                $this->assertCrazyState($state);
+            } elseif ($stored['modality'] === 'dice') {
                 $this->assertDiceState($state);
             } else {
                 $this->assertHiddenOutcome($state);
@@ -436,6 +441,33 @@ class SessionMatchStore
                     || ($state->winner === PlayerMark::X ? $oLine : $xLine) !== null))
             || ($state->status === MatchStatus::Drawn && (! $full || $xLine !== null || $oLine !== null))) {
             throw new UnexpectedValueException('Invalid stored dice result.');
+        }
+    }
+
+    private function assertCrazyState(MatchState $state): void
+    {
+        if (array_keys($state->data) !== ['stacks']) {
+            throw new UnexpectedValueException('Invalid stored crazy state.');
+        }
+        $rules = app(CrazyRules::class);
+        try {
+            $stacks = $rules->stacks($state);
+        } catch (InvalidArgumentException $exception) {
+            throw new UnexpectedValueException('Invalid stored crazy stacks.', previous: $exception);
+        }
+        $usedX = count($rules->availablePieces($state, PlayerMark::X));
+        $usedO = count($rules->availablePieces($state, PlayerMark::O));
+        if (abs($usedX - $usedO) > 1) {
+            throw new UnexpectedValueException('Invalid stored crazy piece counts.');
+        }
+        $xLine = $rules->definitiveLine($stacks, PlayerMark::X);
+        $oLine = $rules->definitiveLine($stacks, PlayerMark::O);
+        $allUsed = $usedX === 0 && $usedO === 0;
+        if ($state->status === MatchStatus::Awaiting
+            || ($state->status === MatchStatus::InProgress && ($allUsed || $xLine !== null || $oLine !== null))
+            || ($state->status === MatchStatus::Completed && ($state->winner === PlayerMark::X ? $xLine === null : $oLine === null))
+            || ($state->status === MatchStatus::Drawn && (! $allUsed || $xLine !== null || $oLine !== null))) {
+            throw new UnexpectedValueException('Invalid stored crazy result.');
         }
     }
 
