@@ -192,6 +192,23 @@ test('does not count rejected or repeated actions after a round ends', function 
     expect(app(SessionMatchStore::class)->score($matchId))->toBe(['x' => 1, 'o' => 0, 'draws' => 0]);
 });
 
+test('does not let a stale write replace a finished round', function () {
+    $matchId = createClassicSessionMatch();
+    $store = app(SessionMatchStore::class);
+    $staleState = $store->find($matchId);
+
+    $component = Livewire::test('experimental-classic-3x3', ['matchId' => $matchId]);
+    foreach ([0, 3, 1, 4, 2] as $cell) {
+        $component->call('place', $cell);
+    }
+
+    $finishedState = $store->find($matchId);
+    expect($finishedState->status)->toBe(MatchStatus::Completed);
+    expect(fn () => $store->save($matchId, $staleState))->toThrow(InvalidArgumentException::class);
+    expect($store->find($matchId))->toEqual($finishedState);
+    expect($store->score($matchId))->toBe(['x' => 1, 'o' => 0, 'draws' => 0]);
+});
+
 test('refuses malformed scoreboard data in the session', function (mixed $storedScore) {
     $matchId = createClassicSessionMatch();
     session()->put('experimental_matches.'.$matchId.'.score', $storedScore);

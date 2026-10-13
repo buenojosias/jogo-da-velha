@@ -23,6 +23,7 @@ it('plays the public four by four classic, resumes it, and starts a confirmed fr
         ->refresh()
         ->assertSeeIn('[data-testid="score-'.strtolower($starter).'"]', '1')
         ->click('[data-testid="cell-15"]')
+        ->assertSeeIn('[data-testid="move-count"]', 'Jogadas realizadas: 1')
         ->click('[data-testid="new-match-button"]')
         ->assertScript('document.querySelector("[data-testid=new-match-dialog]").open', true)
         ->click('Cancelar')

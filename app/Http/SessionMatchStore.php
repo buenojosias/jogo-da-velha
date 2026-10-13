@@ -79,6 +79,11 @@ class SessionMatchStore
         $stored = $this->record($matchId);
         $previousState = $this->decode($stored['state']);
         $this->assertSameModality($previousState, $state);
+
+        if ($previousState->isFinished() && $state != $previousState) {
+            throw new InvalidArgumentException('A finished round can only be changed by restarting it.');
+        }
+
         $score = $this->scoreFromRecord($stored);
 
         if ($previousState->status === MatchStatus::InProgress) {
