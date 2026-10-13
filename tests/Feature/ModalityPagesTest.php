@@ -1,5 +1,22 @@
 <?php
 
+use Illuminate\Support\Facades\Route;
+
+it('does not register obsolete development routes', function () {
+    foreach (['teste', 'experimental.classic.create', 'experimental.classic.show', 'experimental.classic4x3.create', 'experimental.classic4x3.show', 'experimental.movement.create', 'experimental.movement.show'] as $name) {
+        expect(Route::has($name))->toBeFalse();
+    }
+
+    $this->get('/teste')->assertNotFound();
+    $this->get('/experimental/3-basico')->assertNotFound();
+    $this->get('/experimental/3-basico/'.str_repeat('A', 40))->assertNotFound();
+    $this->get('/experimental/4-3-basico')->assertNotFound();
+    $this->get('/experimental/4-3-basico/'.str_repeat('A', 40))->assertNotFound();
+    $this->get('/experimental/3-mover')->assertNotFound();
+    $this->get('/experimental/3-mover/'.str_repeat('A', 40))->assertNotFound();
+    expect(Route::has('livewire.reference'))->toBeTrue();
+});
+
 it('renders the :dataset modality route with its expected view and structure', function (
     string $uri,
     string $view,

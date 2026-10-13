@@ -4,7 +4,7 @@ use Pest\Browser\Api\AwaitableWebpage;
 use Pest\Browser\Api\PendingAwaitablePage;
 
 it('places three pieces per player, selects and moves a piece without a full reload', function () {
-    $page = visit('/experimental/3-mover')
+    $page = visit('/3-mover')
         ->assertCount('[data-testid^="cell-"]', 9)
         ->assertSeeIn('[data-testid="phase-instruction"]', 'Coloque uma peça');
     movementStartingWith($page, 'X');
@@ -42,7 +42,7 @@ it('places three pieces per player, selects and moves a piece without a full rel
 });
 
 it('shows a movement victory, score and modal, then restarts with the other player', function () {
-    $page = visit('/experimental/3-mover');
+    $page = visit('/3-mover');
     movementStartingWith($page, 'X');
 
     foreach ([0, 1, 2, 3, 4, 6] as $turn => $cell) {
@@ -68,7 +68,7 @@ it('shows a movement victory, score and modal, then restarts with the other play
 });
 
 it('resets temporary selection on reload and preserves the theme', function () {
-    $page = visit('/experimental/3-mover');
+    $page = visit('/3-mover');
     movementStartingWith($page, 'X');
     $page->select('[data-theme-selector]', 'dark')
         ->assertScript('document.documentElement.dataset.theme', 'dark');
@@ -88,7 +88,7 @@ it('resets temporary selection on reload and preserves the theme', function () {
 });
 
 it('keeps the movement board and controls usable at supported viewport sizes', function (int $width, int $height) {
-    $page = visit('/experimental/3-mover')->resize($width, $height)
+    $page = visit('/3-mover')->resize($width, $height)
         ->assertVisible('[data-testid="movement-board"]')
         ->assertVisible('[data-testid="match-status"]')
         ->assertVisible('[data-testid="match-actions"]')

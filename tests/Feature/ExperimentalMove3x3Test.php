@@ -21,9 +21,8 @@ use Random\Randomizer;
 test('creates and resumes an isolated movement match with a server-selected starter', function (int $seed, PlayerMark $starter) {
     $this->app->instance(Randomizer::class, new Randomizer(new Mt19937($seed)));
 
-    $response = $this->get(route('experimental.movement.create', ['starting_player' => 'x']))->assertRedirect();
-    $matchId = basename($response->headers->get('Location'));
-    $page = $this->get(route('experimental.movement.show', $matchId));
+    $page = $this->get(route('3-move', ['starting_player' => 'x']));
+    $matchId = session('movement3x3.active_match_id');
 
     $page->assertOk()->assertViewIs('experimental-move-3x3')
         ->assertSee('Vez do jogador '.$starter->name)
@@ -32,7 +31,7 @@ test('creates and resumes an isolated movement match with a server-selected star
     expect(app(SessionMatchStore::class)->startingPlayer($matchId))->toBe($starter);
     expect(app(SessionMatchStore::class)->score($matchId))->toBe(['x' => 0, 'o' => 0, 'draws' => 0]);
 
-    $this->get(route('experimental.movement.show', $matchId))->assertOk()->assertSee('Vez do jogador '.$starter->name);
+    $this->get(route('3-move'))->assertOk()->assertSee('Vez do jogador '.$starter->name);
 })->with(['X' => [0, PlayerMark::X], 'O' => [1, PlayerMark::O]]);
 
 test('places pieces, enters movement, rejects invalid moves and persists accepted movement', function () {
@@ -53,7 +52,7 @@ test('places pieces, enters movement, rejects invalid moves and persists accepte
     $component->call('move', 0, 5)->assertSee('Vez do jogador O')->assertDispatched('movement-state-changed');
     expect(app(SessionMatchStore::class)->find($matchId)->data['board'])->toBe(['', 'o', 'x', 'o', 'x', 'x', 'o', '', '']);
     expect(app(SessionMatchStore::class)->score($matchId))->toBe(['x' => 0, 'o' => 0, 'draws' => 0]);
-    $this->get(route('experimental.movement.show', $matchId))->assertOk()->assertSee('Vez do jogador O');
+    $this->get(route('3-move'))->assertOk()->assertSee('Vez do jogador O');
 });
 
 test('detects a placement win, highlights it and scores only once', function () {
@@ -71,7 +70,7 @@ test('detects a placement win, highlights it and scores only once', function () 
     $component->call('place', 8)->assertSee('A rodada terminou. Reinicie para jogar novamente.');
     expect(app(SessionMatchStore::class)->score($matchId)['x'])->toBe(1);
 
-    $this->get(route('experimental.movement.show', $matchId))->assertOk()->assertSee('Jogador X venceu!');
+    $this->get(route('3-move'))->assertOk()->assertSee('Jogador X venceu!');
     $component->call('restart')->assertSee('Vez do jogador O')->assertSee('Coloque uma peça');
     expect(app(SessionMatchStore::class)->find($matchId)->data['board'])->toBe(array_fill(0, 9, ''));
     expect(app(SessionMatchStore::class)->score($matchId)['x'])->toBe(1);
@@ -113,7 +112,8 @@ test('rejects invalid or cross-modality session records and keeps classics untou
 
     session()->put('experimental_matches.'.$matchId.'.state.data.board', array_fill(0, 9, 'x'));
     expect(fn () => $store->find($matchId))->toThrow(UnexpectedValueException::class);
-    $this->get(route('experimental.movement.show', $matchId))->assertNotFound();
+    $this->get(route('3-move'))->assertOk();
+    expect(session('movement3x3.active_match_id'))->not->toBe($matchId);
 });
 
 test('does not allow movement and classic matches to overwrite each other', function () {
@@ -167,7 +167,10 @@ test('does not expose other sessions or mutable official properties', function (
     }
 });
 
-test('does not register experimental movement routes in production', function () {
+test('does not register removed movement routes in any environment', function () {
+    expect(Route::has('experimental.movement.create'))->toBeFalse();
+    expect(Route::has('experimental.movement.show'))->toBeFalse();
+
     $originalRoutes = Route::getRoutes();
     $originalEnvironment = app()->environment();
 
@@ -193,7 +196,10 @@ function movementSessionMatch(): string
         new Participant(ParticipantKind::Guest, 'local-o'),
     );
 
-    return app(SessionMatchStore::class)->create(
+    $matchId = app(SessionMatchStore::class)->create(
         (new Move3x3Rules)->initialState(new Modality('3-move'), $participants, PlayerMark::X),
     );
+    session()->put('movement3x3.active_match_id', $matchId);
+
+    return $matchId;
 }

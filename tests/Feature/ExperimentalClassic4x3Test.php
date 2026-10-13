@@ -23,9 +23,8 @@ test('creates a four by four match with a server-selected starting player', func
     $this->app->instance(Randomizer::class, new Randomizer(new Mt19937($seed)));
 
     $oppositeMark = $starter === PlayerMark::X ? 'o' : 'x';
-    $response = $this->get(route('experimental.classic4x3.create', ['starting_player' => $oppositeMark]))->assertRedirect();
-    $matchId = basename($response->headers->get('Location'));
-    $page = $this->get(route('experimental.classic4x3.show', $matchId));
+    $page = $this->get(route('4x3-basic', ['starting_player' => $oppositeMark]));
+    $matchId = session('classic4x3.active_match_id');
 
     $page->assertOk()->assertViewIs('experimental-classic-4x3')
         ->assertSee('Vez do jogador '.$starter->name)
@@ -35,7 +34,7 @@ test('creates a four by four match with a server-selected starting player', func
     expect(app(SessionMatchStore::class)->find($matchId)->data['board'])->toBe(array_fill(0, 16, ''));
     expect(app(SessionMatchStore::class)->score($matchId))->toBe(['x' => 0, 'o' => 0, 'draws' => 0]);
 
-    $this->get(route('experimental.classic4x3.show', $matchId))->assertOk()->assertSee('Vez do jogador '.$starter->name);
+    $this->get(route('4x3-basic'))->assertOk()->assertSee('Vez do jogador '.$starter->name);
     expect(app(SessionMatchStore::class)->startingPlayer($matchId))->toBe($starter);
 })->with([
     'X starter' => [0, PlayerMark::X],
@@ -122,14 +121,14 @@ test('restarts with the opposite starter while preserving the score and survivin
         $component->call('place', $cell);
     }
 
-    $this->get(route('experimental.classic4x3.show', $matchId))
+    $this->get(route('4x3-basic'))
         ->assertOk()->assertSee('Jogador X venceu!');
     $component->call('restart')->assertSee('Vez do jogador O')->assertSee('Jogadas realizadas: 0');
 
     expect(app(SessionMatchStore::class)->startingPlayer($matchId))->toBe(PlayerMark::O);
     expect(app(SessionMatchStore::class)->find($matchId)->data['board'])->toBe(array_fill(0, 16, ''));
     expect(app(SessionMatchStore::class)->score($matchId))->toBe(['x' => 1, 'o' => 0, 'draws' => 0]);
-    $this->get(route('experimental.classic4x3.show', $matchId))->assertOk()->assertSee('Vez do jogador O');
+    $this->get(route('4x3-basic'))->assertOk()->assertSee('Vez do jogador O');
 });
 
 test('keeps classic modalities and their scoreboards independent', function () {
@@ -146,12 +145,12 @@ test('keeps classic modalities and their scoreboards independent', function () {
     Livewire::test('experimental-classic-4x3', ['matchId' => $classic3Id])->assertNotFound();
 });
 
-test('does not change the public three by three active match when creating an experimental four by four match', function () {
+test('does not change the public three by three active match when creating a four by four match', function () {
     $this->app->instance(Randomizer::class, new Randomizer(new Mt19937(0)));
     $this->get(route('3-basic'))->assertOk();
     $publicMatchId = session('classic.active_match_id');
 
-    $this->get(route('experimental.classic4x3.create'))->assertRedirect();
+    $this->get(route('4x3-basic'))->assertOk();
 
     expect(session('classic.active_match_id'))->toBe($publicMatchId);
     expect(app(SessionMatchStore::class)->find($publicMatchId)->data['board'])->toBe(array_fill(0, 9, ''));
@@ -186,7 +185,8 @@ test('refuses mismatched board size and corrupt session state', function (string
     session()->put('experimental_matches.'.$matchId.'.state.'.$field, $value);
 
     expect(fn () => app(SessionMatchStore::class)->find($matchId))->toThrow(UnexpectedValueException::class);
-    $this->get(route('experimental.classic4x3.show', $matchId))->assertNotFound();
+    $this->get(route('4x3-basic'))->assertOk();
+    expect(session('classic4x3.active_match_id'))->not->toBe($matchId);
 })->with([
     'nine cells for four by four' => ['data.board', array_fill(0, 9, '')],
     'invalid mark' => ['data.board', array_replace(array_fill(0, 16, ''), [1 => 'z'])],
@@ -200,7 +200,8 @@ test('rejects a corrupt four by four scoreboard', function () {
     session()->put('experimental_matches.'.$matchId.'.score', ['x' => -1, 'o' => 0, 'draws' => 0]);
 
     expect(fn () => app(SessionMatchStore::class)->score($matchId))->toThrow(UnexpectedValueException::class);
-    $this->get(route('experimental.classic4x3.show', $matchId))->assertNotFound();
+    $this->get(route('4x3-basic'))->assertOk();
+    expect(session('classic4x3.active_match_id'))->not->toBe($matchId);
 });
 
 test('does not expose a match from another session or a mutable official property', function () {
@@ -226,7 +227,10 @@ test('does not expose a match from another session or a mutable official propert
         ->toThrow(PublicPropertyNotFoundException::class);
 });
 
-test('does not register the experimental four by four routes in production', function () {
+test('does not register removed four by four experimental routes in any environment', function () {
+    expect(Route::has('experimental.classic4x3.create'))->toBeFalse();
+    expect(Route::has('experimental.classic4x3.show'))->toBeFalse();
+
     $originalRoutes = Route::getRoutes();
     $originalEnvironment = app()->environment();
 
@@ -257,7 +261,10 @@ function create4x3SessionMatch(): string
 {
     $state = (new Classic4x3Rules)->initialState(new Modality('4x3-basic'), classic4x3TestParticipants(), PlayerMark::X);
 
-    return app(SessionMatchStore::class)->create($state);
+    $matchId = app(SessionMatchStore::class)->create($state);
+    session()->put('classic4x3.active_match_id', $matchId);
+
+    return $matchId;
 }
 
 function create3x3SessionMatchFor4x3Test(): string

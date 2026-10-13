@@ -1,7 +1,7 @@
 <?php
 
 it('defaults to the system theme and exposes semantic colors', function () {
-    visit('/experimental/3-basico')
+    visit('/3-basico')
         ->inDarkMode()
         ->assertScript('document.documentElement.dataset.themePreference', 'auto')
         ->assertScript('document.documentElement.dataset.theme', 'dark')
@@ -11,7 +11,7 @@ it('defaults to the system theme and exposes semantic colors', function () {
 });
 
 it('persists theme choices made with the selector across navigation', function () {
-    $page = visit('/experimental/3-basico')
+    $page = visit('/3-basico')
         ->assertSelected('[data-theme-selector]', 'auto');
 
     $page->select('[data-theme-selector]', 'dark');
@@ -19,7 +19,7 @@ it('persists theme choices made with the selector across navigation', function (
     $page
         ->assertScript('document.documentElement.dataset.theme', 'dark')
         ->assertScript('localStorage.getItem("jogo-da-velha.theme")', 'dark')
-        ->navigate('/experimental/3-basico')
+        ->navigate('/3-basico')
         ->assertScript('document.documentElement.dataset.theme', 'dark')
         ->assertSelected('[data-theme-selector]', 'dark')
         ->assertVisible('[data-testid="classic-board"]');
@@ -29,7 +29,7 @@ it('persists theme choices made with the selector across navigation', function (
     $page
         ->assertScript('document.documentElement.dataset.theme', 'light')
         ->assertScript('getComputedStyle(document.body).backgroundColor', 'rgb(245, 246, 255)')
-        ->navigate('/experimental/3-basico')
+        ->navigate('/3-basico')
         ->assertScript('document.documentElement.dataset.themePreference', 'light')
         ->assertSelected('[data-theme-selector]', 'light')
         ->keys('[data-theme-selector]', 'Home')
@@ -39,7 +39,7 @@ it('persists theme choices made with the selector across navigation', function (
 });
 
 it('keeps the selector synchronized with the theme API and during a Livewire update', function () {
-    $page = visit('/experimental/3-basico');
+    $page = visit('/3-basico');
     $initialTurn = $page->script('document.querySelector("[data-testid=match-status]").textContent.trim()');
 
     expect(['Vez do jogador X', 'Vez do jogador O'])->toContain($initialTurn);

@@ -4,7 +4,7 @@ use Pest\Browser\Api\AwaitableWebpage;
 use Pest\Browser\Api\PendingAwaitablePage;
 
 it('plays a reactive four by four round, presents the result, and keeps the score on restart', function () {
-    $page = visit('/experimental/4-3-basico')
+    $page = visit('/4-3-basico')
         ->assertCount('[data-testid^="cell-"]', 16)
         ->assertSeeIn('[data-testid="move-count"]', 'Jogadas realizadas: 0');
 
@@ -33,7 +33,7 @@ it('plays a reactive four by four round, presents the result, and keeps the scor
 });
 
 it('keeps the theme after reload and closes the result dialog with Escape', function () {
-    $page = visit('/experimental/4-3-basico');
+    $page = visit('/4-3-basico');
     fourByFourStartingWith($page, 'X');
 
     $page->select('[data-theme-selector]', 'dark')
@@ -54,7 +54,7 @@ it('keeps the theme after reload and closes the result dialog with Escape', func
 });
 
 it('keeps the result dialog usable on a short landscape screen', function (int $width) {
-    $page = visit('/experimental/4-3-basico')->resize($width, 360);
+    $page = visit('/4-3-basico')->resize($width, 360);
     fourByFourStartingWith($page, 'X');
 
     foreach ([0, 4, 1, 5, 2] as $cell) {
@@ -73,7 +73,7 @@ it('keeps the result dialog usable on a short landscape screen', function (int $
 ]);
 
 it('shows a neutral result and draw score after sixteen moves', function () {
-    $page = visit('/experimental/4-3-basico');
+    $page = visit('/4-3-basico');
 
     foreach ([1, 0, 3, 2, 4, 6, 5, 7, 10, 8, 11, 9, 12, 14, 13, 15] as $cell) {
         $page->click('[data-testid="cell-'.$cell.'"]');
@@ -89,8 +89,8 @@ it('shows a neutral result and draw score after sixteen moves', function () {
 
 it('keeps sixteen cells accessible without horizontal overflow', function (int $width, int $height, string $theme) {
     $page = $theme === 'dark'
-        ? visit('/experimental/4-3-basico')->inDarkMode()
-        : visit('/experimental/4-3-basico')->inLightMode();
+        ? visit('/4-3-basico')->inDarkMode()
+        : visit('/4-3-basico')->inLightMode();
 
     $page->resize($width, $height)
         ->assertVisible('[data-testid="classic-board"]')

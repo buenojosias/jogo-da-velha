@@ -11,7 +11,6 @@ use App\Http\FullMatchManager;
 use App\Http\HiddenMatchManager;
 use App\Http\MovementMatchManager;
 use App\Http\RotationMatchManager;
-use App\Http\SessionMatchStore;
 use App\Http\TwoLinesMatchManager;
 use App\Http\UltimateMatchManager;
 use Illuminate\Support\Facades\Route;
@@ -74,52 +73,4 @@ Route::get('/ultimate', function (UltimateMatchManager $matches) {
 
 if (app()->environment(['local', 'testing'])) {
     Route::view('/livewire-reference', 'livewire-reference')->name('livewire.reference');
-
-    Route::get('/experimental/3-basico', function (ClassicMatchManager $matches) {
-        return redirect()->route('experimental.classic.show', ['matchId' => $matches->create()]);
-    })->name('experimental.classic.create');
-
-    Route::get('/experimental/3-basico/{matchId}', function (string $matchId, SessionMatchStore $store) {
-        abort_if($store->find($matchId) === null, 404);
-
-        return view('experimental-classic', ['matchId' => $matchId]);
-    })->where('matchId', '[A-Za-z0-9]{40}')->name('experimental.classic.show');
-
-    Route::get('/experimental/4-3-basico', function (ClassicMatchManager $matches, Classic4x3Rules $rules) {
-        return redirect()->route('experimental.classic4x3.show', ['matchId' => $matches->create4x3($rules)]);
-    })->name('experimental.classic4x3.create');
-
-    Route::get('/experimental/4-3-basico/{matchId}', function (string $matchId, SessionMatchStore $store) {
-        try {
-            $state = $store->find($matchId);
-            $store->startingPlayer($matchId);
-            $store->score($matchId);
-        } catch (InvalidArgumentException|UnexpectedValueException) {
-            abort(404);
-        }
-
-        abort_if($state === null || $state->modality->key !== '4x3-basic', 404);
-
-        return view('experimental-classic-4x3', ['matchId' => $matchId]);
-    })->where('matchId', '[A-Za-z0-9]{40}')->name('experimental.classic4x3.show');
-
-    Route::get('/experimental/3-mover', function (MovementMatchManager $matches) {
-        return redirect()->route('experimental.movement.show', ['matchId' => $matches->create()]);
-    })->name('experimental.movement.create');
-
-    Route::get('/experimental/3-mover/{matchId}', function (string $matchId, SessionMatchStore $store) {
-        try {
-            $state = $store->find($matchId);
-            $store->startingPlayer($matchId);
-            $store->score($matchId);
-        } catch (InvalidArgumentException|UnexpectedValueException) {
-            abort(404);
-        }
-
-        abort_if($state === null || $state->modality->key !== '3-move', 404);
-
-        return view('experimental-move-3x3', ['matchId' => $matchId]);
-    })->where('matchId', '[A-Za-z0-9]{40}')->name('experimental.movement.show');
 }
-
-Route::view('/teste', 'teste')->name('teste');

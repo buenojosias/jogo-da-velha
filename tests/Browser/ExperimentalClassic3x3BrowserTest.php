@@ -4,7 +4,7 @@ use Pest\Browser\Api\AwaitableWebpage;
 use Pest\Browser\Api\PendingAwaitablePage;
 
 it('plays an experimental classic match reactively without reloading the page', function () {
-    $page = visit('/experimental/3-basico')
+    $page = visit('/3-basico')
         ->assertCount('[data-testid^="cell-"]', 9)
         ->assertSeeIn('[data-testid="move-count"]', 'Jogadas realizadas: 0');
 
@@ -31,8 +31,8 @@ it('plays an experimental classic match reactively without reloading the page', 
 
 it('keeps the board and controls usable without clipping or overlap', function (int $width, int $height, string $theme) {
     $page = $theme === 'dark'
-        ? visit('/experimental/3-basico')->inDarkMode()
-        : visit('/experimental/3-basico')->inLightMode();
+        ? visit('/3-basico')->inDarkMode()
+        : visit('/3-basico')->inLightMode();
 
     experimentalPageStartingWith($page, 'x');
     $page
@@ -66,8 +66,8 @@ it('keeps the board and controls usable without clipping or overlap', function (
 
 it('keeps every cell and essential control in reach on a short landscape screen', function (int $width, string $theme) {
     $page = $theme === 'dark'
-        ? visit('/experimental/3-basico')->inDarkMode()
-        : visit('/experimental/3-basico')->inLightMode();
+        ? visit('/3-basico')->inDarkMode()
+        : visit('/3-basico')->inLightMode();
 
     experimentalPageStartingWith($page, 'x');
     $page
@@ -91,7 +91,7 @@ it('keeps every cell and essential control in reach on a short landscape screen'
 ]);
 
 it('shows a reactive scoreboard that survives restarting a round', function (int $width, int $height) {
-    $page = visit('/experimental/3-basico')->resize($width, $height)
+    $page = visit('/3-basico')->resize($width, $height)
         ->assertSeeIn('[data-testid="score-x"]', '0')
         ->assertSeeIn('[data-testid="score-o"]', '0')
         ->assertSeeIn('[data-testid="score-draws"]', '0');
@@ -119,7 +119,7 @@ it('shows a reactive scoreboard that survives restarting a round', function (int
 ]);
 
 it('opens the result only after a winning move and continues with the next round', function () {
-    $page = visit('/experimental/3-basico')
+    $page = visit('/3-basico')
         ->assertScript('document.querySelector("[data-testid=result-dialog]") === null', true);
 
     experimentalPageStartingWith($page, 'x');
@@ -148,7 +148,7 @@ it('opens the result only after a winning move and continues with the next round
 });
 
 it('closes by button or Escape and does not reopen on rerender or reload', function () {
-    $page = visit('/experimental/3-basico');
+    $page = visit('/3-basico');
 
     experimentalPageStartingWith($page, 'x');
     foreach ([0, 3, 1, 4, 2] as $cell) {
@@ -186,7 +186,7 @@ it('closes by button or Escape and does not reopen on rerender or reload', funct
 });
 
 it('opens a neutral result dialog for a draw with the updated score', function () {
-    $page = visit('/experimental/3-basico');
+    $page = visit('/3-basico');
 
     experimentalPageStartingWith($page, 'x');
     foreach ([0, 1, 2, 4, 3, 5, 7, 6, 8] as $cell) {
@@ -204,8 +204,8 @@ it('opens a neutral result dialog for a draw with the updated score', function (
 
 it('keeps the result dialog within the viewport and its actions reachable', function (int $width, int $height, string $theme) {
     $page = $theme === 'dark'
-        ? visit('/experimental/3-basico')->inDarkMode()
-        : visit('/experimental/3-basico')->inLightMode();
+        ? visit('/3-basico')->inDarkMode()
+        : visit('/3-basico')->inLightMode();
 
     experimentalPageStartingWith($page, 'x');
     $page->resize($width, $height);

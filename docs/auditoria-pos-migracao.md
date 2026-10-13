@@ -54,3 +54,13 @@ As composições [classic-match](../resources/views/components/design-system/cla
 6. **Referência Livewire e testes repetidos (P2, opcional):** decidir valor do smoke test isolado; eliminar somente após manter cobertura de atualização sem reload nos jogos públicos. Remover ramos mortos de testes e consolidar cenários duplicados sem perder comportamento exclusivo.
 
 Nenhum grupo foi executado nesta etapa. Não foram modificados código de produção, rotas, testes ou dependências; não houve execução de suíte global ou de navegador.
+
+## Registro da limpeza — etapa 16.1
+
+Os itens P1 foram executados posteriormente, sem alterar as 14 rotas públicas. Foram removidos `/teste` e os seis endpoints `/experimental/...`; `/livewire-reference` permaneceu em `local/testing`. A verificação de `php artisan route:list --except-vendor --method=GET --no-interaction` passou a listar 16 rotas GET: catálogo, 14 modalidades e referência Livewire.
+
+Removidos por falta de consumidores executáveis: `resources/views/3-move.blade.php`, `public/js/game.js` e os componentes Blade antigos `board`, `crazy-selection`, `footer`, `layout`, `modal-win`, `o`, `playing`, `trophy` e `x`. Foram eliminadas de `resources/css/app.css` apenas as 84 linhas de seletores exclusivos desses componentes (`.status-wrapper` a `.btn-help`, inclusive `footer`); o `body` global, tokens, temas, catálogo e seletores modernos foram preservados. As buscas finais em `routes/`, `app/`, `resources/` e `tests/` não encontraram consumidores da cadeia removida; menções em assertions `assertDontSee('js/game.js')` permanecem como proteção.
+
+Os testes Feature antes dependentes de criação/visualização experimental agora verificam entrada e retomada públicas, ou criam registros diretamente no `SessionMatchStore` para testar isolamento, corrupção e IDs protegidos. Os testes Browser de Clássico 3×3, Clássico 4×4, Movimento 3×3 e temas usam as rotas públicas. `ModalityPagesTest` protege a ausência dos sete endpoints antigos e a permanência de `/livewire-reference`. Nenhum arquivo de teste foi removido.
+
+Validação dirigida: 118 testes PHP / 650 asserções e 43 testes Browser / 495 asserções aprovados. Após a última asserção adicionada, `ModalityPagesTest` passou com 38 testes / 173 asserções. Pint, build Vite e `git diff --check` aprovados. A validação global única passou com **936 testes e 5.807 asserções**. Esta seção atualiza o estado presente; os relatos das etapas anteriores acima permanecem históricos.

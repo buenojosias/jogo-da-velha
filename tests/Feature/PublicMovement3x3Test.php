@@ -169,15 +169,14 @@ test('rejects stale public tabs and protected-property manipulation', function (
     expect(app(SessionMatchStore::class)->find($newId)->data['board'])->toBe(array_fill(0, 9, ''));
 });
 
-test('keeps experimental matches independent and forbids a public-only action there', function () {
+test('keeps a standalone session match independent and forbids a public-only action there', function () {
     $this->get(route('3-move'))->assertOk();
     $publicId = session('movement3x3.active_match_id');
-    $response = $this->get(route('experimental.movement.create'))->assertRedirect();
-    $experimentalId = basename($response->headers->get('Location'));
+    $standaloneId = app(MovementMatchManager::class)->create();
 
-    Livewire::test('experimental-move-3x3', ['matchId' => $experimentalId])->call('newMatch')->assertNotFound();
+    Livewire::test('experimental-move-3x3', ['matchId' => $standaloneId])->call('newMatch')->assertNotFound();
     expect(session('movement3x3.active_match_id'))->toBe($publicId);
-    expect(app(SessionMatchStore::class)->find($experimentalId)->modality->key)->toBe('3-move');
+    expect(app(SessionMatchStore::class)->find($standaloneId)->modality->key)->toBe('3-move');
 });
 
 function publicMovementStartingWithX(TestCase $testCase): void
