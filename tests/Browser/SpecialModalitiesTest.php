@@ -183,15 +183,12 @@ it('selects, places, and covers a smaller piece in crazy mode', function () {
 
 it('directs the next ultimate move to the matching sub-board', function () {
     $page = visit('/ultimate')
-        ->assertCount('#game .sub-board', 9)
-        ->assertCount('#game .cell', 81)
-        ->assertCount('#game .sub-board.active', 9);
+        ->assertCount('[data-testid^="ultimate-sub-board-"]', 9)
+        ->assertCount('[data-testid^="ultimate-cell-"]', 81);
 
     $page
-        ->click('#game .sub-board:nth-child(1) .cell:nth-child(5)')
-        ->assertScript('targetBoard', 4)
-        ->assertCount('#game .sub-board.active', 1)
-        ->assertAttributeContains('#game .sub-board:nth-child(5)', 'class', 'active')
-        ->assertSeeIn('#targetBoardText', 'subtabuleiro 5')
+        ->click('[data-testid="ultimate-cell-0-4"]')
+        ->assertAttribute('[data-testid="ultimate-sub-board-4"]', 'data-target', 'true')
+        ->assertSeeIn('[data-testid="target-board-status"]', 'Subtabuleiro obrigatório: 5')
         ->assertNoJavaScriptErrors();
 });

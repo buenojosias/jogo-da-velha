@@ -40,6 +40,10 @@
     --shadow-ds-elevated: var(--ds-shadow-elevated);
 }
 
+html[data-design-system='experimental'] [x-cloak] {
+    display: none !important;
+}
+
 html[data-design-system='experimental'] {
     color-scheme: light;
     --ds-canvas: #f5f6ff;

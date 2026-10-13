@@ -13,6 +13,7 @@ use App\Http\MovementMatchManager;
 use App\Http\RotationMatchManager;
 use App\Http\SessionMatchStore;
 use App\Http\TwoLinesMatchManager;
+use App\Http\UltimateMatchManager;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -67,7 +68,9 @@ Route::get('/dado', function (DiceMatchManager $matches) {
 Route::get('/maluca', function (CrazyMatchManager $matches) {
     return view('crazy-match', ['matchId' => $matches->resumeOrCreate()]);
 })->name('crazy');
-Route::view('/ultimate', 'ultimate')->name('ultimate');
+Route::get('/ultimate', function (UltimateMatchManager $matches) {
+    return view('ultimate-match', ['matchId' => $matches->resumeOrCreate()]);
+})->name('ultimate');
 
 if (app()->environment(['local', 'testing'])) {
     Route::view('/livewire-reference', 'livewire-reference')->name('livewire.reference');

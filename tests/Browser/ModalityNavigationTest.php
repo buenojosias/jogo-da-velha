@@ -139,10 +139,10 @@ function browserModalities(): array
         'ultimate' => [[
             'uri' => '/ultimate',
             'title' => 'Ultimate Tic-Tac-Toe',
-            'board' => '#game',
-            'cells' => '#game .cell',
+            'board' => '[data-testid="ultimate-overview"]',
+            'cells' => '[data-testid^="ultimate-cell-"]',
             'cell_count' => 81,
-            'additional' => ['#game .sub-board' => 9, '#game .sub-board.active' => 9],
+            'additional' => ['[data-testid^="ultimate-sub-board-"]' => 9, '[data-testid="ultimate-focus-region"]' => 1],
         ]],
     ];
 }

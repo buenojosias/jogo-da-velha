@@ -14,6 +14,7 @@ use App\Games\Rules\DiceRules;
 use App\Games\Rules\Full5x5Rules;
 use App\Games\Rules\Hidden4x3Rules;
 use App\Games\Rules\TwoLines5x5Rules;
+use App\Games\Rules\UltimateRules;
 use Illuminate\Contracts\Session\Session;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
@@ -176,7 +177,9 @@ class SessionMatchStore
      */
     private function encode(MatchState $state): array
     {
-        if ($state->modality->key === 'crazy') {
+        if ($state->modality->key === 'ultimate') {
+            $this->assertUltimateState($state);
+        } elseif ($state->modality->key === 'crazy') {
             $this->assertCrazyState($state);
         } elseif ($state->modality->key === 'dice') {
             $this->assertDiceState($state);
@@ -208,11 +211,11 @@ class SessionMatchStore
             || ! is_string($stored['modality'] ?? null)
             || ! is_array($stored['participants'] ?? null)
             || ! is_array($stored['data'] ?? null)
-            || (! in_array($stored['modality'], ['dice', 'crazy'], true) && ! array_key_exists('board', $stored['data']))) {
+            || (! in_array($stored['modality'], ['dice', 'crazy', 'ultimate'], true) && ! array_key_exists('board', $stored['data']))) {
             throw new UnexpectedValueException('Invalid stored match state.');
         }
 
-        if (! in_array($stored['modality'], ['dice', 'crazy'], true)) {
+        if (! in_array($stored['modality'], ['dice', 'crazy', 'ultimate'], true)) {
             $this->assertBoard($stored['modality'], $stored['data']['board']);
             $this->assertRotationOrder($stored['modality'], $stored['data']['board'], $stored['data']['order'] ?? null);
             $this->assertHiddenOrder($stored['modality'], $stored['data']['board'], $stored['data']['order'] ?? null);
@@ -233,14 +236,16 @@ class SessionMatchStore
                 ),
                 $status,
                 $this->playerMark($stored['current_player'] ?? null),
-                in_array($stored['modality'], ['dice', 'crazy'], true)
+                in_array($stored['modality'], ['dice', 'crazy', 'ultimate'], true)
                     ? $stored['data']
                     : (in_array($stored['modality'], ['3-rotation', '4x3-rotation', '4x3-hidden'], true)
                         ? ['board' => $stored['data']['board'], 'order' => $stored['data']['order']]
                         : ['board' => $stored['data']['board']]),
                 $this->playerMark($stored['winner'] ?? null),
             );
-            if ($stored['modality'] === 'crazy') {
+            if ($stored['modality'] === 'ultimate') {
+                $this->assertUltimateState($state);
+            } elseif ($stored['modality'] === 'crazy') {
                 $this->assertCrazyState($state);
             } elseif ($stored['modality'] === 'dice') {
                 $this->assertDiceState($state);
@@ -468,6 +473,45 @@ class SessionMatchStore
             || ($state->status === MatchStatus::Completed && ($state->winner === PlayerMark::X ? $xLine === null : $oLine === null))
             || ($state->status === MatchStatus::Drawn && (! $allUsed || $xLine !== null || $oLine !== null))) {
             throw new UnexpectedValueException('Invalid stored crazy result.');
+        }
+    }
+
+    private function assertUltimateState(MatchState $state): void
+    {
+        if (array_keys($state->data) !== ['boards', 'target_board']) {
+            throw new UnexpectedValueException('Invalid stored ultimate state.');
+        }
+
+        $rules = app(UltimateRules::class);
+        try {
+            $boards = $rules->boards($state);
+            $target = $rules->targetBoard($state);
+        } catch (InvalidArgumentException $exception) {
+            throw new UnexpectedValueException('Invalid stored ultimate board or target.', previous: $exception);
+        }
+
+        $xCount = 0;
+        $oCount = 0;
+        $closed = 0;
+        foreach ($boards as $index => $board) {
+            $xCount += count(array_keys($board, 'x', true));
+            $oCount += count(array_keys($board, 'o', true));
+            $closed += $rules->subBoardResult($state, $index) !== null ? 1 : 0;
+            if ($rules->localWinningLineForPlayer($state, $index, PlayerMark::X) !== null
+                && $rules->localWinningLineForPlayer($state, $index, PlayerMark::O) !== null) {
+                throw new UnexpectedValueException('Invalid stored ultimate sub-board result.');
+            }
+        }
+        $globalWinner = $rules->globalWinner($state);
+        if (abs($xCount - $oCount) > 1
+            || ($rules->globalWinningLineForPlayer($state, PlayerMark::X) !== null
+                && $rules->globalWinningLineForPlayer($state, PlayerMark::O) !== null)
+            || $state->status === MatchStatus::Awaiting
+            || ($state->status === MatchStatus::InProgress && ($closed === 9 || $globalWinner !== null))
+            || ($state->isFinished() && $target !== null)
+            || ($state->status === MatchStatus::Completed && $state->winner !== $globalWinner)
+            || ($state->status === MatchStatus::Drawn && ($closed !== 9 || $globalWinner !== null))) {
+            throw new UnexpectedValueException('Invalid stored ultimate result.');
         }
     }
 
