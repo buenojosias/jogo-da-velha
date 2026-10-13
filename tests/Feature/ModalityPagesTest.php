@@ -33,6 +33,9 @@ it('renders the :dataset modality route with its expected view and structure', f
     foreach ($structuralMarkers as $structuralMarker) {
         expect($response->getContent())->toContain($structuralMarker);
     }
+
+    preg_match('/<h1\b[^>]*>(.*?)<\/h1>/s', $response->getContent(), $heading);
+    expect(strip_tags($heading[1] ?? ''))->toContain($title);
 })->with([
     'classic 3x3' => ['/3-basico', 'experimental-classic', 'Clássico 3×3', ['data-testid="classic-board"', 'data-testid="cell-0"', 'data-testid="cell-8"', 'data-testid="match-status"', 'data-testid="new-match-button"']],
     'movement 3x3' => ['/3-mover', 'experimental-move-3x3', 'Movimento 3×3', ['data-testid="movement-board"', 'data-testid="cell-0"', 'data-testid="cell-8"', 'data-testid="match-status"', 'data-testid="new-match-button"']],

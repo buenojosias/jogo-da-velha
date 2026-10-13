@@ -75,8 +75,8 @@
 
         <div class="experimental-match-sidebar flex min-w-0 flex-col gap-3">
             <div class="experimental-participants grid grid-cols-2 gap-2.5 md:grid-cols-1" aria-label="Participantes">
-                <x-design-system.participant-card label="Jogador X" mark="X" :wins="$score['x']" :active="!$finished && $currentPlayer === 'x'" data-testid="participant-x" />
-                <x-design-system.participant-card label="Jogador O" mark="O" :wins="$score['o']" :active="!$finished && $currentPlayer === 'o'" data-testid="participant-o" />
+                <x-design-system.participant-card label="Jogador X" mark="X" :wins="$score['x']" :active="!$finished && $currentPlayer === 'x'" :finished="$finished" :winner-mark="$winner" data-testid="participant-x" />
+                <x-design-system.participant-card label="Jogador O" mark="O" :wins="$score['o']" :active="!$finished && $currentPlayer === 'o'" :finished="$finished" :winner-mark="$winner" data-testid="participant-o" />
             </div>
             <p data-testid="score-draws" class="rounded-ds-control border border-ds-border bg-ds-surface-muted px-2 py-1 text-center text-xs font-bold text-ds-text-secondary">Empates: <span class="font-black text-ds-text">{{ $score['draws'] }}</span></p>
             <x-design-system.match-actions data-testid="match-actions">

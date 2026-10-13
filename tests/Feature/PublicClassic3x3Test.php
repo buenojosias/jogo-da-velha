@@ -70,6 +70,9 @@ test('resumes a completed public round and preserves its score through the next 
     $this->get(route('3-basic'))
         ->assertOk()
         ->assertSee('Jogador X venceu!')
+        ->assertSee('Venceu')
+        ->assertSee('Rodada encerrada')
+        ->assertDontSee('Aguardando')
         ->assertSee('data-testid="result-dialog"', false);
 
     expect(session('classic.active_match_id'))->toBe($matchId);

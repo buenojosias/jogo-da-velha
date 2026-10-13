@@ -99,6 +99,8 @@
                     mark="X"
                     :wins="$score['x']"
                     :active="$state->status === MatchStatus::InProgress && $state->currentPlayer === PlayerMark::X"
+                    :finished="$state->isFinished()"
+                    :winner-mark="$state->winner?->value"
                     data-testid="participant-x"
                 />
                 <x-design-system.participant-card
@@ -106,6 +108,8 @@
                     mark="O"
                     :wins="$score['o']"
                     :active="$state->status === MatchStatus::InProgress && $state->currentPlayer === PlayerMark::O"
+                    :finished="$state->isFinished()"
+                    :winner-mark="$state->winner?->value"
                     data-testid="participant-o"
                 />
             </div>
