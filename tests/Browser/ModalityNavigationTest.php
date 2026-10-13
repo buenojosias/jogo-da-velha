@@ -4,8 +4,8 @@ it('lists all fourteen modalities in the catalogue', function () {
     $page = visit('/');
 
     $page
-        ->assertSee('Jogos da Velha')
-        ->assertCount('main a, body > div.container a', 14)
+        ->assertSee('Plataforma Jogo da Velha')
+        ->assertCount('a[aria-label^="Jogar "]', 14)
         ->assertNoJavaScriptErrors();
 
     foreach (browserModalities() as [$modality]) {
