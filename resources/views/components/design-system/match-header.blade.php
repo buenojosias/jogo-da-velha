@@ -20,11 +20,17 @@
 
 <header {{ $attributes->class(['ds-match-header rounded-ds-card border border-ds-border bg-ds-surface px-4 py-3 shadow-ds-card sm:px-5 sm:py-3']) }}>
     <div class="flex flex-wrap items-center justify-between gap-3 sm:gap-5">
-        <div class="min-w-0">
+        <div class="ds-match-heading min-w-0">
             <span class="ds-modality inline-flex items-center gap-2 text-xs font-extrabold uppercase tracking-widest text-ds-primary before:size-2 before:rotate-45 before:rounded-[2px] before:bg-ds-turquoise before:content-['']">{{ $modality }}</span>
             <h1 class="ds-match-title text-xl leading-tight font-extrabold tracking-tight text-ds-text sm:text-2xl"><span class="sr-only">{{ $modality }} — </span>{{ $title }}</h1>
             @if ($description)
                 <p class="sr-only">{{ $description }}</p>
+            @endif
+            @if (isset($howToPlay[$modality]))
+                <details class="mt-2 text-sm text-ds-text-secondary" data-testid="how-to-play">
+                    <summary class="w-fit cursor-pointer rounded-ds-control px-1 py-2 font-bold text-ds-primary focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-ds-focus">Como jogar</summary>
+                    <p class="max-w-3xl pb-1 leading-relaxed">{{ $howToPlay[$modality] }}</p>
+                </details>
             @endif
         </div>
 
@@ -35,10 +41,4 @@
             </div>
         @endisset
     </div>
-    @if (isset($howToPlay[$modality]))
-        <details class="mt-2 text-sm text-ds-text-secondary" data-testid="how-to-play">
-            <summary class="w-fit cursor-pointer rounded-ds-control px-1 py-2 font-bold text-ds-primary focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-ds-focus">Como jogar</summary>
-            <p class="max-w-3xl pb-1 leading-relaxed">{{ $howToPlay[$modality] }}</p>
-        </details>
-    @endif
 </header>

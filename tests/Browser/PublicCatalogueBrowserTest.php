@@ -26,3 +26,13 @@ it('returns to the catalogue and resumes the same match', function () {
         ->assertSeeIn('[data-testid="move-count"]', 'Jogadas realizadas: 1')
         ->assertNoJavaScriptErrors();
 });
+
+it('opens game instructions on a short landscape screen', function () {
+    visit('/ultimate')
+        ->resize(740, 360)
+        ->click('[data-testid="how-to-play"] summary')
+        ->assertScript('document.querySelector("[data-testid=how-to-play]").open', true)
+        ->assertSee('Essa casa indica o subtabuleiro obrigatório do rival')
+        ->assertScript('document.documentElement.scrollWidth <= innerWidth', true)
+        ->assertNoJavaScriptErrors();
+});
