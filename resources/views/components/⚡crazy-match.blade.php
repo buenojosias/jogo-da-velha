@@ -103,7 +103,7 @@ new class extends Component
     $sizeLabels = [1 => 'Pequena', 2 => 'Média', 3 => 'Grande'];
 @endphp
 
-<div class="experimental-match mx-auto flex min-h-screen w-full max-w-6xl flex-col gap-4 px-4 py-4 text-ds-text sm:px-6 sm:py-6"
+<div class="experimental-match crazy-game mx-auto flex min-h-screen w-full max-w-6xl flex-col gap-4 px-4 py-4 text-ds-text sm:px-6 sm:py-6"
     x-data="{
         selectedPiece: null,
         resultOrigin: null,
@@ -129,16 +129,16 @@ new class extends Component
                     Vez do jogador {{ strtoupper($state->currentPlayer->value) }}
                 @endif
             </x-design-system.match-status>
-            <p class="mt-2 text-center text-sm font-semibold text-ds-text-secondary">Peças maiores podem cobrir as menores. Uma linha só vence se não puder ser coberta.</p>
+            <p class="crazy-instruction mt-2 text-center text-sm font-semibold text-ds-text-secondary">Peça maior cobre menor. A linha vence se o rival não puder cobri-la.</p>
 
-            <div data-testid="crazy-board" role="group" aria-label="Tabuleiro 3 por 3" class="mx-auto mt-3 grid w-full max-w-[25rem] grid-cols-3 gap-2">
+            <div data-testid="crazy-board" role="group" aria-label="Tabuleiro 3 por 3" class="crazy-board mx-auto mt-3 grid w-full max-w-[25rem] grid-cols-3 gap-2">
                 @foreach ($stacks as $index => $stack)
                     @php $top = $stack === [] ? null : $stack[array_key_last($stack)]; @endphp
                     <button type="button" data-testid="crazy-cell-{{ $index }}" data-cell="{{ $index }}" data-top="{{ $top ?? '' }}" data-stack-count="{{ count($stack) }}"
                         aria-label="Casa {{ $index + 1 }}{{ $top ? ', peça '.strtoupper($top[0]).' '.strtolower($sizeLabels[(int) $top[2]]).', '.count($stack).' na pilha' : ', vazia' }}"
                         x-on:click="if (selectedPiece) $wire.place(selectedPiece, {{ $index }})"
                         wire:loading.attr="disabled" @disabled($state->isFinished())
-                        class="relative aspect-square min-h-16 rounded-ds-control border-2 bg-ds-elevated transition-colors hover:bg-ds-hover focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-ds-focus disabled:cursor-not-allowed {{ in_array($index, $line ?? [], true) ? 'border-ds-success ring-4 ring-ds-success' : 'border-ds-board-border' }}">
+                        class="crazy-cell relative aspect-square min-h-16 rounded-ds-control border-2 bg-ds-elevated transition-colors hover:bg-ds-hover focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-ds-focus disabled:cursor-not-allowed {{ in_array($index, $line ?? [], true) ? 'border-ds-success ring-4 ring-ds-success' : 'border-ds-board-border' }}">
                         @if ($top)
                             <span class="mx-auto flex shrink-0 items-center justify-center rounded-full border-2 border-current bg-ds-hover font-black shadow-ds-card {{ $top[0] === 'x' ? 'text-ds-x' : 'text-ds-o' }} {{ (int) $top[2] === 1 ? 'size-9 text-lg' : ((int) $top[2] === 2 ? 'size-14 text-2xl' : 'size-[min(5rem,21vw)] text-3xl') }}">{{ strtoupper($top[0]) }}</span>
                             @if (count($stack) > 1)<span class="absolute bottom-1 right-1 rounded-full bg-ds-surface px-1.5 text-xs font-bold text-ds-text">{{ count($stack) }}</span>@endif
@@ -155,33 +155,41 @@ new class extends Component
                 <x-design-system.participant-card label="Jogador X" mark="X" :wins="$score['x']" :active="$state->status === MatchStatus::InProgress && $state->currentPlayer === PlayerMark::X" :finished="$state->isFinished()" :winner-mark="$state->winner?->value" data-testid="participant-x" />
                 <x-design-system.participant-card label="Jogador O" mark="O" :wins="$score['o']" :active="$state->status === MatchStatus::InProgress && $state->currentPlayer === PlayerMark::O" :finished="$state->isFinished()" :winner-mark="$state->winner?->value" data-testid="participant-o" />
             </div>
-            <p data-testid="score-draws" class="rounded-ds-control border border-ds-border bg-ds-surface-muted px-2 py-1 text-center text-xs font-bold text-ds-text-secondary">Empates: <span class="font-black text-ds-text">{{ $score['draws'] }}</span></p>
-            <section aria-label="Seletor de peças" data-testid="piece-selector" class="rounded-ds-card border border-ds-border bg-ds-surface p-3 shadow-ds-card">
+            <p data-testid="score-draws" class="crazy-draw-score rounded-ds-control border border-ds-border bg-ds-surface-muted px-2 py-1 text-center text-xs font-bold text-ds-text-secondary">Empates: <span class="font-black text-ds-text">{{ $score['draws'] }}</span></p>
+            <section aria-label="Seletor de peças" data-testid="piece-selector" class="crazy-piece-selector rounded-ds-card border border-ds-border bg-ds-surface p-3 shadow-ds-card">
                 <h2 class="text-sm font-extrabold">Peças disponíveis</h2>
-                @foreach ([PlayerMark::X, PlayerMark::O] as $player)
-                    @php $available = $rules->availablePieces($state, $player); @endphp
-                    <div class="mt-2">
-                        <p class="text-xs font-bold text-ds-text-secondary">Jogador {{ strtoupper($player->value) }}</p>
-                        <div class="mt-1 grid grid-cols-3 gap-1.5">
-                            @for ($size = 1; $size <= 3; $size++)
-                                <div class="flex flex-col gap-1">
-                                    @for ($copy = 1; $copy <= 3; $copy++)
-                                        @php $piece = $player->value.'-'.$size.'-'.$copy; $used = ! in_array($piece, $available, true); @endphp
-                                        <button type="button" data-testid="piece-{{ $piece }}" data-piece="{{ $piece }}"
-                                            aria-label="{{ $sizeLabels[$size] }} {{ $copy }} do jogador {{ strtoupper($player->value) }}{{ $used ? ', usada' : '' }}"
-                                            x-on:click="selectedPiece = selectedPiece === '{{ $piece }}' ? null : '{{ $piece }}'"
-                                            x-bind:aria-pressed="selectedPiece === '{{ $piece }}'"
-                                            x-bind:class="selectedPiece === '{{ $piece }}' ? 'ring-4 ring-ds-focus' : ''"
-                                            @disabled($used || $state->isFinished() || $state->currentPlayer !== $player)
-                                            class="flex min-h-11 items-center justify-center rounded-ds-control border border-ds-border bg-ds-elevated font-black focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-ds-focus disabled:cursor-not-allowed disabled:opacity-35 {{ $player === PlayerMark::X ? 'text-ds-x' : 'text-ds-o' }}">
-                                            <span class="shrink-0 rounded-full border-2 border-current text-center leading-7 {{ $size === 1 ? 'size-7 text-xs' : ($size === 2 ? 'size-8 text-sm' : 'size-9 text-base') }}">{{ strtoupper($player->value) }}</span>
-                                        </button>
-                                    @endfor
-                                </div>
-                            @endfor
+                <div class="crazy-inventory-groups">
+                    @foreach ([PlayerMark::X, PlayerMark::O] as $player)
+                        @php $available = $rules->availablePieces($state, $player); @endphp
+                        <div class="crazy-inventory-group mt-2 min-w-0">
+                            <p class="text-xs font-bold text-ds-text-secondary">Jogador {{ strtoupper($player->value) }}</p>
+                            <div class="mt-1 grid grid-cols-3 gap-1.5">
+                                @for ($size = 1; $size <= 3; $size++)
+                                    <div class="flex flex-col gap-1">
+                                        @for ($copy = 1; $copy <= 3; $copy++)
+                                            @php
+                                                $piece = $player->value.'-'.$size.'-'.$copy;
+                                                $used = ! in_array($piece, $available, true);
+                                                $stockState = $used ? 'used' : ($state->isFinished() ? 'finished' : ($state->currentPlayer === $player ? 'available' : 'waiting'));
+                                            @endphp
+                                            <button type="button" data-testid="piece-{{ $piece }}" data-piece="{{ $piece }}" data-stock-state="{{ $stockState }}"
+                                                aria-label="{{ $sizeLabels[$size] }} {{ $copy }} do jogador {{ strtoupper($player->value) }}{{ $used ? ', usada' : ($state->isFinished() ? ', rodada encerrada' : ($state->currentPlayer !== $player ? ', aguardando turno' : ', disponível')) }}"
+                                                x-on:click="selectedPiece = selectedPiece === '{{ $piece }}' ? null : '{{ $piece }}'"
+                                                x-bind:aria-pressed="selectedPiece === '{{ $piece }}'"
+                                                x-bind:class="selectedPiece === '{{ $piece }}' ? 'ring-4 ring-ds-focus' : ''"
+                                                @disabled($used || $state->isFinished() || $state->currentPlayer !== $player)
+                                                class="relative flex min-h-11 items-center justify-center rounded-ds-control border-2 font-black focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-ds-focus disabled:cursor-not-allowed {{ $stockState === 'used' ? 'border-ds-border bg-ds-surface-muted text-ds-text-muted' : ($stockState === 'available' ? 'border-ds-board-border bg-ds-elevated hover:border-ds-primary hover:bg-ds-hover' : 'border-dashed border-ds-border bg-ds-surface-muted') }} {{ $stockState !== 'used' ? ($player === PlayerMark::X ? 'text-ds-x' : 'text-ds-o') : '' }}">
+                                                <span class="shrink-0 rounded-full border-2 border-current text-center leading-7 {{ $size === 1 ? 'size-7 text-xs' : ($size === 2 ? 'size-8 text-sm' : 'size-9 text-base') }}">{{ strtoupper($player->value) }}</span>
+                                                @if ($used)<span aria-hidden="true" class="absolute right-0.5 top-0.5 rounded bg-ds-surface px-0.5 text-[0.65rem] font-black leading-none text-ds-text-secondary">✓</span>@endif
+                                                @if (! $used && $stockState === 'available')<span x-show="selectedPiece === '{{ $piece }}'" x-cloak aria-hidden="true" class="absolute right-0.5 top-0.5 text-sm leading-none text-ds-text">●</span>@endif
+                                            </button>
+                                        @endfor
+                                    </div>
+                                @endfor
+                            </div>
                         </div>
-                    </div>
-                @endforeach
+                    @endforeach
+                </div>
             </section>
             <x-design-system.match-actions data-testid="match-actions">
                 <button type="button" x-ref="restartButton" wire:click="restart" wire:loading.attr="disabled" class="min-h-12 w-full rounded-ds-control bg-ds-primary px-5 py-3 text-base font-bold text-ds-on-primary hover:bg-ds-primary-hover focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-ds-focus disabled:opacity-60">Reiniciar partida</button>
