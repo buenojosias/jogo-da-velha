@@ -54,6 +54,7 @@ it('publishes a sitemap containing only the catalogue and fourteen game routes',
         fn (string $path): string => 'https://preview.example.test'.$path,
         ['/', '/3-basico', '/3-mover', '/3-rotacao', '/4-3-basico', '/4-3-mover', '/4-3-rotacao', '/4-3-bloqueio', '/4-3-oculto', '/4-mover', '/2-linhas', '/5-cheia', '/dado', '/maluca', '/ultimate'],
     ));
+    expect($locations)->not->toContain('https://preview.example.test/privacidade');
     expect($response->getContent())->not->toContain('livewire', 'privacidade', 'session', 'sitemap.xml');
 });
 
@@ -83,10 +84,26 @@ it('keeps the privacy draft visible from the catalogue and out of indexing', fun
     $this->get('/privacidade')
         ->assertOk()
         ->assertSeeText('Rascunho pendente de revisão')
+        ->assertSeeText('Josias Pereira Bueno')
+        ->assertSee('href="mailto:velha@jwd.com.br"', escape: false)
+        ->assertSee('href="'.route('welcome').'"', escape: false)
+        ->assertSeeText('1. Sobre a plataforma e o responsável')
+        ->assertSeeText('2. Informações utilizadas')
+        ->assertSeeText('3. Finalidades do tratamento')
+        ->assertSeeText('4. Cookies e armazenamento local')
+        ->assertSeeText('5. Retenção das informações')
+        ->assertSeeText('6. Compartilhamento e serviços de infraestrutura')
+        ->assertSeeText('7. Privacidade de crianças e adolescentes')
+        ->assertSeeText('8. Segurança')
+        ->assertSeeText('9. Direitos dos titulares')
+        ->assertSeeText('10. Atualizações e contato')
         ->assertSeeText('cookie de sessão')
+        ->assertSeeText('Estado temporário da partida')
         ->assertSeeText('armazenamento local')
         ->assertSeeText('endereço IP')
-        ->assertSeeText('Registros técnicos')
+        ->assertSeeText('Pendente de confirmação operacional')
+        ->assertSeeText('EasyPanel')
+        ->assertSeeText('a informar na publicação da versão definitiva')
         ->assertSee('<meta name="robots" content="noindex, follow">', escape: false)
         ->assertSee('<link rel="canonical" href="https://preview.example.test/privacidade">', escape: false);
 });
