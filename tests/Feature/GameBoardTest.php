@@ -47,6 +47,7 @@ test('renders marks, highlighted cells, and unavailable cells without changing t
     expect($availableCell->getAttribute('aria-label'))->toBe('Casa linha 1, coluna 2: vazia');
     expect($availableCell->getAttribute('wire:loading.attr'))->toBe('disabled');
     expect($availableCell->getAttribute('class'))->toContain('focus-visible:outline-ds-focus');
+    expect($availableCell->getAttribute('class'))->toContain('border-ds-board-border');
 });
 
 test('accepts a column count passed as a Blade attribute', function () {

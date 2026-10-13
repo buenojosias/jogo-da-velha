@@ -20,6 +20,7 @@
     --color-ds-text-secondary: var(--ds-text-secondary);
     --color-ds-text-muted: var(--ds-text-muted);
     --color-ds-border: var(--ds-border);
+    --color-ds-board-border: var(--ds-board-border);
     --color-ds-divider: var(--ds-divider);
     --color-ds-primary: var(--ds-primary);
     --color-ds-primary-hover: var(--ds-primary-hover);
@@ -54,6 +55,7 @@ html[data-design-system='experimental'] {
     --ds-text-secondary: #4d4963;
     --ds-text-muted: #625e76;
     --ds-border: #c9c6df;
+    --ds-board-border: #858098;
     --ds-divider: #dfddee;
     --ds-primary: #6943e9;
     --ds-primary-hover: #5632cf;
@@ -87,6 +89,7 @@ html[data-design-system='experimental'][data-theme='dark'] {
     --ds-text-secondary: #d0cce4;
     --ds-text-muted: #b6b1cf;
     --ds-border: #68637e;
+    --ds-board-border: #9691aa;
     --ds-divider: #45425d;
     --ds-primary: #ad98ff;
     --ds-primary-hover: #c4b5ff;

@@ -60,7 +60,7 @@
                             wire:target="choose"
                             data-testid="cell-{{ $index }}"
                             aria-label="Escolher casa linha {{ intdiv($index, 4) + 1 }}, coluna {{ $index % 4 + 1 }}"
-                            class="relative aspect-square min-h-18 rounded-ds-control border-2 border-ds-border bg-ds-surface text-5xl font-black uppercase shadow-sm enabled:hover:border-ds-primary enabled:hover:bg-ds-hover enabled:hover:shadow-ds-card enabled:active:scale-[0.98] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-ds-focus disabled:cursor-wait motion-safe:transition-[transform,background-color,border-color,box-shadow] motion-safe:duration-200 motion-reduce:transition-none"
+                            class="relative aspect-square min-h-18 rounded-ds-control border-2 border-ds-board-border bg-ds-surface text-5xl font-black uppercase shadow-sm enabled:hover:border-ds-primary enabled:hover:bg-ds-hover enabled:hover:shadow-ds-card enabled:active:scale-[0.98] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-ds-focus disabled:cursor-wait motion-safe:transition-[transform,background-color,border-color,box-shadow] motion-safe:duration-200 motion-reduce:transition-none"
                         ><span aria-hidden="true" class="text-ds-text-muted">?</span></button>
                     @endforeach
                 </div>

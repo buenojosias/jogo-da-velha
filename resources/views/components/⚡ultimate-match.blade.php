@@ -123,9 +123,36 @@ new class extends Component
         resultOrigin: null,
         openResult() { this.$nextTick(() => { const dialog = this.$refs.resultDialog; if (!dialog || dialog.open) return; this.resultOrigin = document.activeElement; dialog.showModal(); }); },
         closeResult() { this.$refs.resultDialog?.close(); },
-        restoreFocus() { const origin = this.resultOrigin; requestAnimationFrame(() => (origin instanceof HTMLElement && origin.isConnected && origin.tabIndex >= 0 && !origin.matches(':disabled') ? origin : this.$refs.restartButton)?.focus()); }
+        restoreFocus() { const origin = this.resultOrigin; requestAnimationFrame(() => (origin instanceof HTMLElement && origin.isConnected && origin.tabIndex >= 0 && !origin.matches(':disabled') ? origin : this.$refs.restartButton)?.focus()); },
+        focusPlayableBoard(boardIndex) {
+            this.$nextTick(() => {
+                const region = this.$refs.focusRegion;
+                const board = region?.querySelector(`[data-testid='ultimate-focus-board-${boardIndex}']`);
+                const firstCell = board?.querySelector('button:not(:disabled)');
+                if (!firstCell || this.$refs.resultDialog?.open) return;
+                firstCell.focus({ preventScroll: true });
+                const bounds = region.getBoundingClientRect();
+                if (bounds.top < 0 || bounds.bottom > window.innerHeight) {
+                    region.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth', block: 'start' });
+                }
+            });
+        },
+        selectBoard(boardIndex, available) {
+            this.focusedBoard = boardIndex;
+            if (available) this.focusPlayableBoard(boardIndex);
+        },
+        updateBoard(boardIndex) {
+            this.focusedBoard = boardIndex;
+            this.focusPlayableBoard(boardIndex);
+        },
+        returnToOverview() {
+            const overview = this.$refs.overview?.querySelector(`[data-testid='ultimate-sub-board-${this.focusedBoard}']`);
+            if (!overview) return;
+            overview.focus({ preventScroll: true });
+            overview.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth', block: 'nearest' });
+        }
     }"
-    x-on:ultimate-state-updated.window="focusedBoard = $event.detail.focus"
+    x-on:ultimate-state-updated.window="updateBoard($event.detail.focus)"
     x-on:ultimate-round-finished.window="openResult()"
 >
     <x-design-system.match-header modality="Ultimate" title="Jogo da Velha" description="Conquiste três subtabuleiros em linha." data-testid="match-header">
@@ -157,7 +184,7 @@ new class extends Component
             <div class="mt-3 grid min-w-0 items-start gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(14rem,17rem)]">
                 <section aria-label="Visão geral dos nove subtabuleiros" class="min-w-0">
                     <h2 class="text-center text-sm font-extrabold">Visão geral</h2>
-                    <div data-testid="ultimate-overview" class="mx-auto mt-2 grid w-full max-w-[35rem] grid-cols-3 gap-1.5 sm:gap-2">
+                    <div data-testid="ultimate-overview" x-ref="overview" class="mx-auto mt-2 grid w-full max-w-[35rem] grid-cols-3 gap-1.5 sm:gap-2">
                         @foreach ($boards as $boardIndex => $board)
                             @php
                                 $result = $rules->subBoardResult($state, $boardIndex);
@@ -168,7 +195,7 @@ new class extends Component
                             <button type="button" wire:key="ultimate-overview-{{ $boardIndex }}" data-testid="ultimate-sub-board-{{ $boardIndex }}"
                                 data-result="{{ $result ?? '' }}" data-available="{{ $available ? 'true' : 'false' }}" data-target="{{ $targetBoard === $boardIndex ? 'true' : 'false' }}"
                                 aria-label="Subtabuleiro {{ $boardIndex + 1 }}, {{ $resultLabel }}{{ $available ? ', disponível para jogar' : '' }}"
-                                x-on:click="focusedBoard = {{ $boardIndex }}"
+                                x-on:click="selectBoard({{ $boardIndex }}, {{ $available ? 'true' : 'false' }})"
                                 x-bind:aria-pressed="focusedBoard === {{ $boardIndex }}"
                                 x-bind:class="focusedBoard === {{ $boardIndex }} ? 'ring-2 ring-ds-focus' : ''"
                                 class="relative min-w-0 rounded-ds-control border-2 p-1 text-ds-text focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-ds-focus sm:p-1.5 {{ $isWinningBoard ? 'border-ds-success bg-ds-hover' : ($available ? 'border-ds-primary bg-ds-surface' : 'border-ds-border bg-ds-surface-muted') }}">
@@ -183,7 +210,7 @@ new class extends Component
                     </div>
                 </section>
 
-                <section aria-label="Subtabuleiro ampliado" data-testid="ultimate-focus-region" class="min-w-0 rounded-ds-card border border-ds-border bg-ds-surface-muted p-2.5 sm:p-3">
+                <section aria-label="Subtabuleiro ampliado" data-testid="ultimate-focus-region" x-ref="focusRegion" x-on:keydown.escape.stop="returnToOverview()" aria-keyshortcuts="Escape" class="min-w-0 rounded-ds-card border border-ds-border bg-ds-surface-muted p-2.5 sm:p-3">
                     <h2 class="text-center text-sm font-extrabold">Jogue no subtabuleiro ampliado</h2>
                     @foreach ($boards as $boardIndex => $board)
                         @php $available = in_array($boardIndex, $availableBoards, true); $localLine = $rules->localWinningLine($state, $boardIndex); @endphp
@@ -195,12 +222,12 @@ new class extends Component
                                         aria-label="Subtabuleiro {{ $boardIndex + 1 }}, casa {{ $cellIndex + 1 }}{{ $mark ? ', '.strtoupper($mark) : ', vazia' }}"
                                         wire:click="place({{ $boardIndex }}, {{ $cellIndex }})" wire:loading.attr="disabled"
                                         @disabled(! $available || $mark !== '')
-                                        class="aspect-square min-h-12 rounded-ds-control border-2 bg-ds-elevated text-3xl font-black shadow-ds-card enabled:hover:bg-ds-hover focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-ds-focus disabled:cursor-not-allowed {{ in_array($cellIndex, $localLine ?? [], true) ? 'border-ds-success ring-2 ring-ds-success' : 'border-ds-border' }} {{ $mark === 'x' ? 'text-ds-x' : 'text-ds-o' }}">{{ strtoupper($mark) }}</button>
+                                        class="aspect-square min-h-12 rounded-ds-control border-2 bg-ds-elevated text-3xl font-black shadow-ds-card enabled:hover:bg-ds-hover focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-ds-focus disabled:cursor-not-allowed {{ in_array($cellIndex, $localLine ?? [], true) ? 'border-ds-success ring-2 ring-ds-success' : 'border-ds-board-border' }} {{ $mark === 'x' ? 'text-ds-x' : 'text-ds-o' }}">{{ strtoupper($mark) }}</button>
                                 @endforeach
                             </div>
                         </div>
                     @endforeach
-                    <p class="mt-2 text-center text-xs text-ds-text-secondary">Toque em um subtabuleiro da visão geral para ampliá-lo.</p>
+                    <p class="mt-2 text-center text-xs text-ds-text-secondary">Escolha na visão geral. Pressione Escape para voltar a ela.</p>
                 </section>
             </div>
 

@@ -138,7 +138,7 @@ new class extends Component
                         aria-label="Casa {{ $index + 1 }}{{ $top ? ', peça '.strtoupper($top[0]).' '.strtolower($sizeLabels[(int) $top[2]]).', '.count($stack).' na pilha' : ', vazia' }}"
                         x-on:click="if (selectedPiece) $wire.place(selectedPiece, {{ $index }})"
                         wire:loading.attr="disabled" @disabled($state->isFinished())
-                        class="relative aspect-square min-h-16 rounded-ds-control border-2 bg-ds-elevated transition-colors hover:bg-ds-hover focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-ds-focus disabled:cursor-not-allowed {{ in_array($index, $line ?? [], true) ? 'border-ds-success ring-4 ring-ds-success' : 'border-ds-border' }}">
+                        class="relative aspect-square min-h-16 rounded-ds-control border-2 bg-ds-elevated transition-colors hover:bg-ds-hover focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-ds-focus disabled:cursor-not-allowed {{ in_array($index, $line ?? [], true) ? 'border-ds-success ring-4 ring-ds-success' : 'border-ds-board-border' }}">
                         @if ($top)
                             <span class="mx-auto flex shrink-0 items-center justify-center rounded-full border-2 border-current bg-ds-hover font-black shadow-ds-card {{ $top[0] === 'x' ? 'text-ds-x' : 'text-ds-o' }} {{ (int) $top[2] === 1 ? 'size-9 text-lg' : ((int) $top[2] === 2 ? 'size-14 text-2xl' : 'size-[min(5rem,21vw)] text-3xl') }}">{{ strtoupper($top[0]) }}</span>
                             @if (count($stack) > 1)<span class="absolute bottom-1 right-1 rounded-full bg-ds-surface px-1.5 text-xs font-bold text-ds-text">{{ count($stack) }}</span>@endif
