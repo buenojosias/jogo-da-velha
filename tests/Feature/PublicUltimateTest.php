@@ -54,7 +54,7 @@ test('persists a directed turn and rejects a wrong subboard without changing the
     $id = openPublicUltimate();
     $component = Livewire::test('ultimate-match', ['matchId' => $id]);
 
-    $component->call('place', 0, 4)->assertSee('Subtabuleiro obrigatório: 5');
+    $component->call('place', 0, 4)->assertSee('Subtabuleiro obrigatório: 5')->assertDispatched('ultimate-state-updated', focus: 4);
     $state = app(SessionMatchStore::class)->find($id);
     expect($state->data['target_board'])->toBe(4);
     expect($state->data['boards'][0][4])->toBe('x');
@@ -63,14 +63,36 @@ test('persists a directed turn and rejects a wrong subboard without changing the
     $this->get(route('ultimate'))->assertSee('Subtabuleiro obrigatório: 5');
 });
 
+test('returns to manual choice when the destination subboard closes', function () {
+    $id = openPublicUltimate();
+    $boards = array_fill(0, 9, array_fill(0, 9, ''));
+    $boards[0][1] = 'x';
+    $boards[0][2] = 'x';
+    $boards[1][0] = 'o';
+    $boards[2][0] = 'o';
+    setPublicUltimate($id, $boards, 0, PlayerMark::X);
+
+    Livewire::test('ultimate-match', ['matchId' => $id])->call('place', 0, 0)
+        ->assertSee('Escolha qualquer subtabuleiro disponível.')
+        ->assertDispatched('ultimate-state-updated', focus: null);
+
+    $state = app(SessionMatchStore::class)->find($id);
+    expect($state->data['target_board'])->toBeNull();
+    expect($state->currentPlayer)->toBe(PlayerMark::O);
+});
+
 test('shows nine compact overview boards with accessible available states and no captions', function () {
     $id = openPublicUltimate();
+    $html = Livewire::test('ultimate-match', ['matchId' => $id])->html();
     $document = new DOMDocument;
-    @$document->loadHTML('<?xml encoding="UTF-8">'.Livewire::test('ultimate-match', ['matchId' => $id])->html());
+    @$document->loadHTML('<?xml encoding="UTF-8">'.$html);
     $xpath = new DOMXPath($document);
     $overviewBoards = $xpath->query('//*[@data-testid="ultimate-overview"]//button');
 
     expect($overviewBoards)->toHaveCount(9);
+    expect($xpath->query('//*[@data-testid="ultimate-overview"]')->item(0)->getAttribute('aria-label'))->toBe('Escolha um subtabuleiro disponível');
+    expect($document->textContent)->toContain('Escolha um subtabuleiro disponível na visão geral para continuar.');
+    expect($html)->toContain('focusedBoard: null');
     foreach ($overviewBoards as $index => $board) {
         expect($board->getAttribute('aria-label'))->toBe('Subtabuleiro '.($index + 1).', disponível para jogar');
         expect($board->getAttribute('class'))->toContain('border-ds-success');
@@ -90,15 +112,16 @@ test('distinguishes mandatory waiting conquered and drawn overview boards withou
     $boards[3][4] = 'o';
     setPublicUltimate($id, $boards, 4, PlayerMark::X);
 
+    $html = Livewire::test('ultimate-match', ['matchId' => $id])->html();
     $document = new DOMDocument;
-    @$document->loadHTML('<?xml encoding="UTF-8">'.Livewire::test('ultimate-match', ['matchId' => $id])->html());
+    @$document->loadHTML('<?xml encoding="UTF-8">'.$html);
     $xpath = new DOMXPath($document);
     $expected = [
         0 => ['conquistado pelo jogador X', 'border-ds-x', ''],
         1 => ['conquistado pelo jogador O', 'border-ds-o', ''],
         2 => ['empatado', 'border-dotted', '='],
         3 => ['aguardando, indisponível neste turno', 'border-dashed', ''],
-        4 => ['obrigatório e disponível para jogar', 'border-ds-ultimate-active', '◆'],
+        4 => ['obrigatório e disponível para jogar', 'border-ds-success', ''],
     ];
 
     foreach ($expected as $index => [$status, $border, $indicator]) {
@@ -116,8 +139,10 @@ test('distinguishes mandatory waiting conquered and drawn overview boards withou
     }
 
     $mandatoryBoard = $xpath->query('//*[@data-testid="ultimate-sub-board-4"]')->item(0);
-    expect($mandatoryBoard->getAttribute('class'))->toContain('border-2', 'bg-ds-ultimate-active/10');
-    expect($mandatoryBoard->getAttribute('x-bind:class'))->toContain('ring-2 ring-ds-focus');
+    expect($mandatoryBoard->getAttribute('class'))->toContain('border-2', 'bg-ds-surface', 'focus-visible:outline-ds-focus');
+    expect($mandatoryBoard->hasAttribute('x-bind:class'))->toBeFalse();
+    expect($mandatoryBoard->getAttribute('x-bind:aria-pressed'))->toContain('focusedBoard === 4');
+    expect($html)->toContain('focusedBoard: 4');
 });
 
 test('awards a global win once, then preserves score and alternates the starter on the next round', function () {
@@ -140,7 +165,7 @@ test('awards a global win once, then preserves score and alternates the starter 
     $starter = $store->startingPlayer($id);
     $component = Livewire::test('ultimate-match', ['matchId' => $id]);
 
-    $component->call('place', 2, 2)->assertSee('Jogador X venceu!')->assertSee('rodada encerrada, indisponível')->assertDispatched('ultimate-round-finished');
+    $component->call('place', 2, 2)->assertSee('Jogador X venceu!')->assertSee('rodada encerrada, indisponível')->assertDontSee('Escolha um subtabuleiro disponível na visão geral para continuar.')->assertDispatched('ultimate-round-finished');
     $document = new DOMDocument;
     @$document->loadHTML('<?xml encoding="UTF-8">'.$component->html());
     expect((new DOMXPath($document))->query('//*[@data-testid="ultimate-overview"]//button[@disabled]'))->toHaveCount(9);
@@ -148,7 +173,7 @@ test('awards a global win once, then preserves score and alternates the starter 
     expect($store->find($id)->winner)->toBe(PlayerMark::X);
     $component->call('place', 8, 8)->assertSee('A rodada terminou');
     expect($store->score($id)['x'])->toBe(1);
-    $component->call('restart');
+    $component->call('restart')->assertDispatched('ultimate-state-updated', focus: null);
     expect($store->find($id)->data['boards'])->toBe(array_fill(0, 9, array_fill(0, 9, '')));
     expect($store->startingPlayer($id))->toBe($starter === PlayerMark::X ? PlayerMark::O : PlayerMark::X);
     expect($store->score($id)['x'])->toBe(1);

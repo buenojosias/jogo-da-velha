@@ -82,8 +82,7 @@ new class extends Component
         app(SessionMatchStore::class)->save($this->matchId, $result->state);
         $this->rejectionMessage = null;
         unset($this->matchState, $this->score, $this->availableBoards, $this->globalWinningLine);
-        $nextAvailable = app(UltimateRules::class)->availableBoards($result->state);
-        $this->dispatch('ultimate-state-updated', focus: $result->state->data['target_board'] ?? ($nextAvailable[0] ?? $board));
+        $this->dispatch('ultimate-state-updated', focus: $result->state->data['target_board']);
         if ($result->state->isFinished()) {
             $this->dispatch('ultimate-round-finished');
         }
@@ -94,7 +93,7 @@ new class extends Component
         app(ClassicRoundActions::class)->restart($this->matchId, $this->matchState, app(UltimateRules::class));
         $this->rejectionMessage = null;
         unset($this->matchState, $this->score, $this->availableBoards, $this->globalWinningLine);
-        $this->dispatch('ultimate-state-updated', focus: 0);
+        $this->dispatch('ultimate-state-updated', focus: null);
     }
 
     public function newMatch(): void
@@ -114,7 +113,7 @@ new class extends Component
     $availableBoards = $this->availableBoards;
     $globalWinningLine = $this->globalWinningLine;
     $score = $this->score;
-    $initialFocus = $targetBoard ?? ($availableBoards[0] ?? null);
+    $initialFocus = $targetBoard;
 @endphp
 
 <div class="experimental-match mx-auto flex min-h-screen w-full max-w-6xl flex-col gap-4 px-4 py-4 text-ds-text sm:px-6 sm:py-6"
@@ -144,13 +143,21 @@ new class extends Component
             this.focusPlayableBoard(boardIndex);
         },
         updateBoard(boardIndex) {
-            const boards = [...(this.$refs.overview?.querySelectorAll('button') ?? [])];
-            const nextIndex = boards[boardIndex] && !boards[boardIndex].disabled ? boardIndex : boards.findIndex(board => !board.disabled);
-            this.focusedBoard = nextIndex >= 0 ? nextIndex : null;
-            if (this.focusedBoard !== null) this.focusPlayableBoard(this.focusedBoard);
+            const board = boardIndex === null ? null : this.$refs.overview?.children[boardIndex];
+            this.focusedBoard = board && !board.disabled ? boardIndex : null;
+            if (this.focusedBoard !== null) {
+                this.focusPlayableBoard(this.focusedBoard);
+                return;
+            }
+            this.$nextTick(() => {
+                const overview = this.$refs.overview;
+                if (!overview || this.$refs.resultDialog?.open) return;
+                overview.focus({ preventScroll: true });
+                overview.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth', block: 'nearest' });
+            });
         },
         returnToOverview() {
-            const overview = this.$refs.overview?.querySelector(`[data-testid='ultimate-sub-board-${this.focusedBoard}']`);
+            const overview = this.focusedBoard === null ? this.$refs.overview : this.$refs.overview?.children[this.focusedBoard];
             if (!overview || overview.disabled) return;
             overview.focus({ preventScroll: true });
             overview.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth', block: 'nearest' });
@@ -188,7 +195,7 @@ new class extends Component
             <div class="mt-3 grid min-w-0 items-start gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(14rem,17rem)]">
                 <section aria-label="Visão geral dos nove subtabuleiros" class="min-w-0">
                     <h2 class="text-center text-sm font-extrabold">Visão geral</h2>
-                    <div data-testid="ultimate-overview" x-ref="overview" class="mx-auto mt-2 grid w-full max-w-[35rem] grid-cols-3 gap-1.5 sm:gap-2">
+                    <div data-testid="ultimate-overview" x-ref="overview" role="group" aria-label="Escolha um subtabuleiro disponível" tabindex="-1" class="ultimate-overview mx-auto mt-2 grid w-full max-w-[35rem] grid-cols-3 gap-1.5 sm:gap-2">
                         @foreach ($boards as $boardIndex => $board)
                             @php
                                 $result = $rules->subBoardResult($state, $boardIndex);
@@ -208,7 +215,6 @@ new class extends Component
                                     $result === 'x' => 'border-ds-x bg-ds-surface-muted',
                                     $result === 'o' => 'border-ds-o bg-ds-surface-muted',
                                     $result === 'draw' => 'border-dotted border-ds-border bg-ds-elevated',
-                                    $targetBoard === $boardIndex => 'border-ds-ultimate-active bg-ds-ultimate-active/10',
                                     $available => 'border-ds-success bg-ds-surface',
                                     default => 'border-dashed border-ds-border bg-ds-surface-muted',
                                 };
@@ -218,7 +224,6 @@ new class extends Component
                                 aria-label="Subtabuleiro {{ $boardIndex + 1 }}, {{ $statusLabel }}"
                                 x-on:click="selectBoard({{ $boardIndex }})"
                                 x-bind:aria-pressed="focusedBoard === {{ $boardIndex }} && ! $el.disabled"
-                                x-bind:class="focusedBoard === {{ $boardIndex }} && ! $el.disabled ? 'ring-2 ring-ds-focus' : ''"
                                 @disabled(! $available)
                                 class="relative min-w-0 rounded-ds-control border-2 p-1 text-ds-text enabled:cursor-pointer disabled:cursor-not-allowed focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-ds-focus sm:p-1.5 {{ $boardAppearance }}">
                                 <span class="grid aspect-square grid-cols-3 grid-rows-3 gap-0.5" aria-hidden="true">
@@ -230,8 +235,8 @@ new class extends Component
                                     <span aria-hidden="true" data-winner-overlay="{{ $result }}" class="pointer-events-none absolute inset-[2px] flex items-center justify-center rounded-[0.625rem] {{ $result === 'x' ? 'bg-ds-x/15 text-ds-x' : 'bg-ds-o/15 text-ds-o' }}">
                                         <span class="text-5xl font-black leading-none opacity-50 sm:text-6xl">{{ strtoupper($result) }}</span>
                                     </span>
-                                @elseif ($result === 'draw' || $targetBoard === $boardIndex)
-                                    <span aria-hidden="true" class="pointer-events-none absolute right-0.5 top-0.5 flex size-3 items-center justify-center rounded-full bg-ds-surface text-[0.55rem] font-black leading-none shadow-ds-card {{ $result === 'draw' ? 'text-ds-text-secondary' : 'text-ds-ultimate-active' }}">{{ $result === 'draw' ? '=' : '◆' }}</span>
+                                @elseif ($result === 'draw')
+                                    <span aria-hidden="true" class="pointer-events-none absolute right-0.5 top-0.5 flex size-3 items-center justify-center rounded-full bg-ds-surface text-[0.55rem] font-black leading-none shadow-ds-card text-ds-text-secondary">=</span>
                                 @endif
                             </button>
                         @endforeach
@@ -240,6 +245,9 @@ new class extends Component
 
                 <section aria-label="Subtabuleiro ampliado" data-testid="ultimate-focus-region" x-ref="focusRegion" x-on:keydown.escape.stop="returnToOverview()" aria-keyshortcuts="Escape" class="min-w-0 rounded-ds-card border border-ds-border bg-ds-surface-muted p-2.5 sm:p-3">
                     <h2 class="text-center text-sm font-extrabold">Jogue no subtabuleiro ampliado</h2>
+                    @if (! $state->isFinished())
+                        <p x-show="focusedBoard === null" x-cloak data-testid="ultimate-selection-prompt" role="status" class="mt-3 text-center text-sm font-semibold text-ds-text-secondary">Escolha um subtabuleiro disponível na visão geral para continuar.</p>
+                    @endif
                     @foreach ($boards as $boardIndex => $board)
                         @php $available = in_array($boardIndex, $availableBoards, true); $localLine = $rules->localWinningLine($state, $boardIndex); @endphp
                         <div wire:key="ultimate-focus-{{ $boardIndex }}" x-show="focusedBoard === {{ $boardIndex }}" x-cloak data-testid="ultimate-focus-board-{{ $boardIndex }}" class="mt-2">
@@ -255,7 +263,7 @@ new class extends Component
                             </div>
                         </div>
                     @endforeach
-                    <p class="mt-2 text-center text-xs text-ds-text-secondary">Escolha na visão geral. Pressione Escape para voltar a ela.</p>
+                    <p x-show="focusedBoard !== null" x-cloak class="mt-2 text-center text-xs text-ds-text-secondary">Escolha na visão geral. Pressione Escape para voltar a ela.</p>
                 </section>
             </div>
 

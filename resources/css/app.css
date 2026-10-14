@@ -112,6 +112,10 @@ html[data-design-system='experimental'][data-theme='dark'] {
     --ds-overlay: rgb(6 5 18 / 78%);
 }
 
+html[data-design-system='experimental'] .ultimate-overview > button[aria-pressed='true'] {
+    border-color: var(--ds-ultimate-active);
+}
+
 html[data-design-system='experimental'] body {
     background:
         radial-gradient(circle at 8% 8%, color-mix(in srgb, var(--ds-primary) 9%, transparent), transparent 26rem),

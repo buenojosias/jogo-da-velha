@@ -50,9 +50,55 @@ it('shows the draw dialog after all nine subboards close without a global winner
         ->assertNoJavaScriptErrors();
 });
 
+it('requires a manual choice on free turns and allows switching without using the turn', function () {
+    $page = visit('/ultimate')
+        ->assertVisible('[data-testid="ultimate-selection-prompt"]')
+        ->assertScript('Array.from(document.querySelectorAll("[data-testid^=ultimate-sub-board-]")).every(board => board.getAttribute("aria-pressed") === "false")', true)
+        ->assertScript('Array.from(document.querySelectorAll("[data-testid^=ultimate-focus-board-]")).every(board => getComputedStyle(board).display === "none")', true);
+    $turn = $page->script('document.querySelector("[data-testid=match-status]").textContent.trim()');
+
+    $page->click('[data-testid="ultimate-sub-board-4"]')
+        ->assertAttribute('[data-testid="ultimate-sub-board-4"]', 'aria-pressed', 'true')
+        ->click('[data-testid="ultimate-sub-board-0"]')
+        ->assertAttribute('[data-testid="ultimate-sub-board-4"]', 'aria-pressed', 'false')
+        ->assertAttribute('[data-testid="ultimate-sub-board-0"]', 'aria-pressed', 'true')
+        ->assertVisible('[data-testid="ultimate-focus-board-0"]')
+        ->assertScript('getComputedStyle(document.querySelector("[data-testid=ultimate-focus-board-4]")).display', 'none')
+        ->assertScript('document.querySelector("[data-testid=match-status]").textContent.trim()', $turn)
+        ->assertScript('Array.from(document.querySelectorAll("[data-testid^=ultimate-cell-]")).every(cell => cell.dataset.mark === "")', true);
+
+    $page->navigate('/ultimate')
+        ->assertVisible('[data-testid="ultimate-selection-prompt"]')
+        ->assertScript('Array.from(document.querySelectorAll("[data-testid^=ultimate-sub-board-]")).every(board => board.getAttribute("aria-pressed") === "false")', true)
+        ->click('[data-testid="ultimate-sub-board-0"]')
+        ->click('[data-testid="ultimate-cell-0-4"]')
+        ->assertAttribute('[data-testid="ultimate-sub-board-4"]', 'data-target', 'true')
+        ->assertAttribute('[data-testid="ultimate-sub-board-4"]', 'aria-pressed', 'true')
+        ->click('[x-ref="restartButton"]')
+        ->assertVisible('[data-testid="ultimate-selection-prompt"]')
+        ->assertScript('Array.from(document.querySelectorAll("[data-testid^=ultimate-sub-board-]")).every(board => board.getAttribute("aria-pressed") === "false")', true)
+        ->assertNoJavaScriptErrors();
+});
+
+it('uses one blue border for selected overview boards in both themes', function () {
+    $page = visit('/ultimate')->click('[data-testid="ultimate-sub-board-0"]');
+
+    foreach (['light', 'dark'] as $theme) {
+        $page->select('[data-theme-selector]', $theme)
+            ->assertScript('(() => { const board = document.querySelector("[data-testid=ultimate-sub-board-0]"); const style = getComputedStyle(board); const colors = getComputedStyle(document.documentElement); const rgb = name => { let hex = colors.getPropertyValue(name).trim().slice(1); if (hex.length === 3) hex = [...hex].map(char => char + char).join(""); return `rgb(${hex.match(/\w\w/g).map(pair => parseInt(pair, 16)).join(", ")})`; }; return board.getAttribute("aria-pressed") === "true" && style.borderTopWidth === "2px" && style.borderTopColor === rgb("--ds-ultimate-active") && style.backgroundColor === rgb("--ds-surface") && style.boxShadow === "none"; })()', true)
+            ->assertScript('(() => { const board = document.querySelector("[data-testid=ultimate-sub-board-1]"); const colors = getComputedStyle(document.documentElement); let hex = colors.getPropertyValue("--ds-success").trim().slice(1); if (hex.length === 3) hex = [...hex].map(char => char + char).join(""); const rgb = `rgb(${hex.match(/\w\w/g).map(pair => parseInt(pair, 16)).join(", ")})`; return board.getAttribute("aria-pressed") === "false" && getComputedStyle(board).borderTopColor === rgb; })()', true);
+    }
+
+    $page->click('[data-testid="ultimate-cell-0-4"]')
+        ->assertAttribute('[data-testid="ultimate-sub-board-4"]', 'aria-pressed', 'true')
+        ->assertScript('(() => { const board = document.querySelector("[data-testid=ultimate-sub-board-4]"); const style = getComputedStyle(board); const colors = getComputedStyle(document.documentElement); const rgb = name => { let hex = colors.getPropertyValue(name).trim().slice(1); if (hex.length === 3) hex = [...hex].map(char => char + char).join(""); return `rgb(${hex.match(/\w\w/g).map(pair => parseInt(pair, 16)).join(", ")})`; }; return style.borderTopColor === rgb("--ds-ultimate-active") && style.backgroundColor === rgb("--ds-surface") && style.boxShadow === "none"; })()', true)
+        ->assertNoJavaScriptErrors();
+});
+
 it('retains the directed move and theme after reload, then asks before creating a new match', function () {
     $page = visit('/ultimate')
         ->select('[data-theme-selector]', 'dark')
+        ->click('[data-testid="ultimate-sub-board-0"]')
         ->click('[data-testid="ultimate-cell-0-4"]')
         ->assertSeeIn('[data-testid="target-board-status"]', 'Subtabuleiro obrigatório: 5');
     $page->navigate('/ultimate')
@@ -66,6 +112,8 @@ it('retains the directed move and theme after reload, then asks before creating 
         ->click('[data-testid="new-match-button"]')
         ->click('[data-testid="confirm-new-match"]')
         ->assertSeeIn('[data-testid="target-board-status"]', 'qualquer subtabuleiro disponível')
+        ->assertVisible('[data-testid="ultimate-selection-prompt"]')
+        ->assertScript('Array.from(document.querySelectorAll("[data-testid^=ultimate-sub-board-]")).every(board => board.getAttribute("aria-pressed") === "false")', true)
         ->select('[data-theme-selector]', 'light')
         ->assertScript('document.documentElement.dataset.theme', 'light')
         ->assertNoJavaScriptErrors();
@@ -78,6 +126,7 @@ it('keeps the overview and enlarged board usable without horizontal overflow at 
         ->assertCount('[data-testid^="ultimate-sub-board-"]', 9)
         ->assertScript('Array.from(document.querySelectorAll("[data-testid^=ultimate-cell-]")).every(cell => cell.hasAttribute("aria-label"))', true)
         ->assertScript('document.documentElement.scrollWidth <= document.documentElement.clientWidth', true)
+        ->click('[data-testid="ultimate-sub-board-0"]')
         ->assertScript('(() => { const cell = document.querySelector("[data-testid=ultimate-cell-0-0]"); return cell.getBoundingClientRect().width >= 44 && cell.getBoundingClientRect().height >= 44; })()', true)
         ->click('[data-testid="ultimate-cell-0-0"]')
         ->assertScript('document.querySelector("[data-testid=ultimate-cell-0-0]").dataset.mark !== ""', true)
@@ -114,6 +163,7 @@ it('keeps every overview cell square and aligned after several marks at :dataset
 
     $page = visit('/ultimate')->resize($width, $height)
         ->assertScript($uniformOverview, true)
+        ->click('[data-testid="ultimate-sub-board-0"]')
         ->click('[data-testid="ultimate-cell-0-4"]')
         ->assertScript('document.querySelector("[data-testid=ultimate-cell-0-4]").dataset.mark !== ""', true);
 
@@ -190,6 +240,7 @@ it('lets a keyboard user go directly from the overview to a playable cell', func
 
 it('keeps waiting subboards disabled while the required subboard remains playable', function () {
     $page = visit('/ultimate')
+        ->click('[data-testid="ultimate-sub-board-0"]')
         ->click('[data-testid="ultimate-cell-0-4"]')
         ->assertAttribute('[data-testid="ultimate-sub-board-0"]', 'data-available', 'false')
         ->assertAttribute('[data-testid="ultimate-sub-board-4"]', 'aria-pressed', 'true')
@@ -199,7 +250,7 @@ it('keeps waiting subboards disabled while the required subboard remains playabl
         ->assertNoJavaScriptErrors();
 });
 
-it('keeps conquered subboards disabled and moves selection to the next playable one', function () {
+it('keeps conquered subboards disabled and waits for a manual choice', function () {
     $page = visit('/ultimate');
     foreach ([[0, 1], [1, 0], [0, 2], [2, 0], [0, 0]] as [$board, $cell]) {
         $page->click('[data-testid="ultimate-sub-board-'.$board.'"]')
@@ -209,8 +260,11 @@ it('keeps conquered subboards disabled and moves selection to the next playable 
 
     $page->assertAttribute('[data-testid="ultimate-sub-board-0"]', 'data-available', 'false')
         ->assertAttribute('[data-testid="ultimate-sub-board-0"]', 'aria-pressed', 'false')
-        ->assertAttribute('[data-testid="ultimate-sub-board-1"]', 'aria-pressed', 'true')
-        ->assertScript('(() => { const board = document.querySelector("[data-testid=ultimate-sub-board-0]"); const focus = document.activeElement; board.click(); return board.disabled && document.querySelector("[data-testid=ultimate-sub-board-1]").getAttribute("aria-pressed") === "true" && document.activeElement === focus && !!board.querySelector("[data-winner-overlay]") && !document.querySelector("[data-testid=rejection-message]"); })()', true)
+        ->assertVisible('[data-testid="ultimate-selection-prompt"]')
+        ->assertScript('Array.from(document.querySelectorAll("[data-testid^=ultimate-sub-board-]")).every(board => board.getAttribute("aria-pressed") === "false")', true)
+        ->assertScript('(() => { const board = document.querySelector("[data-testid=ultimate-sub-board-0]"); const focus = document.activeElement; board.click(); return board.disabled && document.querySelector("[data-testid=ultimate-sub-board-1]").getAttribute("aria-pressed") === "false" && document.activeElement === focus && !!board.querySelector("[data-winner-overlay]") && !document.querySelector("[data-testid=rejection-message]"); })()', true)
         ->assertScript('Array.from(document.querySelectorAll("[data-testid=ultimate-focus-board-0] button")).every(cell => cell.disabled)', true)
+        ->click('[data-testid="ultimate-sub-board-1"]')
+        ->assertAttribute('[data-testid="ultimate-sub-board-1"]', 'aria-pressed', 'true')
         ->assertNoJavaScriptErrors();
 });
