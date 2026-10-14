@@ -184,3 +184,65 @@ function publicMovementStartingWithX(TestCase $testCase): void
     app()->instance(Randomizer::class, new Randomizer(new Mt19937(0)));
     $testCase->get(route('3-move'))->assertOk()->assertSee('Vez do jogador X');
 }
+
+test('preserves piece identity and the fourth-move restriction through reload and Sair', function () {
+    publicMovementStartingWithX($this);
+    $id = session('movement3x3.active_match_id');
+    $component = Livewire::test('experimental-move-3x3', ['matchId' => $id, 'publicEntry' => true]);
+
+    foreach ([0, 1, 2, 3, 4, 6] as $cell) {
+        $component->call('place', $cell);
+    }
+    foreach ([[0, 5], [1, 7], [5, 0], [7, 1], [0, 5], [1, 7]] as [$from, $to]) {
+        $component->call('move', $from, $to);
+    }
+    $store = app(SessionMatchStore::class);
+    $before = $store->find($id);
+    expect($before->data['move_count'])->toBe(['x' => 3, 'o' => 3]);
+
+    $this->get(route('3-move'))->assertOk()
+        ->assertSee('data-testid="cell-5"', false)
+        ->assertSee('data-restricted-cell="true"', false)
+        ->assertSee('Aguarde');
+    Livewire::test('exit-match', ['matchId' => $id, 'modality' => '3-move'])
+        ->call('requestExit')->assertSet('confirming', true)
+        ->call('keep')->assertRedirect(route('welcome'));
+    $this->get(route('3-move'))->assertOk();
+    expect(session('movement3x3.active_match_id'))->toBe($id);
+
+    Livewire::test('experimental-move-3x3', ['matchId' => $id, 'publicEntry' => true])
+        ->call('move', 5, 0)
+        ->assertSee('Você não pode mover a mesma peça em dois turnos consecutivos. Escolha outra peça.');
+    expect($store->find($id))->toEqual($before);
+
+    $component->call('restart');
+    expect($store->find($id)->data['move_count'])->toBe(['x' => 0, 'o' => 0]);
+    expect($store->find($id)->data['last_moved_piece'])->toBe(['x' => null, 'o' => null]);
+    expect($store->find($id)->data['pieces'])->toBe(['x' => [], 'o' => []]);
+    expect($store->score($id))->toBe(['x' => 0, 'o' => 0, 'draws' => 0]);
+
+    $component->call('newMatch')->assertRedirect(route('3-move'));
+    $newId = session('movement3x3.active_match_id');
+    expect($newId)->not->toBe($id);
+    expect($store->find($newId)->data['move_count'])->toBe(['x' => 0, 'o' => 0]);
+    expect($store->score($newId))->toBe(['x' => 0, 'o' => 0, 'draws' => 0]);
+});
+
+test('replaces an old or corrupt movement state without an error page', function (string $field, mixed $value) {
+    publicMovementStartingWithX($this);
+    $id = session('movement3x3.active_match_id');
+    $stored = session('experimental_matches.'.$id);
+    $stored['state']['data'][$field] = $value;
+    session()->put('experimental_matches.'.$id, $stored);
+
+    $this->get(route('3-move'))->assertOk()->assertSee('Coloque uma peça');
+
+    $newId = session('movement3x3.active_match_id');
+    expect($newId)->not->toBe($id);
+    expect(app(SessionMatchStore::class)->find($newId)->data['pieces'])->toBe(['x' => [], 'o' => []]);
+})->with([
+    'old board-only state' => ['pieces', null],
+    'bad piece position' => ['pieces', ['x' => [0], 'o' => []]],
+    'negative move count' => ['move_count', ['x' => -1, 'o' => 0]],
+    'bad last piece' => ['last_moved_piece', ['x' => 2, 'o' => null]],
+]);

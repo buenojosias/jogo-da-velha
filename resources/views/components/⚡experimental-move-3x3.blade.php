@@ -89,6 +89,7 @@ new class extends Component
                 'placement_complete' => 'Agora mova uma das suas peças.',
                 'movement_not_started' => 'Coloque suas três peças antes de mover.',
                 'empty_source', 'not_your_piece' => 'Selecione uma peça sua.',
+                'same_piece_twice' => 'Você não pode mover a mesma peça em dois turnos consecutivos. Escolha outra peça.',
                 'invalid_cell', 'same_cell' => 'Escolha uma casa de destino válida.',
                 'game_finished' => 'A rodada terminou. Inicie uma nova rodada para jogar novamente.',
                 default => 'Não foi possível realizar esta jogada.',
@@ -142,6 +143,7 @@ new class extends Component
 @php($score = $this->score)
 @php($board = $state->data['board'])
 @php($movementPhase = count(array_filter($board)) === 6)
+@php($blockedCell = app(Move3x3Rules::class)->blockedCell($state))
 @php($unavailableCells = $state->isFinished() ? array_keys($board) : ($movementPhase ? array_keys(array_filter($board, fn (string $mark): bool => $mark !== '' && $mark !== $state->currentPlayer->value)) : array_keys(array_filter($board))))
 
 <div
@@ -149,6 +151,7 @@ new class extends Component
     x-data="{
         selectedCell: null,
         pending: false,
+        restrictionMessage: null,
         resultOrigin: null,
         handleCell(index) {
             if (this.pending) return;
@@ -164,6 +167,12 @@ new class extends Component
                 return;
             }
             if (mark === board.dataset.currentMark) {
+                if (button.dataset.restrictedCell === 'true') {
+                    this.selectedCell = null;
+                    this.restrictionMessage = 'Você não pode mover a mesma peça em dois turnos consecutivos. Escolha outra peça.';
+                    return;
+                }
+                this.restrictionMessage = null;
                 this.selectedCell = this.selectedCell === index ? null : index;
                 return;
             }
@@ -196,7 +205,7 @@ new class extends Component
             requestAnimationFrame(() => (canReturn ? origin : this.$refs.restartButton)?.focus());
         }
     }"
-    x-on:movement-state-changed.window="selectedCell = null"
+    x-on:movement-state-changed.window="selectedCell = null; restrictionMessage = null"
     x-on:movement-selection-reconcile.window="$nextTick(() => reconcileSelection())"
     x-on:movement-round-finished.window="openRoundResult()"
 >
@@ -214,17 +223,19 @@ new class extends Component
                 @endif
             </x-design-system.match-status>
             @if (! $state->isFinished())
-                <p data-testid="phase-instruction" class="mt-2 text-center text-sm font-bold text-ds-text-secondary">{{ $movementPhase ? 'Selecione uma peça e depois uma casa vazia' : 'Coloque uma peça' }}</p>
+                <p data-testid="phase-instruction" class="mt-2 text-center text-sm font-bold text-ds-text-secondary">{{ $movementPhase ? ($blockedCell === null ? 'Selecione uma peça e depois uma casa vazia' : 'Selecione uma peça disponível e depois uma casa vazia') : 'Coloque uma peça' }}</p>
             @endif
             <x-design-system.game-board
                 :cells="$board" :columns="3" label="Tabuleiro Movimento 3 por 3"
                 :highlighted-cells="$this->winningCells" :unavailable-cells="$unavailableCells"
+                :restricted-cells="$blockedCell === null ? [] : [$blockedCell]"
                 highlight-label="casa vencedora" interaction="movement"
                 x-ref="movementBoard" data-phase="{{ $movementPhase ? 'move' : 'place' }}"
                 data-current-mark="{{ $state->currentPlayer?->value }}"
                 data-finished="{{ $state->isFinished() ? 'true' : 'false' }}"
                 data-testid="movement-board"
             />
+            <p x-show="restrictionMessage" x-text="restrictionMessage" data-testid="restriction-message" role="alert" class="mt-3 rounded-ds-control border border-ds-warning bg-ds-warning-surface p-3 text-sm text-ds-warning" style="display: none"></p>
             @if ($rejectionMessage)
                 <p data-testid="rejection-message" role="alert" class="mt-3 rounded-ds-control border border-ds-warning bg-ds-warning-surface p-3 text-sm text-ds-warning">{{ $rejectionMessage }}</p>
             @endif

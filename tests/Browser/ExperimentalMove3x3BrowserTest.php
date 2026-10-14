@@ -104,6 +104,31 @@ it('keeps the movement board and controls usable at supported viewport sizes', f
     'desktop' => [1280, 900],
 ]);
 
+it('marks the blocked piece and explains the restriction to keyboard users', function () {
+    $page = visit('/3-mover');
+    movementStartingWith($page, 'X');
+
+    foreach ([0, 1, 2, 3, 4, 6] as $turn => $cell) {
+        $page->click('[data-testid="cell-'.$cell.'"]');
+        awaitBrowserCellMark($page, $cell, $turn % 2 === 0 ? 'x' : 'o');
+    }
+
+    foreach ([[0, 5, 'x'], [1, 7, 'o'], [5, 0, 'x'], [7, 1, 'o'], [0, 5, 'x'], [1, 7, 'o']] as [$from, $to, $mark]) {
+        $page->click('[data-testid="cell-'.$from.'"]')->click('[data-testid="cell-'.$to.'"]');
+        awaitBrowserCellMark($page, $to, $mark);
+    }
+
+    $page->assertAttribute('[data-testid="cell-5"]', 'data-restricted-cell', 'true')
+        ->assertAttribute('[data-testid="cell-5"]', 'data-mark', 'x')
+        ->assertSeeIn('[data-testid="cell-5"]', 'Aguarde')
+        ->keys('[data-testid="cell-5"]', 'Enter')
+        ->assertSeeIn('[data-testid="restriction-message"]', 'Escolha outra peça.')
+        ->click('[data-testid="cell-2"]')
+        ->click('[data-testid="cell-0"]')
+        ->assertAttribute('[data-testid="cell-0"]', 'data-mark', 'x')
+        ->assertNoJavaScriptErrors();
+});
+
 function movementStartingWith(AwaitableWebpage|PendingAwaitablePage $page, string $mark): void
 {
     $turn = $page->script('document.querySelector("[data-testid=match-status]").textContent.trim()');

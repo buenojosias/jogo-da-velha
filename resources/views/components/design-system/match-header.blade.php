@@ -3,7 +3,7 @@
     $howToPlay = [
         'Clássico 3×3' => 'Em cada turno, marque uma casa vazia. Faça três marcas em linha, coluna ou diagonal para vencer.',
         'Clássico 4×4 (3 peças)' => 'Em cada turno, marque uma casa vazia. Faça três marcas em linha, coluna ou diagonal para vencer.',
-        'Movimento 3×3' => 'Coloque três peças. Depois, selecione uma das suas peças e uma casa vazia para movê-la. Faça três em linha para vencer.',
+        'Movimento 3×3' => 'Coloque três peças. Depois, selecione uma das suas peças e uma casa vazia para movê-la. Após três movimentos seus, você não poderá mover a mesma peça em dois turnos consecutivos. Faça três em linha para vencer.',
         'Movimento 4×4' => 'Coloque três peças. Depois, selecione uma das suas peças e uma casa vazia para movê-la. Faça três em linha para vencer.',
         'Linha de 4 com Movimento' => 'Coloque quatro peças. Depois, selecione uma das suas peças e uma casa vazia para movê-la. Faça quatro em linha para vencer.',
         'Rotação 3×3' => 'Marque uma casa vazia a cada turno. Ao colocar a quarta peça, sua peça mais antiga sai. Faça três em linha para vencer.',

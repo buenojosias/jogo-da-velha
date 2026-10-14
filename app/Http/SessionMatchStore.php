@@ -13,6 +13,7 @@ use App\Games\Rules\CrazyRules;
 use App\Games\Rules\DiceRules;
 use App\Games\Rules\Full5x5Rules;
 use App\Games\Rules\Hidden4x3Rules;
+use App\Games\Rules\Move3x3Rules;
 use App\Games\Rules\TwoLines5x5Rules;
 use App\Games\Rules\UltimateRules;
 use Illuminate\Contracts\Session\Session;
@@ -190,6 +191,9 @@ class SessionMatchStore
             $this->assertDiceState($state);
         } else {
             $this->assertBoard($state->modality->key, $state->data['board'] ?? null);
+            if ($state->modality->key === '3-move') {
+                app(Move3x3Rules::class)->assertState($state);
+            }
             $this->assertRotationOrder($state->modality->key, $state->data['board'], $state->data['order'] ?? null);
             $this->assertHiddenOrder($state->modality->key, $state->data['board'], $state->data['order'] ?? null);
             $this->assertHiddenOutcome($state);
@@ -241,7 +245,7 @@ class SessionMatchStore
                 ),
                 $status,
                 $this->playerMark($stored['current_player'] ?? null),
-                in_array($stored['modality'], ['dice', 'crazy', 'ultimate'], true)
+                in_array($stored['modality'], ['dice', 'crazy', 'ultimate', '3-move'], true)
                     ? $stored['data']
                     : (in_array($stored['modality'], ['3-rotation', '4x3-rotation', '4x3-hidden'], true)
                         ? ['board' => $stored['data']['board'], 'order' => $stored['data']['order']]
@@ -254,6 +258,8 @@ class SessionMatchStore
                 $this->assertCrazyState($state);
             } elseif ($stored['modality'] === 'dice') {
                 $this->assertDiceState($state);
+            } elseif ($stored['modality'] === '3-move') {
+                app(Move3x3Rules::class)->assertState($state);
             } else {
                 $this->assertHiddenOutcome($state);
                 $this->assertTwoLinesOutcome($state);
