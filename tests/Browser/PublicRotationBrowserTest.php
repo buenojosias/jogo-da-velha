@@ -17,8 +17,8 @@ function rotationBrowserPlace(AwaitableWebpage|PendingAwaitablePage $page, int $
     awaitBrowserCellMark($page, $cell, $mark);
 }
 
-it('marks the next removal on rotation three by three across viewports and themes', function () {
-    $page = visit('/3-rotacao')->assertCount('[data-testid="oldest-removal-label"]', 0);
+it('marks the next removal on :dataset across viewports and themes', function (string $uri, string $board) {
+    $page = visit($uri)->assertCount('[data-testid="oldest-removal-label"]', 0);
     $starter = rotationBrowserStarter($page);
     $other = $starter === 'x' ? 'o' : 'x';
 
@@ -40,7 +40,10 @@ it('marks the next removal on rotation three by three across viewports and theme
             ->assertScript('(() => [...document.querySelectorAll("[data-testid=oldest-removal-label]")].every(label => { const cellRect = label.closest("button").getBoundingClientRect(); const labelRect = label.getBoundingClientRect(); return labelRect.left >= cellRect.left && labelRect.right <= cellRect.right && labelRect.top >= cellRect.top && labelRect.bottom <= cellRect.top + cellRect.height * 0.35; }))()', true)
             ->assertScript('getComputedStyle(document.querySelector("[data-oldest-turn=current] [data-testid=oldest-removal-label]")).color !== getComputedStyle(document.querySelector("[data-oldest-turn=opponent] [data-testid=oldest-removal-label]")).color', true);
         if ($width === 360) {
-            $page->screenshotElement('[data-testid="game-region"]', 'rotation-3x3-sai-'.$theme);
+            $page->screenshotElement('[data-testid="game-region"]', 'rotation-'.$board.'-sai-'.$theme);
+        }
+        if ($board === '4x4' && $width === 740) {
+            $page->screenshotElement('[data-testid="game-region"]', 'rotation-4x4-sai-landscape-dark');
         }
     }
 
@@ -49,7 +52,7 @@ it('marks the next removal on rotation three by three across viewports and theme
         ->assertAttribute('[data-testid="cell-2"]', 'data-oldest-turn', 'opponent')
         ->assertAttribute('[data-testid="cell-1"]', 'data-oldest-turn', 'current')
         ->assertNoJavaScriptErrors();
-});
+})->with(['3x3' => ['/3-rotacao', '3x3'], '4x4' => ['/4-3-rotacao', '4x4']]);
 
 it('rotates the oldest piece on the public four by four board', function () {
     $page = visit('/')->click('a[href$="/4-3-rotacao"]')
@@ -60,7 +63,7 @@ it('rotates the oldest piece on the public four by four board', function () {
     foreach ([0, 1, 2, 3, 4, 6] as $turn => $cell) {
         rotationBrowserPlace($page, $cell, $turn % 2 === 0 ? $starter : $other);
     }
-    $page->assertSeeIn('[data-testid="phase-instruction"]', 'Sua peça mais antiga será removida')
+    $page->assertSeeIn('[data-testid="phase-instruction"]', 'Sua peça marcada SAI será removida automaticamente')
         ->assertScript('document.querySelector("[data-testid=cell-0]").dataset.oldestCell', 'true')
         ->assertScript('document.querySelector("[data-testid=cell-1]").dataset.oldestCell', 'true')
         ->assertSeeIn('[data-testid="oldest-x"]', $starter === 'x' ? 'casa 1 será removida' : 'casa 2 será removida')

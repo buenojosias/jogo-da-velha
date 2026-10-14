@@ -137,6 +137,40 @@ html[data-design-system='experimental'] .classic-4x3-board > button {
     min-height: 0;
 }
 
+html[data-design-system='experimental'] .hidden-feedback-cell[data-feedback-kind] {
+    --hidden-feedback-surface: color-mix(in srgb, var(--hidden-feedback-color) 38%, var(--ds-surface));
+    animation: hidden-cell-feedback-fade 1.2s ease-out forwards;
+}
+
+html[data-design-system='experimental'] .hidden-feedback-cell[data-feedback-kind='placed-x'] {
+    --hidden-feedback-color: var(--ds-x);
+}
+
+html[data-design-system='experimental'] .hidden-feedback-cell[data-feedback-kind='placed-o'] {
+    --hidden-feedback-color: var(--ds-o);
+}
+
+html[data-design-system='experimental'] .hidden-feedback-cell[data-feedback-kind='own-move'] {
+    --hidden-feedback-color: var(--ds-turquoise);
+}
+
+html[data-design-system='experimental'] .hidden-feedback-cell[data-feedback-kind='turn-lost'] {
+    --hidden-feedback-color: var(--ds-warning);
+    --hidden-feedback-surface: var(--ds-warning-surface);
+}
+
+@keyframes hidden-cell-feedback-fade {
+    from {
+        border-color: var(--hidden-feedback-color);
+        background-color: var(--hidden-feedback-surface);
+    }
+
+    to {
+        border-color: var(--ds-board-border);
+        background-color: var(--ds-surface);
+    }
+}
+
 html[data-design-system='experimental'] .two-lines-5x5-board > button {
     min-height: 0;
 }
@@ -339,6 +373,12 @@ html[data-design-system='experimental'] .dice-game [data-allowed-column='true']:
 }
 
 @media (prefers-reduced-motion: reduce) {
+    html[data-design-system='experimental'] .hidden-feedback-cell[data-feedback-kind] {
+        animation: none !important;
+        border-color: var(--hidden-feedback-color);
+        background-color: var(--hidden-feedback-surface);
+    }
+
     html[data-design-system='experimental'] {
         --ds-transition-fast: 0ms;
         --ds-transition-standard: 0ms;

@@ -60,6 +60,7 @@ new class extends Component
                 'no_empty_cell' => 'Não há casa livre para deslocar a peça.',
                 default => 'Não foi possível realizar esta jogada.',
             };
+            $this->dispatch('hidden-cell-feedback-clear');
 
             return;
         }
@@ -73,7 +74,15 @@ new class extends Component
         };
         unset($this->matchState, $this->score, $this->winningCells);
         if ($result->state->isFinished()) {
+            $this->dispatch('hidden-cell-feedback-clear');
             $this->dispatch('hidden-round-finished');
+        } else {
+            $kind = match ($previousCell) {
+                '' => 'placed-'.$player->value,
+                $player->value => 'own-move',
+                default => 'turn-lost',
+            };
+            $this->dispatch('hidden-cell-feedback', cell: $cellIndex, kind: $kind);
         }
     }
 
@@ -88,6 +97,7 @@ new class extends Component
         ));
         $this->feedbackMessage = null;
         unset($this->matchState, $this->score, $this->winningCells);
+        $this->dispatch('hidden-cell-feedback-clear');
     }
 
     public function newMatch(): void
@@ -96,6 +106,7 @@ new class extends Component
         $this->matchId = app(HiddenMatchManager::class)->createNewActive();
         $this->feedbackMessage = null;
         unset($this->matchState, $this->score, $this->winningCells);
+        $this->dispatch('hidden-cell-feedback-clear');
         $this->redirectRoute('4x3-hidden');
     }
 };

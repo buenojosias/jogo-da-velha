@@ -68,6 +68,37 @@ test('consumes a turn without moving pieces when choosing an opponent piece', fu
     expect($result->state->currentPlayer)->toBe(PlayerMark::X);
 });
 
+test('allows a player to keep placing after the opponent repeatedly loses turns', function () {
+    $rules = hiddenRules();
+    $state = hiddenInitial();
+
+    foreach ([0, 0, 3, 0, 6, 0, 8, 1] as $cell) {
+        $state = hiddenChoose($rules, $state, $cell);
+    }
+
+    expect($state->status)->toBe(MatchStatus::InProgress);
+    expect($state->data['order'])->toBe(['x' => [0, 3, 6, 8], 'o' => [1]]);
+    expect($state->currentPlayer)->toBe(PlayerMark::X);
+});
+
+test('rejects malformed hidden inventories despite allowing unequal counts', function (array $xCells, array $xOrder) {
+    $rules = hiddenRules();
+    $initial = hiddenInitial();
+    $board = $initial->data['board'];
+    foreach ($xCells as $cell) {
+        $board[$cell] = 'x';
+    }
+    $corrupt = new MatchState($initial->modality, $initial->participants, MatchStatus::InProgress, PlayerMark::X,
+        ['board' => $board, 'order' => ['x' => $xOrder, 'o' => []]]);
+
+    expect(fn () => $rules->validate($corrupt, new GameAction(PlayerMark::X, 'choose', ['cell' => 8])))
+        ->toThrow(InvalidArgumentException::class, 'Invalid hidden order.');
+})->with([
+    'duplicate index' => [[0, 1], [0, 0]],
+    'position mismatch' => [[0], [1]],
+    'more than five pieces' => [[0, 1, 2, 3, 4, 5], [0, 1, 2, 3, 4, 5]],
+]);
+
 test('moves an own piece to a server-selected empty cell and updates order deterministically', function () {
     $first = hiddenRules(42);
     $second = hiddenRules(42);

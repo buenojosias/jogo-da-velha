@@ -147,9 +147,6 @@ class Hidden4x3Rules implements GameRules
                 }
             }
         }
-        if (abs(count($order['x']) - count($order['o'])) > 1) {
-            throw new InvalidArgumentException('Invalid hidden order.');
-        }
 
         return ['board' => $board, 'order' => $order];
     }

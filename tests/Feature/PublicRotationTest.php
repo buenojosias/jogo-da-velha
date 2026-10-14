@@ -47,7 +47,7 @@ test('resumes order, rotates oldest and preserves score across next round', func
     foreach ([0, 1, 2, 3, 4, 6] as $cell) {
         $component->call('place', $cell);
     }
-    $this->get(route($modality))->assertOk()->assertSee($modality === '3-rotation' ? 'Sua peça marcada SAI será removida automaticamente ao colocar outra.' : 'Sua peça mais antiga será removida');
+    $this->get(route($modality))->assertOk()->assertSee('Sua peça marcada SAI será removida automaticamente ao colocar outra.');
     expect(session(rotationKey($modality)))->toBe($id);
     expect(app(SessionMatchStore::class)->find($id)->data['order'])->toBe(['x' => [0, 2, 4], 'o' => [1, 3, 6]]);
 
@@ -72,17 +72,17 @@ test('resumes order, rotates oldest and preserves score across next round', func
     '4x4' => ['4x3-rotation', [4, 0, 5, 1, 6]],
 ]);
 
-test('distinguishes the oldest pieces by turn only on rotation three by three', function () {
-    $id = openRotation($this, '3-rotation');
-    $component = Livewire::test('rotation-match', ['matchId' => $id, 'modalityKey' => '3-rotation']);
+test('distinguishes the oldest pieces by turn on :dataset', function (string $modality) {
+    $id = openRotation($this, $modality);
+    $component = Livewire::test('rotation-match', ['matchId' => $id, 'modalityKey' => $modality]);
 
-    $this->get(route('3-rotation'))->assertOk()->assertDontSee('data-oldest-turn=', false)->assertDontSee('1ª');
+    $this->get(route($modality))->assertOk()->assertDontSee('data-oldest-turn=', false)->assertDontSee('1ª');
 
     foreach ([0, 1, 2, 3, 4, 6] as $cell) {
         $component->call('place', $cell);
     }
 
-    $response = $this->get(route('3-rotation'))->assertOk()
+    $response = $this->get(route($modality))->assertOk()
         ->assertSee('Sua peça marcada SAI será removida automaticamente ao colocar outra.')
         ->assertDontSee('1ª');
     $document = new DOMDocument;
@@ -105,7 +105,7 @@ test('distinguishes the oldest pieces by turn only on rotation three by three', 
     expect($removalLabels->item(1)->textContent)->toBe('SAI');
 
     $component->call('place', 5)->assertSee('Vez do jogador O');
-    $response = $this->get(route('3-rotation'))->assertOk()->assertDontSee('1ª');
+    $response = $this->get(route($modality))->assertOk()->assertDontSee('1ª');
     $document = new DOMDocument;
     @$document->loadHTML($response->getContent());
     $xpath = new DOMXPath($document);
@@ -114,13 +114,7 @@ test('distinguishes the oldest pieces by turn only on rotation three by three', 
     expect($xpath->query('//button[@data-testid="cell-2"]')->item(0)->getAttribute('data-oldest-turn'))->toBe('opponent');
     expect($xpath->query('//button[@data-testid="cell-1"]')->item(0)->getAttribute('data-oldest-turn'))->toBe('current');
 
-    $fourByFourId = openRotation($this, '4x3-rotation');
-    $fourByFour = Livewire::test('rotation-match', ['matchId' => $fourByFourId, 'modalityKey' => '4x3-rotation']);
-    foreach ([0, 1, 2, 3, 4, 6] as $cell) {
-        $fourByFour->call('place', $cell);
-    }
-    $this->get(route('4x3-rotation'))->assertOk()->assertSee('1ª')->assertDontSee('data-oldest-turn=', false);
-});
+})->with(['3x3' => ['3-rotation'], '4x4' => ['4x3-rotation']]);
 
 test('new matches reset only their own scoreboard and reject stale tabs', function (string $modality) {
     $id = openRotation($this, $modality);

@@ -70,13 +70,74 @@ test('consumes the turn but leaves board and order unchanged on an opponent piec
     expect(app(SessionMatchStore::class)->score($id)['x'])->toBe(0);
 });
 
+test('keeps a hidden match playable and recoverable after repeated lost turns', function () {
+    $id = openPublicHidden();
+    $component = Livewire::test('hidden-4x3', ['matchId' => $id]);
+
+    foreach ([0, 0, 3, 0, 6, 0] as $cell) {
+        $component->call('choose', $cell);
+    }
+
+    $stored = app(SessionMatchStore::class)->find($id);
+    expect($stored->data['order'])->toBe(['x' => [0, 3, 6], 'o' => []]);
+    expect($stored->currentPlayer)->toBe(PlayerMark::X);
+    $this->get(route('4x3-hidden'))->assertOk();
+    expect(session('hidden4x3.active_match_id'))->toBe($id);
+
+    Livewire::test('hidden-4x3', ['matchId' => $id])->call('choose', 8);
+    expect(app(SessionMatchStore::class)->find($id)->data['order'])->toBe(['x' => [0, 3, 6, 8], 'o' => []]);
+});
+
+test('rejects stored hidden inventories with duplicate, mismatched or excessive pieces', function (array $xCells, array $xOrder) {
+    $id = openPublicHidden();
+    $board = array_fill(0, 16, '');
+    foreach ($xCells as $cell) {
+        $board[$cell] = 'x';
+    }
+    session()->put('experimental_matches.'.$id.'.state.data.board', $board);
+    session()->put('experimental_matches.'.$id.'.state.data.order.x', $xOrder);
+
+    expect(fn () => app(SessionMatchStore::class)->find($id))
+        ->toThrow(UnexpectedValueException::class, 'Invalid stored hidden order.');
+})->with([
+    'duplicate index' => [[0, 1], [0, 0]],
+    'position mismatch' => [[0], [1]],
+    'more than five pieces' => [[0, 1, 2, 3, 4, 5], [0, 1, 2, 3, 4, 5]],
+]);
+
+test('sends only the chosen cell and allowed outcome for temporary feedback', function () {
+    $id = openPublicHidden();
+    $component = Livewire::test('hidden-4x3', ['matchId' => $id]);
+
+    $component->call('choose', 0)->assertDispatched('hidden-cell-feedback', cell: 0, kind: 'placed-x');
+    $beforeLoss = app(SessionMatchStore::class)->find($id);
+    $component->call('choose', 0)->assertDispatched('hidden-cell-feedback', cell: 0, kind: 'turn-lost');
+    expect(app(SessionMatchStore::class)->find($id)->data)->toBe($beforeLoss->data);
+
+    $component->call('choose', 0)->assertDispatched('hidden-cell-feedback', cell: 0, kind: 'own-move')
+        ->assertSee('Uma peça foi movimentada.');
+    $event = collect($component->effects['dispatches'])->firstWhere('name', 'hidden-cell-feedback');
+    expect($event['params'])->toBe(['cell' => 0, 'kind' => 'own-move']);
+    expect(json_encode($component->snapshot))->not->toContain('"board"', '"order"');
+    expect(json_encode($component->effects))->not->toContain('"board"', '"order"', 'data-mark=');
+
+    $beforeRejection = app(SessionMatchStore::class)->find($id);
+    $component->call('choose', 99)->assertNotDispatched('hidden-cell-feedback')
+        ->assertDispatched('hidden-cell-feedback-clear')->assertSee('Escolha uma casa válida.');
+    expect(app(SessionMatchStore::class)->find($id))->toEqual($beforeRejection);
+
+    $component->call('restart')->assertDispatched('hidden-cell-feedback-clear');
+    $component->call('newMatch')->assertDispatched('hidden-cell-feedback-clear')->assertRedirect(route('4x3-hidden'));
+});
+
 test('reveals the official board on victory and scores only once', function () {
     $id = openPublicHidden();
     $component = Livewire::test('hidden-4x3', ['matchId' => $id]);
     foreach ([0, 4, 1, 5, 2] as $cell) {
         $component->call('choose', $cell);
     }
-    $component->assertDispatched('hidden-round-finished')->assertSee('Jogador X venceu!');
+    $component->assertDispatched('hidden-round-finished')->assertDispatched('hidden-cell-feedback-clear')
+        ->assertNotDispatched('hidden-cell-feedback')->assertSee('Jogador X venceu!');
     expect(app(SessionMatchStore::class)->find($id)->status)->toBe(MatchStatus::Completed);
     expect(app(SessionMatchStore::class)->score($id)['x'])->toBe(1);
     expect(substr_count($component->html(), 'data-winning-cell="true"'))->toBe(3);

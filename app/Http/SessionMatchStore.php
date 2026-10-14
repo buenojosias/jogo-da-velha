@@ -356,9 +356,6 @@ class SessionMatchStore
                 }
             }
         }
-        if (abs(count($order['x']) - count($order['o'])) > 1) {
-            throw new UnexpectedValueException('Invalid stored hidden order.');
-        }
     }
 
     private function assertHiddenOutcome(MatchState $state): void

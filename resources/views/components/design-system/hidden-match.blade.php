@@ -4,6 +4,27 @@
     class="experimental-match mx-auto flex min-h-screen w-full max-w-5xl flex-col gap-4 px-4 py-4 text-ds-text sm:px-6 sm:py-6"
     x-data="{
         resultOrigin: null,
+        feedbackCell: null,
+        feedbackKind: null,
+        feedbackTimeout: null,
+        feedbackSequence: 0,
+        showCellFeedback(detail) {
+            this.clearCellFeedback();
+            const sequence = this.feedbackSequence;
+            this.$nextTick(() => {
+                if (sequence !== this.feedbackSequence) return;
+                this.feedbackCell = detail.cell;
+                this.feedbackKind = detail.kind;
+                this.feedbackTimeout = window.setTimeout(() => this.clearCellFeedback(), 1200);
+            });
+        },
+        clearCellFeedback() {
+            this.feedbackSequence++;
+            window.clearTimeout(this.feedbackTimeout);
+            this.feedbackTimeout = null;
+            this.feedbackCell = null;
+            this.feedbackKind = null;
+        },
         openRoundResult() {
             this.$nextTick(() => {
                 const dialog = this.$refs.resultDialog;
@@ -19,7 +40,9 @@
             requestAnimationFrame(() => (canReturn ? origin : this.$refs.restartButton)?.focus());
         }
     }"
-    x-on:hidden-round-finished.window="openRoundResult()"
+    x-on:hidden-cell-feedback.window="showCellFeedback($event.detail)"
+    x-on:hidden-cell-feedback-clear.window="clearCellFeedback()"
+    x-on:hidden-round-finished.window="clearCellFeedback(); openRoundResult()"
 >
     <x-design-system.match-header
         modality="Oculto 4×4"
@@ -59,8 +82,9 @@
                             wire:loading.attr="disabled"
                             wire:target="choose"
                             data-testid="cell-{{ $index }}"
+                            x-bind:data-feedback-kind="feedbackCell === {{ $index }} ? feedbackKind : null"
                             aria-label="Escolher casa linha {{ intdiv($index, 4) + 1 }}, coluna {{ $index % 4 + 1 }}"
-                            class="relative aspect-square min-h-18 rounded-ds-control border-2 border-ds-board-border bg-ds-surface text-5xl font-black uppercase shadow-sm enabled:hover:border-ds-primary enabled:hover:bg-ds-hover enabled:hover:shadow-ds-card enabled:active:scale-[0.98] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-ds-focus disabled:cursor-wait motion-safe:transition-[transform,background-color,border-color,box-shadow] motion-safe:duration-200 motion-reduce:transition-none"
+                            class="hidden-feedback-cell relative aspect-square min-h-18 rounded-ds-control border-2 border-ds-board-border bg-ds-surface text-5xl font-black uppercase shadow-sm enabled:hover:border-ds-primary enabled:hover:bg-ds-hover enabled:hover:shadow-ds-card enabled:active:scale-[0.98] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-ds-focus disabled:cursor-wait motion-safe:transition-[transform,background-color,border-color,box-shadow] motion-safe:duration-200 motion-reduce:transition-none"
                         ><span aria-hidden="true" class="text-ds-text-muted">?</span></button>
                     @endforeach
                 </div>
