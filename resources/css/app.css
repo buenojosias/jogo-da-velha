@@ -135,7 +135,6 @@ html[data-design-system='experimental'] .experimental-board [data-winning-cell='
 
 html[data-design-system='experimental'] .two-lines-5x5-board [data-line-progress] {
     border-color: var(--ds-success);
-    border-width: 1px;
     background: color-mix(in srgb, var(--ds-success) 13%, var(--ds-surface));
 }
 

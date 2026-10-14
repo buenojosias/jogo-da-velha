@@ -32,7 +32,7 @@ it('shows definitive victory, result dialog, score and next round', function () 
     }
     $page->assertSeeIn('[data-testid="match-status"]', 'venceu!')
         ->assertScript('document.querySelector("[data-testid=result-dialog]").open', true)
-        ->assertScript('document.querySelectorAll("[data-testid=crazy-board] .ring-4").length', 3)
+        ->assertScript('document.querySelectorAll("[data-testid=crazy-board] .ring-inset").length', 3)
         ->click('Próxima rodada')
         ->assertAttribute('[data-testid="crazy-cell-0"]', 'data-top', '')
         ->assertNoJavaScriptErrors();
