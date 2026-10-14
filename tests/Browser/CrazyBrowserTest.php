@@ -4,15 +4,17 @@ it('selects a piece, stacks a larger one, rejects an equal cover, and resumes af
     $page = visit('/maluca');
     $starter = strtolower(substr($page->script('document.querySelector("[data-testid=match-status]").textContent.trim()'), -1));
     $other = $starter === 'x' ? 'o' : 'x';
-    $page->click('[data-testid="piece-'.$starter.'-1-1"]')
+    $page->click('[data-testid="piece-'.$starter.'-1"]')
         ->click('[data-testid="crazy-cell-0"]')
         ->assertAttribute('[data-testid="crazy-cell-0"]', 'data-top', $starter.'-1-1')
-        ->click('[data-testid="piece-'.$other.'-2-1"]')
+        ->assertAttribute('[data-testid="piece-'.$starter.'-1"]', 'aria-pressed', 'false')
+        ->click('[data-testid="piece-'.$other.'-2"]')
         ->click('[data-testid="crazy-cell-0"]')
         ->assertAttribute('[data-testid="crazy-cell-0"]', 'data-stack-count', '2')
-        ->click('[data-testid="piece-'.$starter.'-2-1"]')
+        ->click('[data-testid="piece-'.$starter.'-2"]')
         ->click('[data-testid="crazy-cell-0"]')
         ->assertSeeIn('[data-testid="rejection-message"]', 'maior')
+        ->assertAttribute('[data-testid="piece-'.$starter.'-2"]', 'aria-pressed', 'true')
         ->assertAttribute('[data-testid="crazy-cell-0"]', 'data-top', $other.'-2-1')
         ->assertNoJavaScriptErrors();
     $page->navigate('/maluca')
@@ -24,8 +26,8 @@ it('shows definitive victory, result dialog, score and next round', function () 
     $page = visit('/maluca');
     $starter = strtolower(substr($page->script('document.querySelector("[data-testid=match-status]").textContent.trim()'), -1));
     $other = $starter === 'x' ? 'o' : 'x';
-    foreach ([[$starter, 3, 1, 0], [$other, 1, 1, 3], [$starter, 3, 2, 1], [$other, 1, 2, 4], [$starter, 3, 3, 2]] as [$mark, $size, $copy, $cell]) {
-        $page->click('[data-testid="piece-'.$mark.'-'.$size.'-'.$copy.'"]')
+    foreach ([[$starter, 3, 0], [$other, 1, 3], [$starter, 3, 1], [$other, 1, 4], [$starter, 3, 2]] as [$mark, $size, $cell]) {
+        $page->click('[data-testid="piece-'.$mark.'-'.$size.'"]')
             ->click('[data-testid="crazy-cell-'.$cell.'"]');
     }
     $page->assertSeeIn('[data-testid="match-status"]', 'venceu!')
@@ -41,7 +43,7 @@ it('changes theme and only resets after new-match confirmation', function () {
     $starter = strtolower(substr($page->script('document.querySelector("[data-testid=match-status]").textContent.trim()'), -1));
     $page->select('[data-theme-selector]', 'dark')
         ->assertScript('document.documentElement.dataset.theme', 'dark')
-        ->click('[data-testid="piece-'.$starter.'-1-1"]')
+        ->click('[data-testid="piece-'.$starter.'-1"]')
         ->click('[data-testid="crazy-cell-0"]')
         ->click('[data-testid="new-match-button"]')
         ->assertScript('document.querySelector("[data-testid=new-match-dialog]").open', true)
@@ -59,21 +61,25 @@ it('keeps the board and selectors usable across mobile and desktop themes', func
         ->assertVisible('[data-testid="crazy-board"]')
         ->assertVisible('[data-testid="piece-selector"]')
         ->assertCount('[data-testid^="crazy-cell-"]', 9)
+        ->assertCount('[data-testid^="piece-x-"]', 3)
+        ->assertCount('[data-testid^="piece-o-"]', 3)
+        ->assertScript('(() => { const board = document.querySelector("[data-testid=crazy-board]").getBoundingClientRect(); const selector = document.querySelector("[data-testid=piece-selector]").getBoundingClientRect(); const score = document.querySelector("[data-testid=participant-x]").getBoundingClientRect(); return innerWidth < 768 ? board.bottom <= selector.top && selector.bottom <= score.top : selector.left >= board.right; })()', true)
+        ->assertScript('innerWidth >= 768 || document.querySelector("[data-testid=piece-selector]").getBoundingClientRect().height <= 280', true)
         ->assertScript('document.documentElement.scrollWidth <= document.documentElement.clientWidth', true);
     $starter = strtolower(substr($page->script('document.querySelector("[data-testid=match-status]").textContent.trim()'), -1));
 
-    $page->click('[data-testid="piece-'.$starter.'-1-1"]')
+    $page->click('[data-testid="piece-'.$starter.'-1"]')
         ->click('[data-testid="crazy-cell-0"]')
         ->assertAttribute('[data-testid="crazy-cell-0"]', 'data-top', $starter.'-1-1')
         ->assertNoJavaScriptErrors();
 })->with([[360, 800], [740, 360], [800, 360], [1280, 900]]);
 
-it('distinguishes available, waiting, selected, and used pieces without losing accessible labels', function () {
+it('distinguishes available, waiting, selected, and remaining pieces without losing accessible labels', function () {
     $page = visit('/maluca');
     $starter = strtolower(substr($page->script('document.querySelector("[data-testid=match-status]").textContent.trim()'), -1));
     $other = $starter === 'x' ? 'o' : 'x';
-    $currentPiece = '[data-testid="piece-'.$starter.'-1-1"]';
-    $waitingPiece = '[data-testid="piece-'.$other.'-1-1"]';
+    $currentPiece = '[data-testid="piece-'.$starter.'-1"]';
+    $waitingPiece = '[data-testid="piece-'.$other.'-1"]';
 
     $page->assertAttribute($currentPiece, 'data-stock-state', 'available')
         ->assertEnabled($currentPiece)
@@ -84,32 +90,39 @@ it('distinguishes available, waiting, selected, and used pieces without losing a
         ->assertScript('getComputedStyle(document.querySelector('.json_encode($waitingPiece).')).borderStyle', 'dashed')
         ->keys($currentPiece, 'Enter')
         ->assertAttribute($currentPiece, 'aria-pressed', 'true')
-        ->assertScript('document.activeElement?.dataset.testid', 'piece-'.$starter.'-1-1')
+        ->assertAttribute($waitingPiece, 'aria-pressed', 'false')
+        ->assertScript('document.querySelector('.json_encode($waitingPiece).').classList.contains("ring-4")', false)
+        ->assertScript('document.activeElement?.dataset.testid', 'piece-'.$starter.'-1')
         ->assertScript('getComputedStyle(document.querySelector('.json_encode($currentPiece).')).outlineStyle !== "none"', true)
-        ->assertVisible($currentPiece.' [x-show]')
         ->click('[data-testid="crazy-cell-0"]')
         ->assertAttribute('[data-testid="crazy-cell-0"]', 'data-top', $starter.'-1-1')
-        ->assertAttribute($currentPiece, 'data-stock-state', 'used')
+        ->assertAttribute($currentPiece, 'data-stock-state', 'waiting')
+        ->assertAttribute($currentPiece, 'data-remaining', '2')
+        ->assertAttribute($currentPiece, 'aria-pressed', 'false')
+        ->assertAttribute($waitingPiece, 'aria-pressed', 'false')
         ->assertDisabled($currentPiece)
-        ->assertAttributeContains($currentPiece, 'aria-label', 'usada')
-        ->assertSeeIn($currentPiece, '✓')
+        ->assertAttributeContains($currentPiece, 'aria-label', '2 restantes')
         ->assertAttribute($waitingPiece, 'data-stock-state', 'available')
         ->assertEnabled($waitingPiece)
-        ->assertScript('getComputedStyle(document.querySelector('.json_encode($currentPiece).')).borderStyle', 'solid')
+        ->click($waitingPiece)
+        ->assertAttribute($waitingPiece, 'aria-pressed', 'true')
+        ->assertAttribute($currentPiece, 'aria-pressed', 'false')
+        ->assertScript('document.querySelector('.json_encode($currentPiece).').classList.contains("ring-4")', false)
+        ->assertScript('getComputedStyle(document.querySelector('.json_encode($currentPiece).')).borderStyle', 'dashed')
         ->assertNoJavaScriptErrors();
 });
 
 it('keeps selection and placement close and touch targets comfortable at :dataset', function (int $width, int $height, string $theme) {
     $page = visit('/maluca')->resize($width, $height)->select('[data-theme-selector]', $theme);
     $starter = strtolower(substr($page->script('document.querySelector("[data-testid=match-status]").textContent.trim()'), -1));
-    $piece = '[data-testid="piece-'.$starter.'-1-1"]';
+    $piece = '[data-testid="piece-'.$starter.'-1"]';
 
     $page->click($piece)
         ->assertAttribute($piece, 'aria-pressed', 'true')
-        ->assertScript('(() => { const board = document.querySelector("[data-testid=crazy-board]").getBoundingClientRect(); const selector = document.querySelector("[data-testid=piece-selector]").getBoundingClientRect(); const pieces = [...document.querySelectorAll("button[data-piece]")]; const cells = [...document.querySelectorAll("[data-testid^=crazy-cell-]")]; return board.bottom <= innerHeight && selector.bottom <= innerHeight && Math.min(...pieces.map(piece => piece.getBoundingClientRect().width), ...pieces.map(piece => piece.getBoundingClientRect().height), ...cells.map(cell => cell.getBoundingClientRect().width), ...cells.map(cell => cell.getBoundingClientRect().height)) >= 44 && document.documentElement.scrollWidth <= innerWidth; })()', true)
+        ->assertScript('(() => { const board = document.querySelector("[data-testid=crazy-board]").getBoundingClientRect(); const selector = document.querySelector("[data-testid=piece-selector]").getBoundingClientRect(); const pieces = [...document.querySelectorAll("button[data-size]")]; const cells = [...document.querySelectorAll("[data-testid^=crazy-cell-]")]; return board.bottom <= innerHeight && Math.min(...pieces.map(piece => piece.getBoundingClientRect().width), ...pieces.map(piece => piece.getBoundingClientRect().height), ...cells.map(cell => cell.getBoundingClientRect().width), ...cells.map(cell => cell.getBoundingClientRect().height)) >= 44 && document.documentElement.scrollWidth <= innerWidth; })()', true)
         ->click('[data-testid="crazy-cell-8"]')
         ->assertAttribute('[data-testid="crazy-cell-8"]', 'data-top', $starter.'-1-1')
-        ->assertAttribute($piece, 'data-stock-state', 'used')
+        ->assertAttribute($piece, 'data-remaining', '2')
         ->assertScript('window.scrollY', 0)
         ->click('[data-testid="new-match-button"]')
         ->assertScript('(() => { const dialog = document.querySelector("[data-testid=new-match-dialog]"); const bounds = dialog.getBoundingClientRect(); return dialog.open && bounds.top >= 0 && bounds.bottom <= innerHeight; })()', true)

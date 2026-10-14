@@ -134,7 +134,7 @@ function browserModalities(): array
             'board' => '[data-testid="crazy-board"]',
             'cells' => '[data-testid^="crazy-cell-"]',
             'cell_count' => 9,
-            'additional' => ['[data-testid^="piece-x-"]' => 9, '[data-testid^="piece-o-"]' => 9],
+            'additional' => ['[data-testid^="piece-x-"]' => 3, '[data-testid^="piece-o-"]' => 3],
         ]],
         'ultimate' => [[
             'uri' => '/ultimate',

@@ -162,19 +162,19 @@ it('rolls the die, rejects another column, and accepts the allowed move', functi
 it('selects, places, and covers a smaller piece in crazy mode', function () {
     $page = visit('/maluca')
         ->assertCount('[data-testid^="crazy-cell-"]', 9)
-        ->assertCount('[data-testid^="piece-x-"]', 9)
-        ->assertCount('[data-testid^="piece-o-"]', 9);
+        ->assertCount('[data-testid^="piece-x-"]', 3)
+        ->assertCount('[data-testid^="piece-o-"]', 3);
 
     $starter = strtolower(substr($page->script('document.querySelector("[data-testid=match-status]").textContent.trim()'), -1));
     $opponent = $starter === 'x' ? 'o' : 'x';
 
     $page
-        ->click('[data-testid="piece-'.$starter.'-1-1"]')
+        ->click('[data-testid="piece-'.$starter.'-1"]')
         ->click('[data-testid="crazy-cell-0"]')
         ->assertAttribute('[data-testid="crazy-cell-0"]', 'data-top', $starter.'-1-1')
-        ->click('[data-testid="piece-'.$opponent.'-1-1"]')
+        ->click('[data-testid="piece-'.$opponent.'-1"]')
         ->click('[data-testid="crazy-cell-1"]')
-        ->click('[data-testid="piece-'.$starter.'-2-1"]')
+        ->click('[data-testid="piece-'.$starter.'-2"]')
         ->click('[data-testid="crazy-cell-1"]')
         ->assertAttribute('[data-testid="crazy-cell-1"]', 'data-stack-count', '2')
         ->assertAttribute('[data-testid="crazy-cell-1"]', 'data-top', $starter.'-2-1')
