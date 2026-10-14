@@ -169,63 +169,53 @@ new class extends Component
                 });
             });
         },
-        rotationFor(face) {
-            return {
-                1: 'rotateX(0deg) rotateY(0deg)',
-                2: 'rotateX(0deg) rotateY(-90deg)',
-                3: 'rotateX(-90deg) rotateY(0deg)',
-                4: 'rotateX(90deg) rotateY(0deg)',
-                5: 'rotateX(0deg) rotateY(90deg)',
-                6: 'rotateX(0deg) rotateY(180deg)'
-            }[face];
-        },
+        visualFace: {{ $lastRoll ?? 1 }},
+        faceInterval: null,
         async startRoll() {
-            if (this.rolling) return;
+            if (this.rolling || this.rollBlocked) return;
             this.rolling = true;
             this.rollError = null;
             this.announcedFace = null;
             this.rollStartedAt = performance.now();
-            this.$refs.diceCube.style.transform = '';
             this.rollPhase = 'spinning';
+            const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+            if (!reduced) {
+                this.faceInterval = window.setInterval(() => {
+                    let next = 1 + Math.floor(Math.random() * 6);
+                    if (next === this.visualFace) next = (next % 6) + 1;
+                    this.visualFace = next;
+                }, 95);
+            }
             try {
                 const face = await this.$wire.roll();
                 this.announcedFace = face;
             } catch (error) {
                 this.rollError = 'Não foi possível confirmar a rolagem. Atualize a página para conferir a partida.';
             } finally {
+                if (this.faceInterval !== null) {
+                    clearInterval(this.faceInterval);
+                    this.faceInterval = null;
+                }
                 this.rollPhase = 'idle';
                 this.rolling = false;
             }
         },
         async landRoll(face) {
-            if (!this.rolling || !Number.isInteger(face) || face < 1 || face > 6) return;
-            const cube = this.$refs.diceCube;
-            const target = this.rotationFor(face);
-            if (matchMedia('(prefers-reduced-motion: reduce)').matches) {
-                this.rollPhase = 'landing';
-                await this.$nextTick();
-                cube.style.transform = target;
-                return;
+            if (!this.rolling) return;
+            const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+            const elapsed = performance.now() - this.rollStartedAt;
+            const wait = reduced ? 0 : Math.max(0, 2500 - elapsed);
+            if (wait) await new Promise(resolve => setTimeout(resolve, wait));
+            if (this.faceInterval !== null) {
+                clearInterval(this.faceInterval);
+                this.faceInterval = null;
             }
-            const remaining = Math.max(0, 1900 - (performance.now() - this.rollStartedAt));
-            if (remaining > 0) await new Promise(resolve => setTimeout(resolve, remaining));
-            const current = getComputedStyle(cube).transform;
-            this.rollPhase = 'landing';
-            await this.$nextTick();
-            cube.style.transform = current;
-            cube.getBoundingClientRect();
-            await new Promise(resolve => {
-                let timeout;
-                const finish = event => {
-                    if (event && event.propertyName !== 'transform') return;
-                    clearTimeout(timeout);
-                    cube.removeEventListener('transitionend', finish);
-                    resolve();
-                };
-                cube.addEventListener('transitionend', finish);
-                timeout = setTimeout(finish, 750);
-                requestAnimationFrame(() => { cube.style.transform = target; });
-            });
+            if (Number.isInteger(face) && face >= 1 && face <= 6) {
+                this.rollPhase = 'landing';
+                this.visualFace = face;
+            } else {
+                this.rollError = 'Não foi possível confirmar a rolagem. Atualize a página para conferir a partida.';
+            }
         },
         openRoundResult() {
             this.$nextTick(() => {
@@ -273,10 +263,10 @@ new class extends Component
             </x-design-system.match-status>
 
             <div class="mx-auto mt-3 flex max-w-[30rem] items-center justify-center gap-3 rounded-ds-control border border-ds-border bg-ds-surface-muted p-2.5">
-                <span data-testid="dice-face" data-face="{{ $lastRoll ?? '' }}" data-phase="idle" x-bind:data-phase="rollPhase" role="img" x-bind:aria-label="rolling ? 'Rolando dado' : ($el.dataset.face ? 'Dado: face ' + $el.dataset.face : 'Dado ainda não rolado')" class="dice-stage relative flex size-14 shrink-0 items-center justify-center">
-                    <span wire:ignore x-ref="diceCube" class="dice-cube" aria-hidden="true">
+                <span data-testid="dice-face" data-face="{{ $lastRoll ?? '' }}" data-phase="idle" x-bind:data-phase="rollPhase" role="img" x-bind:aria-label="rolling ? 'Rolando dado' : (announcedFace ? 'Dado: face ' + announcedFace : ($el.dataset.face ? 'Dado: face ' + $el.dataset.face : 'Dado ainda não rolado'))" class="dice-stage relative flex size-14 shrink-0 items-center justify-center">
+                    <span wire:ignore class="dice-flat" aria-hidden="true">
                         @foreach ($dicePips as $face => $positions)
-                            <span class="dice-cube-face dice-cube-face-{{ $face }}">
+                            <span x-show="visualFace === {{ $face }}" class="dice-flat-face" @if ($face !== ($lastRoll ?? 1)) x-cloak @endif>
                                 @foreach ($positions as $position)
                                     <span class="dice-pip dice-pip-{{ $position }}"></span>
                                 @endforeach
@@ -284,7 +274,7 @@ new class extends Component
                         @endforeach
                     </span>
                 </span>
-                <button type="button" x-on:click="startRoll()" x-bind:disabled="rolling || rollBlocked" @disabled($pendingRoll !== null || $state->isFinished()) data-testid="roll-button" class="min-h-12 rounded-ds-control bg-ds-primary px-4 py-2 text-sm font-extrabold text-ds-on-primary enabled:hover:bg-ds-primary-hover focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-ds-focus disabled:cursor-not-allowed disabled:opacity-60">Rolar dado</button>
+                                <button type="button" x-on:click="startRoll()" x-bind:disabled="rolling || rollBlocked" @disabled($pendingRoll !== null || $state->isFinished()) data-testid="roll-button" class="min-h-12 rounded-ds-control bg-ds-primary px-4 py-2 text-sm font-extrabold text-ds-on-primary enabled:hover:bg-ds-primary-hover focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-ds-focus disabled:cursor-not-allowed disabled:opacity-60">Rolar dado</button>
             </div>
 
             <p class="sr-only" role="status" aria-live="polite" x-text="rolling ? 'Rolando dado' : (announcedFace ? 'Dado: face ' + announcedFace : '')"></p>
