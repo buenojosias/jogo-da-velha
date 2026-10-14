@@ -54,6 +54,47 @@ test('keeps one line in progress and rejects an occupied cell', function () {
     expect(app(SessionMatchStore::class)->score($id)['x'])->toBe(0);
 });
 
+test('announces the first line and retains its highlighted cells after the next move', function (int $seed, PlayerMark $owner) {
+    $id = openPublicTwoLines($seed);
+    $component = playPublicTwoLines($id, [0, 5, 1, 6, 2]);
+
+    $component->assertSee('Primeira linha formada!')->assertSee('Jogador '.$owner->name.' conquistou uma linha. Falta mais uma para vencer!');
+    preg_match_all('/data-testid="cell-(\d+)"[^>]*data-line-progress="'.$owner->value.'"/', $component->html(), $lineCells);
+    expect(array_map('intval', $lineCells[1]))->toBe([0, 1, 2]);
+    expect($component->html())->toContain('linha do jogador '.$owner->name);
+    $this->get(route('5x5-2-lines'))->assertOk()->assertSee('data-line-progress="'.$owner->value.'"', false);
+
+    $component->call('place', 9)->assertDontSee('Primeira linha formada!')->assertSee('Jogador '.$owner->name.': 1 de 2 linhas');
+    expect(substr_count($component->html(), 'data-line-progress="'.$owner->value.'"'))->toBe(3);
+})->with(['X' => [0, PlayerMark::X], 'O' => [1, PlayerMark::O]]);
+
+test('shows each player line and does not repeat the celebration when a line grows', function () {
+    $id = openPublicTwoLines();
+    $component = playPublicTwoLines($id, [0, 5, 1, 6, 2, 7]);
+
+    $component->assertSee('Jogador X: 1 de 2 linhas')->assertSee('Jogador O: 1 de 2 linhas')
+        ->assertSee('Jogador O conquistou uma linha. Falta mais uma para vencer!');
+    expect(substr_count($component->html(), 'data-line-progress="x"'))->toBe(3);
+    expect(substr_count($component->html(), 'data-line-progress="o"'))->toBe(3);
+
+    $component->call('place', 3)->assertDontSee('Primeira linha formada!');
+    expect(substr_count($component->html(), 'data-line-progress="x"'))->toBe(4);
+    expect(app(SessionMatchStore::class)->find($id)->status)->toBe(MatchStatus::InProgress);
+});
+
+test('finishes directly when one move creates two lines and clears progress on a new round', function () {
+    $id = openPublicTwoLines();
+    $component = playPublicTwoLines($id, [1, 15, 5, 16, 7, 18, 11, 19]);
+
+    $component->assertDontSee('Primeira linha formada!');
+    $component->call('place', 6)->assertSee('Jogador X venceu!')->assertDontSee('Primeira linha formada!');
+    expect(substr_count($component->html(), 'data-winning-cell="true"'))->toBe(5);
+    expect(substr_count($component->html(), 'data-line-progress="'))->toBe(0);
+
+    $component->call('restart')->assertDontSee('Jogador X: 1 de 2 linhas');
+    expect(substr_count($component->html(), 'data-line-progress="'))->toBe(0);
+});
+
 test('wins on two independent lines and highlights every contributing cell', function (int $seed, PlayerMark $winner) {
     $id = openPublicTwoLines($seed);
     $component = playPublicTwoLines($id, [0, 5, 1, 6, 2, 9, 10, 14, 11, 19, 12]);

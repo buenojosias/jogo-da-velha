@@ -14,6 +14,8 @@
     'resultDescription' => 'Três em linha! O placar foi atualizado.',
     'drawDescription' => 'Ninguém completou uma linha nesta rodada.',
     'roundPoints' => null,
+    'lineProgress' => null,
+    'firstLineMessage' => null,
 ])
 @use('App\Games\{MatchStatus, PlayerMark}')
 @php($unavailableCells = $state->isFinished() ? array_keys($state->data['board']) : array_keys(array_filter($state->data['board'])))
@@ -72,6 +74,19 @@
                 <p data-testid="game-instruction" class="mx-auto mt-2 max-w-[28rem] text-center text-sm font-semibold text-ds-text-secondary">{{ $instruction }}</p>
             @endif
 
+            @if ($lineProgress !== null && ! $state->isFinished())
+                <div class="mx-auto mt-2 max-w-[28rem] text-center text-sm" aria-live="polite" role="status">
+                    @if ($firstLineMessage)
+                        <p data-testid="first-line-message" class="font-bold text-ds-success">Primeira linha formada! {{ $firstLineMessage }}</p>
+                    @endif
+                    @foreach (['x' => 'X', 'o' => 'O'] as $mark => $label)
+                        @if ($lineProgress[$mark]['count'] > 0)
+                            <p data-testid="line-progress-{{ $mark }}" class="font-semibold text-ds-text-secondary">Jogador {{ $label }}: {{ $lineProgress[$mark]['count'] }} de 2 linhas</p>
+                        @endif
+                    @endforeach
+                </div>
+            @endif
+
             @if ($roundPoints !== null)
                 <dl aria-label="Pontos da rodada" class="mx-auto mt-3 grid max-w-[28rem] grid-cols-2 gap-2 text-center">
                     <div class="rounded-ds-control border border-ds-border bg-ds-surface-muted px-2 py-1.5">
@@ -90,6 +105,7 @@
                 :columns="$columns"
                 label="{{ $boardLabel }}"
                 :highlighted-cells="$winningCells"
+                :progress-cells="$lineProgress === null || $state->isFinished() ? [] : ['x' => $lineProgress['x']['cells'], 'o' => $lineProgress['o']['cells']]"
                 :unavailable-cells="$unavailableCells"
                 highlight-label="casa vencedora"
                 data-testid="classic-board"

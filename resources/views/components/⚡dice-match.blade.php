@@ -56,7 +56,7 @@ new class extends Component
         return app(DiceRules::class)->winningLine($this->matchState);
     }
 
-    public function roll(): void
+    public function roll(): ?int
     {
         $state = $this->matchState;
         $result = app(DiceRules::class)->apply($state, new GameAction($state->currentPlayer ?? PlayerMark::X, 'roll'));
@@ -67,7 +67,7 @@ new class extends Component
                 default => 'Não foi possível rolar o dado.',
             };
 
-            return;
+            return null;
         }
 
         app(SessionMatchStore::class)->save($this->matchId, $result->state);
@@ -77,6 +77,8 @@ new class extends Component
             ? 'Coluna '.$roll.' cheia! Jogador '.strtoupper($state->currentPlayer->value).' perdeu a vez.'
             : null;
         unset($this->matchState, $this->score, $this->winningLine);
+
+        return $roll;
     }
 
     public function place(mixed $boardIndex, mixed $cellIndex): void
@@ -134,13 +136,85 @@ new class extends Component
     $lastRoll = $state->data['last_roll'];
     $allowedBoard = $pendingRoll === null ? null : intdiv($pendingRoll - 1, 3);
     $allowedColumn = $pendingRoll === null ? null : ($pendingRoll - 1) % 3;
-    $diceFaces = ['⚀', '⚁', '⚂', '⚃', '⚄', '⚅'];
 @endphp
 
 <div
     class="dice-game experimental-match mx-auto flex min-h-screen w-full max-w-6xl flex-col gap-4 px-4 py-4 text-ds-text sm:px-6 sm:py-6"
     x-data="{
         resultOrigin: null,
+        rolling: false,
+        rollPhase: 'idle',
+        rollStartedAt: 0,
+        announcedFace: null,
+        rollError: null,
+        registerRollInterceptor() {
+            this.$wire.$interceptMessage('roll', ({ onSuccess, onError }) => {
+                onError(({ preventDefault }) => preventDefault());
+                onSuccess(({ payload, onMorph }) => {
+                    onMorph(async () => {
+                        await this.landRoll(payload.effects.returns?.[0]);
+                    });
+                });
+            });
+        },
+        rotationFor(face) {
+            return {
+                1: 'rotateX(0deg) rotateY(0deg)',
+                2: 'rotateX(0deg) rotateY(-90deg)',
+                3: 'rotateX(-90deg) rotateY(0deg)',
+                4: 'rotateX(90deg) rotateY(0deg)',
+                5: 'rotateX(0deg) rotateY(90deg)',
+                6: 'rotateX(0deg) rotateY(180deg)'
+            }[face];
+        },
+        async startRoll() {
+            if (this.rolling) return;
+            this.rolling = true;
+            this.rollError = null;
+            this.announcedFace = null;
+            this.rollStartedAt = performance.now();
+            this.$refs.diceCube.style.transform = '';
+            this.rollPhase = 'spinning';
+            try {
+                const face = await this.$wire.roll();
+                this.announcedFace = face;
+            } catch (error) {
+                this.rollError = 'Não foi possível confirmar a rolagem. Atualize a página para conferir a partida.';
+            } finally {
+                this.rollPhase = 'idle';
+                this.rolling = false;
+            }
+        },
+        async landRoll(face) {
+            if (!this.rolling || !Number.isInteger(face) || face < 1 || face > 6) return;
+            const cube = this.$refs.diceCube;
+            const target = this.rotationFor(face);
+            if (matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                this.rollPhase = 'landing';
+                await this.$nextTick();
+                cube.style.transform = target;
+                return;
+            }
+            const remaining = Math.max(0, 1900 - (performance.now() - this.rollStartedAt));
+            if (remaining > 0) await new Promise(resolve => setTimeout(resolve, remaining));
+            const current = getComputedStyle(cube).transform;
+            this.rollPhase = 'landing';
+            await this.$nextTick();
+            cube.style.transform = current;
+            cube.getBoundingClientRect();
+            await new Promise(resolve => {
+                let timeout;
+                const finish = event => {
+                    if (event && event.propertyName !== 'transform') return;
+                    clearTimeout(timeout);
+                    cube.removeEventListener('transitionend', finish);
+                    resolve();
+                };
+                cube.addEventListener('transitionend', finish);
+                timeout = setTimeout(finish, 750);
+                requestAnimationFrame(() => { cube.style.transform = target; });
+            });
+        },
         openRoundResult() {
             this.$nextTick(() => {
                 const dialog = this.$refs.resultDialog;
@@ -156,6 +230,7 @@ new class extends Component
             requestAnimationFrame(() => (canReturn ? origin : this.$refs.restartButton)?.focus());
         }
     }"
+    x-init="registerRollInterceptor()"
     x-on:dice-round-finished.window="openRoundResult()"
 >
     <x-design-system.match-header
@@ -185,9 +260,18 @@ new class extends Component
             </x-design-system.match-status>
 
             <div class="mx-auto mt-3 flex max-w-[30rem] items-center justify-center gap-3 rounded-ds-control border border-ds-border bg-ds-surface-muted p-2.5">
-                <span data-testid="dice-face" data-face="{{ $lastRoll ?? '' }}" role="img" aria-label="{{ $lastRoll === null ? 'Dado ainda não rolado' : 'Dado: face '.$lastRoll }}" class="flex size-14 shrink-0 items-center justify-center rounded-ds-control border-2 border-ds-primary bg-ds-elevated text-4xl text-ds-primary shadow-ds-card" aria-live="polite">{{ $lastRoll === null ? '🎲' : $diceFaces[$lastRoll - 1] }}</span>
-                <button type="button" wire:click="roll" wire:loading.attr="disabled" @disabled($pendingRoll !== null || $state->isFinished()) data-testid="roll-button" class="min-h-12 rounded-ds-control bg-ds-primary px-4 py-2 text-sm font-extrabold text-ds-on-primary hover:bg-ds-primary-hover focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-ds-focus disabled:cursor-not-allowed disabled:opacity-60">Rolar dado</button>
+                <span data-testid="dice-face" data-face="{{ $lastRoll ?? '' }}" data-phase="idle" x-bind:data-phase="rollPhase" role="img" x-bind:aria-label="rolling ? 'Rolando dado' : ($el.dataset.face ? 'Dado: face ' + $el.dataset.face : 'Dado ainda não rolado')" class="dice-stage relative flex size-14 shrink-0 items-center justify-center">
+                    <span wire:ignore x-ref="diceCube" class="dice-cube" aria-hidden="true">
+                        @foreach (['⚀', '⚁', '⚂', '⚃', '⚄', '⚅'] as $faceIndex => $symbol)
+                            <span class="dice-cube-face dice-cube-face-{{ $faceIndex + 1 }}">{{ $symbol }}</span>
+                        @endforeach
+                    </span>
+                </span>
+                <button type="button" x-on:click="startRoll()" x-bind:disabled="rolling" @disabled($pendingRoll !== null || $state->isFinished()) data-testid="roll-button" class="min-h-12 rounded-ds-control bg-ds-primary px-4 py-2 text-sm font-extrabold text-ds-on-primary hover:bg-ds-primary-hover focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-ds-focus disabled:cursor-not-allowed disabled:opacity-60">Rolar dado</button>
             </div>
+
+            <p class="sr-only" role="status" aria-live="polite" x-text="rolling ? 'Rolando dado' : (announcedFace ? 'Dado: face ' + announcedFace : '')"></p>
+            <p x-show="rollError" x-cloak role="alert" data-testid="dice-roll-error" class="mt-2 rounded-ds-control border border-ds-warning bg-ds-warning-surface px-3 py-2 text-center text-sm font-bold text-ds-warning" x-text="rollError"></p>
 
             @if (! $state->isFinished())
                 <p data-testid="dice-instruction" class="mt-2 text-center text-sm font-semibold text-ds-text-secondary">
@@ -203,7 +287,7 @@ new class extends Component
                 <p data-testid="dice-roll-notice" role="status" class="mt-2 rounded-ds-control border border-ds-warning bg-ds-warning-surface px-3 py-2 text-center text-sm font-bold text-ds-warning">{{ $rollNotice }}</p>
             @endif
 
-            <div class="mt-3 grid grid-cols-1 items-start gap-3 min-[38rem]:grid-cols-2">
+            <div x-bind:inert="rolling" class="mt-3 grid grid-cols-1 items-start gap-3 min-[38rem]:grid-cols-2">
                 @foreach (['esquerdo', 'direito'] as $boardIndex => $side)
                     <section class="min-w-0 rounded-ds-card border border-ds-border bg-ds-surface-muted p-2.5 sm:p-3" aria-label="Tabuleiro {{ $side }}">
                         <h2 class="text-center text-sm font-extrabold text-ds-text">Tabuleiro {{ ucfirst($side) }}</h2>
@@ -236,11 +320,13 @@ new class extends Component
                 <x-design-system.participant-card label="Jogador O" mark="O" :wins="$score['o']" :active="$state->status === MatchStatus::InProgress && $state->currentPlayer === PlayerMark::O" :finished="$state->isFinished()" :winner-mark="$state->winner?->value" data-testid="participant-o" />
             </div>
             <p data-testid="score-draws" class="rounded-ds-control border border-ds-border bg-ds-surface-muted px-2 py-1 text-center text-xs font-bold text-ds-text-secondary">Empates: <span class="font-black text-ds-text">{{ $score['draws'] }}</span></p>
-            <x-design-system.match-actions data-testid="match-actions">
-                <button type="button" x-ref="restartButton" wire:click="restart" wire:loading.attr="disabled" class="min-h-12 w-full rounded-ds-control bg-ds-primary px-5 py-3 text-base font-bold text-ds-on-primary hover:bg-ds-primary-hover focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-ds-focus disabled:opacity-60">Nova rodada</button>
-                <button type="button" x-on:click="$refs.newMatchDialog.showModal()" data-testid="new-match-button" class="mt-2 min-h-11 w-full rounded-ds-control border border-ds-border bg-ds-surface px-4 py-2 text-sm font-semibold text-ds-text-secondary hover:bg-ds-hover focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-ds-focus">Reiniciar partida</button>
-                <livewire:exit-match :match-id="$matchId" modality="dice" />
-            </x-design-system.match-actions>
+            <div x-bind:inert="rolling">
+                <x-design-system.match-actions data-testid="match-actions">
+                    <button type="button" x-ref="restartButton" wire:click="restart" wire:loading.attr="disabled" class="min-h-12 w-full rounded-ds-control bg-ds-primary px-5 py-3 text-base font-bold text-ds-on-primary hover:bg-ds-primary-hover focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-ds-focus disabled:opacity-60">Nova rodada</button>
+                    <button type="button" x-on:click="$refs.newMatchDialog.showModal()" data-testid="new-match-button" class="mt-2 min-h-11 w-full rounded-ds-control border border-ds-border bg-ds-surface px-4 py-2 text-sm font-semibold text-ds-text-secondary hover:bg-ds-hover focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-ds-focus">Reiniciar partida</button>
+                    <livewire:exit-match :match-id="$matchId" modality="dice" />
+                </x-design-system.match-actions>
+            </div>
         </div>
     </section>
 

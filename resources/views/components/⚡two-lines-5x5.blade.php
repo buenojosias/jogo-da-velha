@@ -16,6 +16,8 @@ new class extends Component
 
     public ?string $rejectionMessage = null;
 
+    public ?string $firstLineMessage = null;
+
     public function mount(string $matchId): void
     {
         $this->matchId = $matchId;
@@ -51,8 +53,17 @@ new class extends Component
         return app(TwoLines5x5Rules::class)->winningCells($this->matchState);
     }
 
+    /** @return array{x: array{count: int, cells: list<int>}, o: array{count: int, cells: list<int>}} */
+    #[Computed]
+    public function lineProgress(): array
+    {
+        return app(TwoLines5x5Rules::class)->lineProgress($this->matchState);
+    }
+
     public function place(mixed $cellIndex): void
     {
+        $player = $this->matchState->currentPlayer;
+        $previousLineCount = $player === null ? 0 : $this->lineProgress[$player->value]['count'];
         $result = app(ClassicRoundActions::class)->place(
             $this->matchId, $this->matchState, app(TwoLines5x5Rules::class), $cellIndex,
         );
@@ -68,7 +79,12 @@ new class extends Component
         }
 
         $this->rejectionMessage = null;
-        unset($this->matchState, $this->score, $this->winningCells);
+        $this->firstLineMessage = null;
+        unset($this->matchState, $this->score, $this->winningCells, $this->lineProgress);
+        if (! $result->state->isFinished() && $player !== null && $previousLineCount === 0
+            && $this->lineProgress[$player->value]['count'] === 1) {
+            $this->firstLineMessage = 'Jogador '.$player->name.' conquistou uma linha. Falta mais uma para vencer!';
+        }
         if ($result->state->isFinished()) {
             $this->dispatch('two-lines-round-finished');
         }
@@ -78,7 +94,8 @@ new class extends Component
     {
         app(ClassicRoundActions::class)->restart($this->matchId, $this->matchState, app(TwoLines5x5Rules::class));
         $this->rejectionMessage = null;
-        unset($this->matchState, $this->score, $this->winningCells);
+        $this->firstLineMessage = null;
+        unset($this->matchState, $this->score, $this->winningCells, $this->lineProgress);
     }
 
     public function newMatch(): void
@@ -86,7 +103,8 @@ new class extends Component
         $this->matchState;
         $this->matchId = app(TwoLinesMatchManager::class)->createNewActive();
         $this->rejectionMessage = null;
-        unset($this->matchState, $this->score, $this->winningCells);
+        $this->firstLineMessage = null;
+        unset($this->matchState, $this->score, $this->winningCells, $this->lineProgress);
         $this->redirectRoute('5x5-2-lines');
     }
 };
@@ -100,6 +118,8 @@ new class extends Component
     board-label="Tabuleiro Duas Linhas 5 por 5"
     board-class="two-lines-5x5-board"
     :winning-cells="$this->winningCells"
+    :line-progress="$this->lineProgress"
+    :first-line-message="$firstLineMessage"
     :score="$this->score"
     :rejection-message="$rejectionMessage"
     :public-entry="true"

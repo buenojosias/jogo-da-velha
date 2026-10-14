@@ -56,6 +56,49 @@ function diceBrowserPlace(AwaitableWebpage|PendingAwaitablePage $page, string $s
         JS);
 }
 
+it('keeps the server result hidden until the 3D die finishes landing', function () {
+    $page = visit('/dado')->assertNoJavaScriptErrors();
+    $before = $page->script('document.querySelector("[data-testid=dice-instruction]").textContent.trim()');
+    $page->script('window.__diceRollStartedAt = performance.now()');
+
+    $page->click('[data-testid="roll-button"]')
+        ->assertScript('document.querySelector("[data-testid=dice-face]").dataset.phase', 'spinning')
+        ->assertScript('document.querySelector("[data-testid=dice-face]").dataset.face', '')
+        ->assertScript('document.querySelector("[data-testid=roll-button]").disabled', true)
+        ->assertScript('document.querySelector("[data-testid=dice-board-esquerdo]").closest("[inert]") !== null', true)
+        ->assertScript('document.querySelector("[data-testid=dice-instruction]").textContent.trim()', $before);
+
+    $page->script(<<<'JS'
+        (async () => {
+            if (document.querySelector('[data-testid=dice-face]')?.dataset.face) return true;
+            return await new Promise((resolve, reject) => {
+                const observer = new MutationObserver(() => {
+                    if (document.querySelector('[data-testid=dice-face]')?.dataset.face) {
+                        observer.disconnect();
+                        clearTimeout(timeout);
+                        resolve(true);
+                    }
+                });
+                observer.observe(document.body, { subtree: true, attributes: true });
+                const timeout = setTimeout(() => { observer.disconnect(); reject(new Error('Dice result was not revealed')); }, 7000);
+            });
+        })()
+        JS);
+
+    $face = (int) $page->script('document.querySelector("[data-testid=dice-face]").dataset.face');
+    $elapsed = $page->script('performance.now() - window.__diceRollStartedAt');
+    expect($face)->toBeGreaterThanOrEqual(1)->toBeLessThanOrEqual(6);
+    expect($elapsed)->toBeGreaterThanOrEqual(2300);
+    $page->assertScript('document.querySelector(".dice-cube").style.transform', [
+        1 => 'rotateX(0deg) rotateY(0deg)',
+        2 => 'rotateX(0deg) rotateY(-90deg)',
+        3 => 'rotateX(-90deg) rotateY(0deg)',
+        4 => 'rotateX(90deg) rotateY(0deg)',
+        5 => 'rotateX(0deg) rotateY(90deg)',
+        6 => 'rotateX(0deg) rotateY(180deg)',
+    ][$face])->assertNoJavaScriptErrors();
+});
+
 it('rolls on the server, retains a pending result and applies only an authorized placement', function () {
     $page = visit('/')->click('a[href$="/dado"]')
         ->assertScript('location.pathname', '/dado')

@@ -62,6 +62,15 @@ test('groups overlapping triples of four or five marks into one line', function 
     expect((new TwoLines5x5Rules)->lineCount($state, PlayerMark::X))->toBe(1);
 })->with(['four' => [[0, 1, 2, 3]], 'five' => [[0, 1, 2, 3, 4]]]);
 
+test('reports independent line cells for both players without splitting overlapping windows', function () {
+    $state = twoLinesPosition([0, 1, 2, 3], [15, 16, 17]);
+
+    expect((new TwoLines5x5Rules)->lineProgress($state))->toBe([
+        'x' => ['count' => 1, 'cells' => [0, 1, 2, 3]],
+        'o' => ['count' => 1, 'cells' => [15, 16, 17]],
+    ]);
+});
+
 test('counts disconnected lines in one direction separately', function () {
     $state = twoLinesPosition([0, 1, 2, 15, 16, 17]);
 

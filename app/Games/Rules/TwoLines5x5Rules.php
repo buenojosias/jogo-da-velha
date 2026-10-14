@@ -92,6 +92,18 @@ class TwoLines5x5Rules implements GameRules
         return $this->analyze($this->board($state), $player)['count'];
     }
 
+    /** @return array{x: array{count: int, cells: list<int>}, o: array{count: int, cells: list<int>}} */
+    public function lineProgress(MatchState $state): array
+    {
+        $this->assertModality($state->modality);
+        $board = $this->board($state);
+
+        return [
+            'x' => $this->analyze($board, PlayerMark::X),
+            'o' => $this->analyze($board, PlayerMark::O),
+        ];
+    }
+
     /** @return list<int> */
     public function winningCells(MatchState $state): array
     {
