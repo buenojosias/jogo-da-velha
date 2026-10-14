@@ -59,7 +59,7 @@ new class extends Component
         if (! $result->validation->valid) {
             $this->rejectionMessage = match ($result->validation->reason) {
                 'cell_occupied' => 'Esta casa já está ocupada.',
-                'game_finished' => 'A rodada terminou. Reinicie para jogar novamente.',
+                'game_finished' => 'A rodada terminou. Inicie uma nova rodada para jogar novamente.',
                 'invalid_cell' => 'Escolha uma casa válida.',
                 default => 'Não foi possível realizar esta jogada.',
             };
@@ -106,6 +106,6 @@ new class extends Component
     :public-entry="true"
     round-finished-event="full-board-round-finished"
     instruction="Forme sequências para pontuar. A rodada termina quando todas as 25 casas estiverem ocupadas."
-    result-description="O tabuleiro foi preenchido. Veja os pontos finais e o placar de partidas."
+    result-description="O tabuleiro foi preenchido. Veja os pontos finais e o placar da partida."
     draw-description="Pontos iguais ao completar o tabuleiro."
 />

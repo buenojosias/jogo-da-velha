@@ -45,7 +45,7 @@ it('changes theme and only resets after new-match confirmation', function () {
         ->click('[data-testid="crazy-cell-0"]')
         ->click('[data-testid="new-match-button"]')
         ->assertScript('document.querySelector("[data-testid=new-match-dialog]").open', true)
-        ->click('Cancelar')
+        ->click('[data-testid="new-match-dialog"] button:first-of-type')
         ->assertAttribute('[data-testid="crazy-cell-0"]', 'data-top', $starter.'-1-1')
         ->click('[data-testid="new-match-button"]')
         ->click('[data-testid="confirm-new-match"]')
@@ -113,7 +113,7 @@ it('keeps selection and placement close and touch targets comfortable at :datase
         ->assertScript('window.scrollY', 0)
         ->click('[data-testid="new-match-button"]')
         ->assertScript('(() => { const dialog = document.querySelector("[data-testid=new-match-dialog]"); const bounds = dialog.getBoundingClientRect(); return dialog.open && bounds.top >= 0 && bounds.bottom <= innerHeight; })()', true)
-        ->click('Cancelar')
+        ->click('[data-testid="new-match-dialog"] button:first-of-type')
         ->assertAttribute('[data-testid="crazy-cell-8"]', 'data-top', $starter.'-1-1')
         ->assertNoJavaScriptErrors();
 })->with([

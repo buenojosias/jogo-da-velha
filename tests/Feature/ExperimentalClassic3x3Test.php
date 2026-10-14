@@ -133,7 +133,7 @@ test('counts only the confirmed terminal result of a round', function (array $ce
 })->with([
     'X victory' => [[0, 3, 1, 4, 2], ['x' => 1, 'o' => 0, 'draws' => 0], 'Jogador X venceu!'],
     'O victory' => [[0, 3, 1, 4, 8, 5], ['x' => 0, 'o' => 1, 'draws' => 0], 'Jogador O venceu!'],
-    'draw' => [[0, 1, 2, 4, 3, 5, 7, 6, 8], ['x' => 0, 'o' => 0, 'draws' => 1], 'Empate!'],
+    'draw' => [[0, 1, 2, 4, 3, 5, 7, 6, 8], ['x' => 0, 'o' => 0, 'draws' => 1], 'Rodada empatada!'],
 ]);
 
 test('preserves the scoreboard through a restart, another round and a new request', function () {
@@ -186,7 +186,7 @@ test('does not count rejected or repeated actions after a round ends', function 
         $component->call('place', $cell);
     }
 
-    $component->call('place', 5)->assertSee('A partida terminou. Reinicie para jogar novamente.');
+    $component->call('place', 5)->assertSee('A rodada terminou. Inicie uma nova rodada para jogar novamente.');
     app(SessionMatchStore::class)->save($matchId, app(SessionMatchStore::class)->find($matchId));
 
     expect(app(SessionMatchStore::class)->score($matchId))->toBe(['x' => 1, 'o' => 0, 'draws' => 0]);
@@ -269,7 +269,7 @@ test('shows a victory and rejects further moves after the match finishes', funct
 
     $component->assertSee('Jogador X venceu!')
         ->call('place', 5)
-        ->assertSee('A partida terminou. Reinicie para jogar novamente.');
+        ->assertSee('A rodada terminou. Inicie uma nova rodada para jogar novamente.');
 
     $state = app(SessionMatchStore::class)->find($matchId);
     expect($state->status)->toBe(MatchStatus::Completed);
@@ -321,7 +321,7 @@ test('shows a draw after nine moves', function () {
     }
 
     $component
-        ->assertSee('Empate!')
+        ->assertSee('Rodada empatada!')
         ->assertSeeHtml('data-testid="result-dialog"')
         ->assertSeeHtml('data-testid="result-score-draws"')
         ->assertDispatched('classic-round-finished');

@@ -44,7 +44,7 @@ it('shows the draw dialog after all nine subboards close without a global winner
             ->assertScript('document.querySelector("[data-testid=ultimate-cell-'.$board.'-'.$cell.']").dataset.mark !== ""', true);
     }
 
-    $page->assertSeeIn('[data-testid="match-status"]', 'Empate!')
+    $page->assertSeeIn('[data-testid="match-status"]', 'Rodada empatada!')
         ->assertSeeIn('[data-testid="score-draws"]', 'Empates: 1')
         ->assertScript('document.querySelector("[data-testid=result-dialog]").open', true)
         ->assertNoJavaScriptErrors();
@@ -61,7 +61,7 @@ it('retains the directed move and theme after reload, then asks before creating 
         ->assertSeeIn('[data-testid="target-board-status"]', 'Subtabuleiro obrigatório: 5')
         ->click('[data-testid="new-match-button"]')
         ->assertScript('document.querySelector("[data-testid=new-match-dialog]").open', true)
-        ->click('Cancelar')
+        ->click('[data-testid="new-match-dialog"] button:first-of-type')
         ->assertSeeIn('[data-testid="target-board-status"]', 'Subtabuleiro obrigatório: 5')
         ->click('[data-testid="new-match-button"]')
         ->click('[data-testid="confirm-new-match"]')

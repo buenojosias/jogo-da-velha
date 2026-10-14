@@ -35,7 +35,7 @@ it('places three pieces per player, selects and moves a piece without a full rel
         ->assertScript('window.__movementMarker', 'same-document')
         ->click('[data-testid="cell-1"]')
         ->assertScript('document.querySelector("[data-testid=cell-1]").dataset.selected', 'true')
-        ->click('Reiniciar partida')
+        ->click('Nova rodada')
         ->assertScript('document.querySelectorAll("[data-selected=true]").length', 0)
         ->assertSeeIn('[data-testid="phase-instruction"]', 'Coloque uma peça')
         ->assertNoJavaScriptErrors();
@@ -60,7 +60,7 @@ it('shows a movement victory, score and modal, then restarts with the other play
         ->refresh()
         ->assertSeeIn('[data-testid="match-status"]', 'Jogador X venceu!')
         ->assertScript('document.querySelector("[data-testid=result-dialog]").open', false)
-        ->click('Reiniciar partida')
+        ->click('Nova rodada')
         ->assertSeeIn('[data-testid="match-status"]', 'Vez do jogador O')
         ->assertSeeIn('[data-testid="score-x"]', '1')
         ->assertSeeIn('[data-testid="phase-instruction"]', 'Coloque uma peça')
@@ -109,7 +109,7 @@ function movementStartingWith(AwaitableWebpage|PendingAwaitablePage $page, strin
     $turn = $page->script('document.querySelector("[data-testid=match-status]").textContent.trim()');
 
     if ($turn !== 'Vez do jogador '.$mark) {
-        $page->click('Reiniciar partida');
+        $page->click('Nova rodada');
     }
 
     $page->assertSeeIn('[data-testid="match-status"]', 'Vez do jogador '.$mark);

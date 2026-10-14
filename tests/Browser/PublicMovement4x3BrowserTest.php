@@ -65,7 +65,7 @@ it('wins by moving and requires confirmation for a fresh match', function () {
         ->keys('[data-testid="result-dialog"]', 'Escape')
         ->click('[data-testid="new-match-button"]')
         ->assertScript('document.querySelector("[data-testid=new-match-dialog]").open', true)
-        ->click('Cancelar')
+        ->click('[data-testid="new-match-dialog"] button:first-of-type')
         ->assertSeeIn('[data-testid="score-'.$starter.'"]', '1')
         ->click('[data-testid="new-match-button"]')
         ->click('[data-testid="confirm-new-match"]')

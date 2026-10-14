@@ -90,7 +90,7 @@ new class extends Component
                 'movement_not_started' => 'Coloque suas três peças antes de mover.',
                 'empty_source', 'not_your_piece' => 'Selecione uma peça sua.',
                 'invalid_cell', 'same_cell' => 'Escolha uma casa de destino válida.',
-                'game_finished' => 'A rodada terminou. Reinicie para jogar novamente.',
+                'game_finished' => 'A rodada terminou. Inicie uma nova rodada para jogar novamente.',
                 default => 'Não foi possível realizar esta jogada.',
             };
             $this->dispatch('movement-selection-reconcile');

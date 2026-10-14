@@ -66,7 +66,7 @@ test('keeps a completed result and score across reload and next round', function
     $this->get(route('3-move'))->assertOk()->assertSee('Jogador X venceu!');
     expect(app(SessionMatchStore::class)->find($matchId)->status)->toBe(MatchStatus::Completed);
     expect(app(SessionMatchStore::class)->score($matchId)['x'])->toBe(1);
-    $component->call('move', 0, 5)->assertSee('A rodada terminou. Reinicie para jogar novamente.');
+    $component->call('move', 0, 5)->assertSee('A rodada terminou. Inicie uma nova rodada para jogar novamente.');
     expect(app(SessionMatchStore::class)->score($matchId)['x'])->toBe(1);
 
     $component->call('restart')->assertSee('Vez do jogador O')->assertSee('Coloque uma peça');

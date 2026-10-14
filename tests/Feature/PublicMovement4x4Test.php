@@ -49,7 +49,7 @@ test('shows four winning cells, scores once, and preserves score on the next rou
     $component->assertSee('Jogador X venceu!')->assertDispatched('movement-round-finished');
     expect(substr_count($component->html(), 'data-winning-cell="true"'))->toBe(4);
     expect(app(SessionMatchStore::class)->score($id)['x'])->toBe(1);
-    $component->call('place', 15)->assertSee('A rodada terminou. Reinicie para jogar novamente.');
+    $component->call('place', 15)->assertSee('A rodada terminou. Inicie uma nova rodada para jogar novamente.');
     expect(app(SessionMatchStore::class)->score($id)['x'])->toBe(1);
     $component->call('restart')->assertSee('Vez do jogador O');
     expect(app(SessionMatchStore::class)->score($id)['x'])->toBe(1);

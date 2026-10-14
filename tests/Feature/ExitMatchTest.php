@@ -26,10 +26,16 @@ function exitModalities(): array
     ];
 }
 
-it('shows Sair after Nova partida and no catalogue header link in each modality', function (string $route, string $sessionKey) {
+it('shows Sair after Reiniciar partida and no catalogue header link in each modality', function (string $route, string $sessionKey) {
     $html = $this->get(route($route))->assertOk()->getContent();
 
     expect($html)->toContain('data-testid="exit-button"')
+        ->toContain('Nova rodada')
+        ->toContain('Reiniciar partida?')
+        ->toContain('O tabuleiro e o placar serão zerados. Você começará uma nova partida. Deseja continuar?')
+        ->toContain('Deseja guardar sua partida?')
+        ->toContain('Guardar e sair')
+        ->toContain('Descartar e sair')
         ->not->toContain('data-testid="catalog-return"');
     expect(strpos($html, 'data-testid="new-match-button"'))->toBeLessThan(strpos($html, 'data-testid="exit-button"'));
     expect(session($sessionKey))->toBeString();

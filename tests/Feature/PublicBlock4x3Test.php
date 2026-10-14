@@ -57,7 +57,7 @@ test('shows an unblocked win and scores it only once across the next round', fun
     $component->assertSee('Jogador X venceu!')->assertDispatched('block-round-finished');
     expect(substr_count($component->html(), 'data-winning-cell="true"'))->toBe(3);
     expect(app(SessionMatchStore::class)->score($id)['x'])->toBe(1);
-    $component->call('place', 3)->assertSee('A rodada terminou. Reinicie para jogar novamente.');
+    $component->call('place', 3)->assertSee('A rodada terminou. Inicie uma nova rodada para jogar novamente.');
     expect(app(SessionMatchStore::class)->score($id)['x'])->toBe(1);
     $component->call('restart')->assertSee('Vez do jogador O');
     expect(app(SessionMatchStore::class)->find($id)->data['board'])->toBe(array_fill(0, 16, ''));
@@ -71,7 +71,7 @@ test('scores a draw and preserves it on restart', function () {
         $component->call('place', $cell);
     }
 
-    $component->assertSee('Empate!')->assertDispatched('block-round-finished');
+    $component->assertSee('Rodada empatada!')->assertDispatched('block-round-finished');
     expect(app(SessionMatchStore::class)->score($id))->toBe(['x' => 0, 'o' => 0, 'draws' => 1]);
     $component->call('restart');
     expect(app(SessionMatchStore::class)->score($id)['draws'])->toBe(1);

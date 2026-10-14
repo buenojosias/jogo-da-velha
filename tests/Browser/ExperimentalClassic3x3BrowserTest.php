@@ -47,7 +47,7 @@ it('keeps the board and controls usable without clipping or overlap', function (
         ->assertScript('(() => { const selectors = ["[data-testid=match-header]", "[data-testid=game-region]", "[data-testid=participant-x]", "[data-testid=participant-o]", "[data-testid=match-actions]"]; const rectangles = selectors.map(selector => document.querySelector(selector).getBoundingClientRect()); return rectangles.every((a, i) => rectangles.every((b, j) => i === j || a.right <= b.left || b.right <= a.left || a.bottom <= b.top || b.bottom <= a.top)); })()', true)
         ->click('[data-testid="cell-0"]')
         ->assertSeeIn('[data-testid="match-status"]', 'Vez do jogador O')
-        ->click('Reiniciar partida')
+        ->click('Nova rodada')
         ->assertSeeIn('[data-testid="match-status"]', 'Vez do jogador O')
         ->assertSeeIn('[data-testid="move-count"]', 'Jogadas realizadas: 0')
         ->assertScript('document.querySelector("[data-testid=cell-0]").textContent.trim()', '')
@@ -80,7 +80,7 @@ it('keeps every cell and essential control in reach on a short landscape screen'
         ->assertScript('(() => { const selectors = ["[data-testid=match-status]", "[data-testid=participant-x]", "[data-testid=participant-o]", "[data-theme-selector]", "[data-testid=match-actions] button"]; return selectors.every(selector => { const element = document.querySelector(selector); const rect = element.getBoundingClientRect(); const topmost = document.elementFromPoint(rect.left + rect.width / 2, rect.top + rect.height / 2); return rect.top >= 0 && rect.bottom <= innerHeight && rect.left >= 0 && rect.right <= innerWidth && (topmost === element || element.contains(topmost)); }); })()', true)
         ->click('[data-testid="cell-8"]')
         ->assertSeeIn('[data-testid="match-status"]', 'Vez do jogador O')
-        ->click('Reiniciar partida')
+        ->click('Nova rodada')
         ->assertSeeIn('[data-testid="match-status"]', 'Vez do jogador O')
         ->assertNoJavaScriptErrors();
 })->with([
@@ -107,7 +107,7 @@ it('shows a reactive scoreboard that survives restarting a round', function (int
         ->assertSeeIn('[data-testid="score-o"]', '0')
         ->assertSeeIn('[data-testid="score-draws"]', '0')
         ->click('Fechar')
-        ->click('Reiniciar partida')
+        ->click('Nova rodada')
         ->assertSeeIn('[data-testid="match-status"]', 'Vez do jogador O')
         ->assertSeeIn('[data-testid="score-x"]', '1')
         ->assertVisible('[data-testid="score-draws"]')
@@ -164,12 +164,12 @@ it('closes by button or Escape and does not reopen on rerender or reload', funct
     $page->script('window.Livewire.find(document.querySelector(".experimental-match").getAttribute("wire:id")).call("place", 5)');
 
     $page
-        ->assertSeeIn('[data-testid="rejection-message"]', 'A partida terminou.')
+        ->assertSeeIn('[data-testid="rejection-message"]', 'A rodada terminou.')
         ->assertScript('document.querySelector("[data-testid=result-dialog]").open', false)
         ->refresh()
         ->assertSeeIn('[data-testid="match-status"]', 'Jogador X venceu!')
         ->assertScript('document.querySelector("[data-testid=result-dialog]").open', false)
-        ->click('Reiniciar partida')
+        ->click('Nova rodada')
         ->assertSeeIn('[data-testid="match-status"]', 'Vez do jogador O');
 
     foreach ([0, 3, 1, 4, 2] as $cell) {
@@ -194,7 +194,7 @@ it('opens a neutral result dialog for a draw with the updated score', function (
     }
 
     $page
-        ->assertSeeIn('[data-testid="result-dialog"]', 'Empate!')
+        ->assertSeeIn('[data-testid="result-dialog"]', 'Rodada empatada!')
         ->assertSeeIn('[data-testid="result-score-draws"]', '1')
         ->assertScript('document.querySelector("[data-testid=result-dialog]").open', true)
         ->assertScript('document.querySelectorAll("[data-winning-cell=true]").length', 0)
@@ -237,7 +237,7 @@ function experimentalPageStartingWith(AwaitableWebpage|PendingAwaitablePage $pag
     expect(['Vez do jogador X', 'Vez do jogador O'])->toContain($observedTurn);
 
     if ($observedTurn !== 'Vez do jogador '.strtoupper($expectedMark)) {
-        $page->click('Reiniciar partida');
+        $page->click('Nova rodada');
     }
 
     $page->assertSeeIn('[data-testid="match-status"]', 'Vez do jogador '.strtoupper($expectedMark));

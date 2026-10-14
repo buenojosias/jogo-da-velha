@@ -63,7 +63,7 @@ test('scores a victory once and preserves score and alternating starter on the n
     expect(app(SessionMatchStore::class)->find($id)->status)->toBe(MatchStatus::Completed);
     expect(app(SessionMatchStore::class)->score($id)['x'])->toBe(1);
     expect(substr_count($component->html(), 'data-winning-cell="true"'))->toBe(3);
-    $component->call('place', 15)->assertSee('A rodada terminou. Reinicie para jogar novamente.');
+    $component->call('place', 15)->assertSee('A rodada terminou. Inicie uma nova rodada para jogar novamente.');
     expect(app(SessionMatchStore::class)->score($id)['x'])->toBe(1);
     $component->call('restart')->assertSee('Vez do jogador O')->assertSee('Coloque uma peça');
     expect(session('movement4x3.active_match_id'))->toBe($id);

@@ -103,7 +103,7 @@ test('counts a global draw only after the last open subboard closes', function (
     setPublicUltimate($id, $boards, 8, PlayerMark::X);
 
     Livewire::test('ultimate-match', ['matchId' => $id])->call('place', 8, 8)
-        ->assertSee('Empate!')->assertDispatched('ultimate-round-finished');
+        ->assertSee('Rodada empatada!')->assertDispatched('ultimate-round-finished');
     expect(app(SessionMatchStore::class)->find($id)->status)->toBe(MatchStatus::Drawn);
     expect(app(SessionMatchStore::class)->score($id)['draws'])->toBe(1);
 });

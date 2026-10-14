@@ -65,7 +65,7 @@ test('resumes order, rotates oldest and preserves score across next round', func
     $component->assertSee('Jogador O venceu!')->assertDispatched('rotation-round-finished');
     expect(app(SessionMatchStore::class)->find($id)->status)->toBe(MatchStatus::Completed);
     expect(app(SessionMatchStore::class)->score($id)['o'])->toBe(1);
-    $component->call('place', 7)->assertSee('A rodada terminou. Reinicie para jogar novamente.');
+    $component->call('place', 7)->assertSee('A rodada terminou. Inicie uma nova rodada para jogar novamente.');
     expect(app(SessionMatchStore::class)->score($id)['o'])->toBe(1);
 })->with([
     '3x3' => ['3-rotation', [3, 0, 4, 1, 5]],

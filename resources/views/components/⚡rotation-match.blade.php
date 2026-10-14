@@ -80,7 +80,7 @@ new class extends Component
         if (! $result->validation->valid) {
             $this->rejectionMessage = match ($result->validation->reason) {
                 'cell_occupied' => 'Esta casa já está ocupada.',
-                'game_finished' => 'A rodada terminou. Reinicie para jogar novamente.',
+                'game_finished' => 'A rodada terminou. Inicie uma nova rodada para jogar novamente.',
                 'invalid_cell' => 'Escolha uma casa válida.',
                 default => 'Não foi possível realizar esta jogada.',
             };

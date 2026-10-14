@@ -79,7 +79,7 @@ test('draws on a full board without two lines and preserves the draw on restart'
 
     $component = playPublicTwoLines($id, $moves);
 
-    $component->assertSee('Empate!')->assertDispatched('two-lines-round-finished');
+    $component->assertSee('Rodada empatada!')->assertDispatched('two-lines-round-finished');
     expect(app(SessionMatchStore::class)->score($id))->toBe(['x' => 0, 'o' => 0, 'draws' => 1]);
     expect(substr_count($component->html(), 'data-winning-cell="true"'))->toBe(0);
     $component->call('restart')->assertSee('Vez do jogador O');

@@ -67,7 +67,7 @@ test('detects a placement win, highlights it and scores only once', function () 
     expect(substr_count($component->html(), 'data-winning-cell="true"'))->toBe(3);
     expect(app(SessionMatchStore::class)->find($matchId)->status)->toBe(MatchStatus::Completed);
     expect(app(SessionMatchStore::class)->score($matchId)['x'])->toBe(1);
-    $component->call('place', 8)->assertSee('A rodada terminou. Reinicie para jogar novamente.');
+    $component->call('place', 8)->assertSee('A rodada terminou. Inicie uma nova rodada para jogar novamente.');
     expect(app(SessionMatchStore::class)->score($matchId)['x'])->toBe(1);
 
     $this->get(route('3-move'))->assertOk()->assertSee('Jogador X venceu!');

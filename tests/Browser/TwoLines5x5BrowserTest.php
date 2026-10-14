@@ -54,7 +54,7 @@ it('shows a draw and resets only after the next-round action', function () {
         twoLinesBrowserPlace($page, $cell, $turn % 2 === 0 ? $starter : $other);
     }
 
-    $page->assertSeeIn('[data-testid="match-status"]', 'Empate!')
+    $page->assertSeeIn('[data-testid="match-status"]', 'Rodada empatada!')
         ->assertScript('document.querySelector("[data-testid=result-dialog]").open', true)
         ->assertScript('document.querySelectorAll("[data-winning-cell=true]").length', 0)
         ->assertSeeIn('[data-testid="score-draws"]', '1')
@@ -70,7 +70,7 @@ it('confirms a new match and preserves the current round when confirmation is ca
     twoLinesBrowserPlace($page, 0, $starter);
     $page->click('[data-testid="new-match-button"]')
         ->assertScript('document.querySelector("[data-testid=new-match-dialog]").open', true)
-        ->click('Cancelar')
+        ->click('[data-testid="new-match-dialog"] button:first-of-type')
         ->assertScript('document.querySelector("[data-testid=cell-0]").dataset.mark', $starter)
         ->click('[data-testid="new-match-button"]')
         ->click('[data-testid="confirm-new-match"]')

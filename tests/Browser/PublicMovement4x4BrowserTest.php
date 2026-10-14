@@ -54,7 +54,7 @@ it('wins through movement and requires confirmation before a new match', functio
     awaitBrowserCellMark($page, 3, $starter);
     $page->assertSeeIn('[data-testid="match-status"]', 'Jogador '.strtoupper($starter).' venceu!')
         ->keys('[data-testid="result-dialog"]', 'Escape')
-        ->click('[data-testid="new-match-button"]')->click('Cancelar')
+        ->click('[data-testid="new-match-button"]')->click('[data-testid="new-match-dialog"] button:first-of-type')
         ->assertSeeIn('[data-testid="score-'.$starter.'"]', '1')
         ->click('[data-testid="new-match-button"]')->click('[data-testid="confirm-new-match"]')
         ->assertScript('location.pathname', '/4-mover')

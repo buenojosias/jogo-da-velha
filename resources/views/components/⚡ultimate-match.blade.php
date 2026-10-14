@@ -165,7 +165,7 @@ new class extends Component
                 @if ($state->status === MatchStatus::Completed)
                     Jogador {{ strtoupper($state->winner->value) }} venceu!
                 @elseif ($state->status === MatchStatus::Drawn)
-                    Empate!
+                    Rodada empatada!
                 @else
                     Vez do jogador {{ strtoupper($state->currentPlayer->value) }}
                 @endif
@@ -242,24 +242,24 @@ new class extends Component
             </div>
             <p data-testid="score-draws" class="rounded-ds-control border border-ds-border bg-ds-surface-muted px-2 py-1 text-center text-xs font-bold text-ds-text-secondary">Empates: <span class="font-black text-ds-text">{{ $score['draws'] }}</span></p>
             <x-design-system.match-actions data-testid="match-actions">
-                <button type="button" x-ref="restartButton" wire:click="restart" wire:loading.attr="disabled" class="min-h-12 w-full rounded-ds-control bg-ds-primary px-5 py-3 text-base font-bold text-ds-on-primary hover:bg-ds-primary-hover focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-ds-focus disabled:opacity-60">Reiniciar partida</button>
-                <button type="button" x-on:click="$refs.newMatchDialog.showModal()" data-testid="new-match-button" class="mt-2 min-h-11 w-full rounded-ds-control border border-ds-border bg-ds-surface px-4 py-2 text-sm font-semibold text-ds-text-secondary hover:bg-ds-hover focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-ds-focus">Nova partida</button>
+                <button type="button" x-ref="restartButton" wire:click="restart" wire:loading.attr="disabled" class="min-h-12 w-full rounded-ds-control bg-ds-primary px-5 py-3 text-base font-bold text-ds-on-primary hover:bg-ds-primary-hover focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-ds-focus disabled:opacity-60">Nova rodada</button>
+                <button type="button" x-on:click="$refs.newMatchDialog.showModal()" data-testid="new-match-button" class="mt-2 min-h-11 w-full rounded-ds-control border border-ds-border bg-ds-surface px-4 py-2 text-sm font-semibold text-ds-text-secondary hover:bg-ds-hover focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-ds-focus">Reiniciar partida</button>
                 <livewire:exit-match :match-id="$matchId" modality="ultimate" />
             </x-design-system.match-actions>
         </div>
     </section>
 
     <dialog x-ref="newMatchDialog" data-testid="new-match-dialog" aria-modal="true" aria-labelledby="ultimate-new-match-title" class="ds-result-dialog m-auto w-[min(27rem,calc(100vw-1.5rem))] max-h-[calc(100dvh-1.5rem)] max-w-none overflow-y-auto rounded-ds-card border border-ds-border bg-ds-elevated p-4 text-ds-text shadow-ds-elevated sm:p-5">
-        <h2 id="ultimate-new-match-title" class="text-xl font-black">Criar nova partida?</h2>
-        <p class="mt-2 text-sm text-ds-text-secondary">A rodada e o placar atuais serão deixados para trás. Próxima rodada mantém o placar.</p>
+        <h2 id="ultimate-new-match-title" class="text-xl font-black">Reiniciar partida?</h2>
+        <p class="mt-2 text-sm text-ds-text-secondary">O tabuleiro e o placar serão zerados. Você começará uma nova partida. Deseja continuar?</p>
         <div class="mt-4 grid grid-cols-2 gap-2.5">
             <button type="button" x-on:click="$refs.newMatchDialog.close()" class="min-h-12 rounded-ds-control border-2 border-ds-border bg-ds-surface px-3 py-2.5 text-sm font-bold text-ds-text">Cancelar</button>
-            <button type="button" wire:click="newMatch" wire:loading.attr="disabled" wire:target="newMatch" data-testid="confirm-new-match" class="min-h-12 rounded-ds-control bg-ds-primary px-3 py-2.5 text-sm font-extrabold text-ds-on-primary">Criar nova partida</button>
+            <button type="button" wire:click="newMatch" wire:loading.attr="disabled" wire:target="newMatch" data-testid="confirm-new-match" class="min-h-12 rounded-ds-control bg-ds-primary px-3 py-2.5 text-sm font-extrabold text-ds-on-primary">Reiniciar partida</button>
         </div>
     </dialog>
 
     @if ($state->isFinished())
-        <x-design-system.result-dialog :title="$state->status === MatchStatus::Drawn ? 'Empate!' : 'Jogador '.strtoupper($state->winner->value).' venceu!'" :eyebrow="$state->status === MatchStatus::Drawn ? 'Rodada empatada' : 'Vitória global'" :description="$state->status === MatchStatus::Drawn ? 'Todos os subtabuleiros foram encerrados.' : 'Três subtabuleiros conquistados em linha.'" :winner-mark="$state->winner?->value" :score-x="$score['x']" :score-o="$score['o']" :draws="$score['draws']" x-ref="resultDialog" x-on:close="restoreFocus()" data-testid="result-dialog">
+        <x-design-system.result-dialog :title="$state->status === MatchStatus::Drawn ? 'Rodada empatada!' : 'Jogador '.strtoupper($state->winner->value).' venceu!'" :eyebrow="$state->status === MatchStatus::Drawn ? 'Rodada empatada' : 'Vitória na rodada'" :description="$state->status === MatchStatus::Drawn ? 'Todos os subtabuleiros foram encerrados.' : 'Três subtabuleiros conquistados em linha.'" :winner-mark="$state->winner?->value" :score-x="$score['x']" :score-o="$score['o']" :draws="$score['draws']" x-ref="resultDialog" x-on:close="restoreFocus()" data-testid="result-dialog">
             <button type="button" wire:click="restart" wire:loading.attr="disabled" x-on:click="closeResult()" autofocus class="min-h-12 rounded-ds-control bg-ds-primary px-3 py-2.5 text-sm font-extrabold text-ds-on-primary">Próxima rodada</button>
             <button type="button" x-on:click="closeResult()" class="min-h-12 rounded-ds-control border-2 border-ds-border bg-ds-surface px-3 py-2.5 text-sm font-bold text-ds-text">Fechar</button>
         </x-design-system.result-dialog>

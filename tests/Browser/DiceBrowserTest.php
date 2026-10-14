@@ -114,7 +114,7 @@ it('confirms a new match while cancellation leaves the current boards intact', f
     $page = visit('/dado');
     $page->click('[data-testid="new-match-button"]')
         ->assertScript('document.querySelector("[data-testid=new-match-dialog]").open', true)
-        ->click('Cancelar')
+        ->click('[data-testid="new-match-dialog"] button:first-of-type')
         ->assertScript('document.querySelector("[data-testid=new-match-dialog]").open', false);
     $face = diceBrowserRoll($page);
     $page->click('[data-testid="new-match-button"]')

@@ -15,7 +15,7 @@ it('keeps the classic board usable without horizontal page overflow at :dataset'
         ->assertSeeIn('[data-testid="move-count"]', 'Jogadas realizadas: 1')
         ->click('[data-testid="new-match-button"]')
         ->assertScript('document.querySelector("[data-testid=new-match-dialog]").open', true)
-        ->click('Cancelar')
+        ->click('[data-testid="new-match-dialog"] button:first-of-type')
         ->assertNoJavaScriptErrors();
 })->with([
     'small phone (360px)' => [360, 800],

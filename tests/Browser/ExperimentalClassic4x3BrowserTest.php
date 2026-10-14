@@ -80,7 +80,7 @@ it('shows a neutral result and draw score after sixteen moves', function () {
     }
 
     $page
-        ->assertSeeIn('[data-testid="match-status"]', 'Empate!')
+        ->assertSeeIn('[data-testid="match-status"]', 'Rodada empatada!')
         ->assertSeeIn('[data-testid="result-score-draws"]', '1')
         ->assertScript('document.querySelector("[data-testid=result-dialog]").open', true)
         ->assertScript('document.querySelectorAll("[data-winning-cell=true]").length', 0)
@@ -124,7 +124,7 @@ function fourByFourStarter(AwaitableWebpage|PendingAwaitablePage $page): string
 function fourByFourStartingWith(AwaitableWebpage|PendingAwaitablePage $page, string $mark): void
 {
     if (fourByFourStarter($page) !== $mark) {
-        $page->click('Reiniciar partida');
+        $page->click('Nova rodada');
     }
 
     $page->assertSeeIn('[data-testid="match-status"]', 'Vez do jogador '.$mark);

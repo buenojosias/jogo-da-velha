@@ -54,7 +54,7 @@ it('ends only at the last placement and shows final points in the result dialog'
     }
     $page->assertScript('document.querySelector("[data-testid=result-dialog]")?.open ?? false', false);
     fullBrowserPlace($page, 24, $starter);
-    $page->assertSeeIn('[data-testid="match-status"]', $starter === 'x' ? 'Jogador X venceu!' : 'Empate!')
+    $page->assertSeeIn('[data-testid="match-status"]', $starter === 'x' ? 'Jogador X venceu!' : 'Rodada empatada!')
         ->assertScript('document.querySelector("[data-testid=result-dialog]").open', true)
         ->assertSeeIn('[data-testid="result-round-points"]', $starter === 'x' ? 'X 15 · O 12' : 'X 12 · O 12')
         ->assertSeeIn('[data-testid="score-'.$starter.'"]', $starter === 'x' ? '1' : '0')
@@ -71,7 +71,7 @@ it('requires confirmation for a new match and preserves the round if cancelled',
     fullBrowserPlace($page, 0, $starter);
     $page->click('[data-testid="new-match-button"]')
         ->assertScript('document.querySelector("[data-testid=new-match-dialog]").open', true)
-        ->click('Cancelar')
+        ->click('[data-testid="new-match-dialog"] button:first-of-type')
         ->assertScript('document.querySelector("[data-testid=cell-0]").dataset.mark', $starter)
         ->click('[data-testid="new-match-button"]')
         ->click('[data-testid="confirm-new-match"]')

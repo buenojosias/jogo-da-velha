@@ -45,7 +45,7 @@ it('keeps the selector synchronized with the theme API and during a Livewire upd
     expect(['Vez do jogador X', 'Vez do jogador O'])->toContain($initialTurn);
 
     if ($initialTurn === 'Vez do jogador O') {
-        $page->click('Reiniciar partida');
+        $page->click('Nova rodada');
     }
 
     $page->select('[data-theme-selector]', 'dark');

@@ -58,7 +58,7 @@ test('preserves a completed result and score between public rounds', function ()
     expect(app(SessionMatchStore::class)->find($matchId)->status)->toBe(MatchStatus::Completed);
     expect(app(SessionMatchStore::class)->score($matchId))->toBe(['x' => 1, 'o' => 0, 'draws' => 0]);
 
-    $component->call('place', 3)->assertSee('A partida terminou. Reinicie para jogar novamente.');
+    $component->call('place', 3)->assertSee('A rodada terminou. Inicie uma nova rodada para jogar novamente.');
     expect(app(SessionMatchStore::class)->score($matchId)['x'])->toBe(1);
 
     $component->call('restart')->assertSee('Vez do jogador O');
@@ -76,9 +76,9 @@ test('counts a public four by four draw once and keeps it on reload', function (
         $component->call('place', $cell);
     }
 
-    $this->get(route('4x3-basic'))->assertOk()->assertSee('Empate!');
+    $this->get(route('4x3-basic'))->assertOk()->assertSee('Rodada empatada!');
     expect(app(SessionMatchStore::class)->score($matchId))->toBe(['x' => 0, 'o' => 0, 'draws' => 1]);
-    $component->call('place', 0)->assertSee('A partida terminou. Reinicie para jogar novamente.');
+    $component->call('place', 0)->assertSee('A rodada terminou. Inicie uma nova rodada para jogar novamente.');
     expect(app(SessionMatchStore::class)->score($matchId)['draws'])->toBe(1);
 });
 

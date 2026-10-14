@@ -84,7 +84,7 @@ it('requires confirmation for a new match on :dataset', function (string $uri) {
 
     $page->click('[data-testid="new-match-button"]')
         ->assertScript('document.querySelector("[data-testid=new-match-dialog]").open', true)
-        ->click('Cancelar')
+        ->click('[data-testid="new-match-dialog"] button:first-of-type')
         ->assertScript('document.querySelector("[data-testid=cell-0]").dataset.mark', $starter)
         ->click('[data-testid="new-match-button"]')
         ->click('[data-testid="confirm-new-match"]')

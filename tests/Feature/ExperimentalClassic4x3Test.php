@@ -90,7 +90,7 @@ test('shows the confirmed winning trio and scores each direction', function (arr
     expect(app(SessionMatchStore::class)->find($matchId)->status)->toBe(MatchStatus::Completed);
     expect(app(SessionMatchStore::class)->score($matchId)[$winner->value])->toBe(1);
 
-    $component->call('place', 15)->assertSee('A partida terminou. Reinicie para jogar novamente.');
+    $component->call('place', 15)->assertSee('A rodada terminou. Inicie uma nova rodada para jogar novamente.');
     expect(app(SessionMatchStore::class)->score($matchId)[$winner->value])->toBe(1);
 })->with([
     'X horizontal' => [[0, 4, 1, 5, 2], [0, 1, 2], PlayerMark::X],
@@ -107,7 +107,7 @@ test('counts a draw and shows a neutral result without highlighted cells', funct
         $component->call('place', $cell);
     }
 
-    $component->assertSee('Empate!')->assertDispatched('classic4x3-round-finished');
+    $component->assertSee('Rodada empatada!')->assertDispatched('classic4x3-round-finished');
     expect(substr_count($component->html(), 'data-winning-cell="true"'))->toBe(0);
     expect(app(SessionMatchStore::class)->find($matchId)->status)->toBe(MatchStatus::Drawn);
     expect(app(SessionMatchStore::class)->score($matchId))->toBe(['x' => 0, 'o' => 0, 'draws' => 1]);

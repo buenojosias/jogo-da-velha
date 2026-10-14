@@ -26,7 +26,7 @@ it('plays the public four by four classic, resumes it, and starts a confirmed fr
         ->assertSeeIn('[data-testid="move-count"]', 'Jogadas realizadas: 1')
         ->click('[data-testid="new-match-button"]')
         ->assertScript('document.querySelector("[data-testid=new-match-dialog]").open', true)
-        ->click('Cancelar')
+        ->click('[data-testid="new-match-dialog"] button:first-of-type')
         ->assertSeeIn('[data-testid="move-count"]', 'Jogadas realizadas: 1')
         ->click('[data-testid="new-match-button"]')
         ->click('[data-testid="confirm-new-match"]')

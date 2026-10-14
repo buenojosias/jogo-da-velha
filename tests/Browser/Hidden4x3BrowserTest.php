@@ -72,7 +72,7 @@ it('uses confirmation for a fresh match and keeps all cells available', function
     hiddenBrowserChoose($page, 0, $other);
     $page->click('[data-testid="new-match-button"]')
         ->assertScript('document.querySelector("[data-testid=new-match-dialog]").open', true)
-        ->click('Cancelar')
+        ->click('[data-testid="new-match-dialog"] button:first-of-type')
         ->assertSeeIn('[data-testid="match-status"]', 'Vez do jogador '.strtoupper($other))
         ->click('[data-testid="new-match-button"]')
         ->click('[data-testid="confirm-new-match"]')

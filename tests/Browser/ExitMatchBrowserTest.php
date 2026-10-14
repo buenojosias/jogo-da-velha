@@ -34,3 +34,15 @@ it('keeps the confirmation accessible on a short landscape screen', function () 
         ->assertScript('document.documentElement.scrollWidth <= innerWidth', true)
         ->assertNoJavaScriptErrors();
 });
+
+it('shows the renamed restart confirmation and keeps its cancel action', function () {
+    visit('/3-basico')
+        ->click('[data-testid="cell-0"]')
+        ->click('[data-testid="new-match-button"]')
+        ->assertVisible('[data-testid="new-match-dialog"]')
+        ->assertSeeIn('[data-testid="new-match-dialog"]', 'Reiniciar partida?')
+        ->assertSeeIn('[data-testid="new-match-dialog"]', 'O tabuleiro e o placar serão zerados.')
+        ->click('[data-testid="new-match-dialog"] button:first-of-type')
+        ->assertSeeIn('[data-testid="move-count"]', 'Jogadas realizadas: 1')
+        ->assertNoJavaScriptErrors();
+});

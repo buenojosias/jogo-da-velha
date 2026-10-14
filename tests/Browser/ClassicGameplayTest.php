@@ -47,7 +47,7 @@ it('alternates the classic starting player on the regular restart button', funct
     $expectedPlayer = $initialPlayer === 'x' ? 'o' : 'x';
 
     $page
-        ->click('Reiniciar partida')
+        ->click('Nova rodada')
         ->assertSeeIn('[data-testid="match-status"]', 'Vez do jogador '.strtoupper($expectedPlayer))
         ->assertSeeIn('[data-testid="move-count"]', 'Jogadas realizadas: 0')
         ->assertNoJavaScriptErrors();
@@ -69,7 +69,7 @@ it('resumes a public match and confirms before creating a new one', function () 
         ->keys('[data-testid="new-match-dialog"]', 'Escape')
         ->assertScript('document.querySelector("[data-testid=new-match-dialog]").open', false)
         ->click('[data-testid="new-match-button"]')
-        ->click('Cancelar')
+        ->click('[data-testid="new-match-dialog"] button:first-of-type')
         ->assertScript('document.querySelector("[data-testid=new-match-dialog]").open', false)
         ->assertSeeIn('[data-testid="move-count"]', 'Jogadas realizadas: 1')
         ->click('[data-testid="new-match-button"]')

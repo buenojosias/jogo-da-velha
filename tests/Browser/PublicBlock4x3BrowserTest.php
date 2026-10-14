@@ -62,7 +62,7 @@ it('requires confirmation for a fresh match and clears its previous board', func
     blockBrowserPlace($page, 0, $starter);
     $page->click('[data-testid="new-match-button"]')
         ->assertScript('document.querySelector("[data-testid=new-match-dialog]").open', true)
-        ->click('Cancelar')
+        ->click('[data-testid="new-match-dialog"] button:first-of-type')
         ->assertScript('document.querySelector("[data-testid=cell-0]").dataset.mark', $starter)
         ->click('[data-testid="new-match-button"]')
         ->click('[data-testid="confirm-new-match"]')
