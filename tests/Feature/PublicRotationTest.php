@@ -47,7 +47,7 @@ test('resumes order, rotates oldest and preserves score across next round', func
     foreach ([0, 1, 2, 3, 4, 6] as $cell) {
         $component->call('place', $cell);
     }
-    $this->get(route($modality))->assertOk()->assertSee('Sua peça mais antiga será removida');
+    $this->get(route($modality))->assertOk()->assertSee($modality === '3-rotation' ? 'Sua peça marcada SAI será removida automaticamente ao colocar outra.' : 'Sua peça mais antiga será removida');
     expect(session(rotationKey($modality)))->toBe($id);
     expect(app(SessionMatchStore::class)->find($id)->data['order'])->toBe(['x' => [0, 2, 4], 'o' => [1, 3, 6]]);
 
@@ -71,6 +71,56 @@ test('resumes order, rotates oldest and preserves score across next round', func
     '3x3' => ['3-rotation', [3, 0, 4, 1, 5]],
     '4x4' => ['4x3-rotation', [4, 0, 5, 1, 6]],
 ]);
+
+test('distinguishes the oldest pieces by turn only on rotation three by three', function () {
+    $id = openRotation($this, '3-rotation');
+    $component = Livewire::test('rotation-match', ['matchId' => $id, 'modalityKey' => '3-rotation']);
+
+    $this->get(route('3-rotation'))->assertOk()->assertDontSee('data-oldest-turn=', false)->assertDontSee('1ª');
+
+    foreach ([0, 1, 2, 3, 4, 6] as $cell) {
+        $component->call('place', $cell);
+    }
+
+    $response = $this->get(route('3-rotation'))->assertOk()
+        ->assertSee('Sua peça marcada SAI será removida automaticamente ao colocar outra.')
+        ->assertDontSee('1ª');
+    $document = new DOMDocument;
+    @$document->loadHTML($response->getContent());
+    $xpath = new DOMXPath($document);
+    $oldestCurrent = $xpath->query('//button[@data-testid="cell-0"]')->item(0);
+    $oldestOpponent = $xpath->query('//button[@data-testid="cell-1"]')->item(0);
+
+    expect($oldestCurrent->getAttribute('data-oldest-turn'))->toBe('current');
+    expect($oldestCurrent->getAttribute('class'))->toContain('border-dashed', 'ring-2', 'ring-ds-warning');
+    expect($oldestCurrent->getAttribute('title'))->toBe('Esta peça será removida automaticamente quando você colocar a próxima.');
+    expect($oldestCurrent->getAttribute('aria-label'))->toContain('sua peça mais antiga; será removida automaticamente');
+    expect($oldestOpponent->getAttribute('data-oldest-turn'))->toBe('opponent');
+    expect($oldestOpponent->getAttribute('class'))->toContain('ring-1', 'ring-ds-border');
+    expect($oldestOpponent->getAttribute('title'))->toBe('Esta peça será removida quando o adversário colocar a próxima.');
+    expect($oldestOpponent->getAttribute('aria-label'))->toContain('será removida quando ele colocar a próxima');
+    $removalLabels = $xpath->query('//span[@data-testid="oldest-removal-label"]');
+    expect($removalLabels->length)->toBe(2);
+    expect($removalLabels->item(0)->textContent)->toBe('SAI');
+    expect($removalLabels->item(1)->textContent)->toBe('SAI');
+
+    $component->call('place', 5)->assertSee('Vez do jogador O');
+    $response = $this->get(route('3-rotation'))->assertOk()->assertDontSee('1ª');
+    $document = new DOMDocument;
+    @$document->loadHTML($response->getContent());
+    $xpath = new DOMXPath($document);
+
+    expect($xpath->query('//button[@data-testid="cell-0"]')->item(0)->getAttribute('data-oldest-cell'))->toBe('false');
+    expect($xpath->query('//button[@data-testid="cell-2"]')->item(0)->getAttribute('data-oldest-turn'))->toBe('opponent');
+    expect($xpath->query('//button[@data-testid="cell-1"]')->item(0)->getAttribute('data-oldest-turn'))->toBe('current');
+
+    $fourByFourId = openRotation($this, '4x3-rotation');
+    $fourByFour = Livewire::test('rotation-match', ['matchId' => $fourByFourId, 'modalityKey' => '4x3-rotation']);
+    foreach ([0, 1, 2, 3, 4, 6] as $cell) {
+        $fourByFour->call('place', $cell);
+    }
+    $this->get(route('4x3-rotation'))->assertOk()->assertSee('1ª')->assertDontSee('data-oldest-turn=', false);
+});
 
 test('new matches reset only their own scoreboard and reject stale tabs', function (string $modality) {
     $id = openRotation($this, $modality);

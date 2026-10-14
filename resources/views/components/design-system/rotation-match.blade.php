@@ -13,7 +13,7 @@
     'roundFinishedEvent',
 ])
 @use('App\Games\{MatchStatus, PlayerMark}')
-@php($oldestCells = array_values(array_filter($oldestPieces, fn (?int $cell): bool => $cell !== null)))
+@php($oldestCells = $columns === 3 && $state->isFinished() ? [] : array_values(array_filter($oldestPieces, fn (?int $cell): bool => $cell !== null)))
 @php($unavailableCells = $state->isFinished() ? array_keys($state->data['board']) : array_keys(array_filter($state->data['board'])))
 
 <div
@@ -67,7 +67,7 @@
             </x-design-system.match-status>
 
             @if (! $state->isFinished())
-                <p data-testid="phase-instruction" class="mt-2 text-center text-sm font-bold text-ds-text-secondary">{{ $oldestPieces[$state->currentPlayer->value] === null ? "Coloque uma peça" : "Sua peça mais antiga será removida" }}</p>
+                <p data-testid="phase-instruction" class="mt-2 text-center text-sm font-bold text-ds-text-secondary">{{ $oldestPieces[$state->currentPlayer->value] === null ? 'Coloque uma peça' : ($columns === 3 ? 'Sua peça marcada SAI será removida automaticamente ao colocar outra.' : 'Sua peça mais antiga será removida') }}</p>
             @endif
             <div class="mt-2 flex flex-wrap justify-center gap-2 text-xs font-semibold text-ds-text-secondary" aria-label="Ordem das peças">
                 <span data-testid="oldest-x" class="rounded-ds-control border border-ds-border bg-ds-surface-muted px-2 py-1">X: {{ $oldestPieces["x"] === null ? "sem remoção" : "casa ".($oldestPieces["x"] + 1)." será removida" }}</span>
@@ -80,6 +80,8 @@
                 label="{{ $boardLabel }}"
                 :highlighted-cells="$winningCells"
                 :oldest-cells="$oldestCells"
+                :oldest-indicator="$columns === 3 ? 'rotation-3x3' : 'default'"
+                :current-player-mark="$columns === 3 ? $state->currentPlayer?->value : null"
                 :unavailable-cells="$unavailableCells"
                 highlight-label="casa vencedora"
                 data-testid="rotation-board"

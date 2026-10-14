@@ -17,6 +17,40 @@ function rotationBrowserPlace(AwaitableWebpage|PendingAwaitablePage $page, int $
     awaitBrowserCellMark($page, $cell, $mark);
 }
 
+it('marks the next removal on rotation three by three across viewports and themes', function () {
+    $page = visit('/3-rotacao')->assertCount('[data-testid="oldest-removal-label"]', 0);
+    $starter = rotationBrowserStarter($page);
+    $other = $starter === 'x' ? 'o' : 'x';
+
+    foreach ([0, 1, 2, 3, 4, 6] as $turn => $cell) {
+        rotationBrowserPlace($page, $cell, $turn % 2 === 0 ? $starter : $other);
+    }
+
+    $page->assertAttribute('[data-testid="cell-0"]', 'data-oldest-turn', 'current')
+        ->assertAttribute('[data-testid="cell-1"]', 'data-oldest-turn', 'opponent')
+        ->assertSeeIn('[data-oldest-turn="current"] [data-testid="oldest-removal-label"]', 'SAI')
+        ->assertSeeIn('[data-oldest-turn="opponent"] [data-testid="oldest-removal-label"]', 'SAI')
+        ->assertSeeIn('[data-testid="phase-instruction"]', 'Sua peça marcada SAI será removida automaticamente')
+        ->assertCount('[data-testid="oldest-removal-label"]', 2)
+        ->assertScript('document.querySelector("[data-testid=rotation-board]").textContent.includes("1ª")', false);
+
+    foreach ([[360, 800, 'light'], [360, 800, 'dark'], [740, 360, 'dark'], [1280, 900, 'light']] as [$width, $height, $theme]) {
+        $page->resize($width, $height)->select('[data-theme-selector]', $theme)
+            ->assertScript('document.documentElement.scrollWidth <= innerWidth', true)
+            ->assertScript('(() => [...document.querySelectorAll("[data-testid=oldest-removal-label]")].every(label => { const cellRect = label.closest("button").getBoundingClientRect(); const labelRect = label.getBoundingClientRect(); return labelRect.left >= cellRect.left && labelRect.right <= cellRect.right && labelRect.top >= cellRect.top && labelRect.bottom <= cellRect.top + cellRect.height * 0.35; }))()', true)
+            ->assertScript('getComputedStyle(document.querySelector("[data-oldest-turn=current] [data-testid=oldest-removal-label]")).color !== getComputedStyle(document.querySelector("[data-oldest-turn=opponent] [data-testid=oldest-removal-label]")).color', true);
+        if ($width === 360) {
+            $page->screenshotElement('[data-testid="game-region"]', 'rotation-3x3-sai-'.$theme);
+        }
+    }
+
+    rotationBrowserPlace($page, 5, $starter);
+    $page->assertAttribute('[data-testid="cell-0"]', 'data-oldest-cell', 'false')
+        ->assertAttribute('[data-testid="cell-2"]', 'data-oldest-turn', 'opponent')
+        ->assertAttribute('[data-testid="cell-1"]', 'data-oldest-turn', 'current')
+        ->assertNoJavaScriptErrors();
+});
+
 it('rotates the oldest piece on the public four by four board', function () {
     $page = visit('/')->click('a[href$="/4-3-rotacao"]')
         ->assertScript('location.pathname', '/4-3-rotacao')
