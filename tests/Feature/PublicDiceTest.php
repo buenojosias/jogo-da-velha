@@ -66,7 +66,8 @@ test('keeps the rolled column across reloads and rejects misplaced actions', fun
     $id = openPublicDice(2);
     $component = Livewire::test('dice-match', ['matchId' => $id]);
     $component->call('place', 0, 1)->assertSee('Role o dado antes');
-    $component->call('roll')->assertReturned(2)->assertSee('Dado 2: escolha uma casa vazia na coluna 2 do tabuleiro esquerdo');
+    $component->call('roll')->assertReturned(2)->assertSee('Dado 2: escolha uma casa vazia na coluna 2 do tabuleiro esquerdo')
+        ->assertDispatched('dice-roll-availability-updated', blocked: true);
 
     expect(app(SessionMatchStore::class)->find($id)->data['pending_roll'])->toBe(2);
     $this->get(route('dice'))->assertOk()->assertSee('Dado 2: escolha');
@@ -74,7 +75,8 @@ test('keeps the rolled column across reloads and rejects misplaced actions', fun
     $component->call('place', 1, 1)->assertSee('Escolha uma casa na coluna indicada');
     $component->call('place', 0, 0)->assertSee('Escolha uma casa na coluna indicada');
     expect(app(SessionMatchStore::class)->find($id)->data['boards'])->toBe([array_fill(0, 9, ''), array_fill(0, 9, '')]);
-    $component->call('place', 0, 4)->assertSee('Vez do jogador X');
+    $component->call('place', 0, 4)->assertSee('Vez do jogador X')
+        ->assertDispatched('dice-roll-availability-updated', blocked: false);
     expect(app(SessionMatchStore::class)->find($id)->data['boards'][0][4])->toBe('o');
     expect(app(SessionMatchStore::class)->find($id)->data['pending_roll'])->toBeNull();
 });
@@ -87,7 +89,8 @@ test('skips a full rolled column and keeps both boards unchanged', function () {
     $boards[1][6] = 'x';
     preparePublicDice($id, $boards, PlayerMark::O, null, null);
 
-    Livewire::test('dice-match', ['matchId' => $id])->call('roll')->assertReturned(4)->assertSee('Coluna 4 cheia! Jogador O perdeu a vez.');
+    Livewire::test('dice-match', ['matchId' => $id])->call('roll')->assertReturned(4)->assertSee('Coluna 4 cheia! Jogador O perdeu a vez.')
+        ->assertDispatched('dice-roll-availability-updated', blocked: false);
     $state = app(SessionMatchStore::class)->find($id);
     expect($state->currentPlayer)->toBe(PlayerMark::X);
     expect($state->data['pending_roll'])->toBeNull();
@@ -109,7 +112,7 @@ test('awards a win on either board and preserves the score after the next round'
     expect(substr_count($component->html(), 'data-winning-cell="true"'))->toBe(3);
     $component->call('place', $board, 5)->assertSee('A rodada terminou.');
     expect(app(SessionMatchStore::class)->score($id)[$winner->value])->toBe(1);
-    $component->call('restart');
+    $component->call('restart')->assertDispatched('dice-roll-availability-updated', blocked: false);
     expect(app(SessionMatchStore::class)->find($id)->data['boards'])->toBe([array_fill(0, 9, ''), array_fill(0, 9, '')]);
     expect(app(SessionMatchStore::class)->find($id)->data['pending_roll'])->toBeNull();
     expect(app(SessionMatchStore::class)->score($id)[$winner->value])->toBe(1);
@@ -134,7 +137,7 @@ test('restarts a pending roll without resetting the match score and starts a new
     $component = Livewire::test('dice-match', ['matchId' => $id])->call('roll');
     expect(app(SessionMatchStore::class)->find($id)->data['pending_roll'])->toBe(1);
 
-    $component->call('restart');
+    $component->call('restart')->assertDispatched('dice-roll-availability-updated', blocked: false);
     expect(app(SessionMatchStore::class)->find($id)->data['pending_roll'])->toBeNull();
     expect(app(SessionMatchStore::class)->find($id)->data['last_roll'])->toBeNull();
     expect(app(SessionMatchStore::class)->startingPlayer($id))->toBe(PlayerMark::O);

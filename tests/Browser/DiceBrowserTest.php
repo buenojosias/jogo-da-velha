@@ -102,7 +102,8 @@ it('keeps the server result hidden until the 3D die finishes landing', function 
 it('rolls on the server, retains a pending result and applies only an authorized placement', function () {
     $page = visit('/')->click('a[href$="/dado"]')
         ->assertScript('location.pathname', '/dado')
-        ->assertCount('[data-testid^="cell-"]', 18);
+        ->assertCount('[data-testid^="cell-"]', 18)
+        ->assertScript('document.querySelector("[data-testid=roll-button]").disabled', false);
     $starter = strtolower(substr($page->script('document.querySelector("[data-testid=match-status]").textContent.trim()'), -1));
     $page->click('[data-testid="dice-board-esquerdo"] [data-testid="cell-0"]')
         ->assertSeeIn('[data-testid="rejection-message"]', 'Role o dado antes');
@@ -112,12 +113,15 @@ it('rolls on the server, retains a pending result and applies only an authorized
     $side = $face <= 3 ? 'esquerdo' : 'direito';
     $otherSide = $side === 'esquerdo' ? 'direito' : 'esquerdo';
     $column = ($face - 1) % 3;
-    $page->assertScript('document.querySelector("[data-testid=roll-button]").disabled', true)
+    $page->assertScript('document.querySelector("[data-testid=dice-face]").dataset.phase', 'idle')
+        ->assertScript('document.querySelector("[data-testid=roll-button]").disabled', true)
+        ->assertScript('(() => { const button = document.querySelector("[data-testid=roll-button]"); const face = document.querySelector("[data-testid=dice-face]").dataset.face; button.click(); return button.disabled && document.querySelector("[data-testid=dice-face]").dataset.face === face; })()', true)
         ->refresh()
         ->assertScript('document.querySelector("[data-testid=dice-face]").dataset.face', (string) $face)
         ->assertScript('document.querySelector("[data-testid=roll-button]").disabled', true)
         ->click('[data-testid="dice-board-'.$otherSide.'"] [data-testid="cell-'.$column.'"]')
-        ->assertSeeIn('[data-testid="rejection-message"]', 'coluna indicada');
+        ->assertSeeIn('[data-testid="rejection-message"]', 'coluna indicada')
+        ->assertScript('document.querySelector("[data-testid=roll-button]").disabled', true);
     diceBrowserPlace($page, $side, $column, $starter);
     $page->assertSeeIn('[data-testid="match-status"]', 'Vez do jogador '.($starter === 'x' ? 'O' : 'X'))
         ->assertScript('document.querySelector("[data-testid=roll-button]").disabled', false)
@@ -159,7 +163,12 @@ it('confirms a new match while cancellation leaves the current boards intact', f
         ->assertScript('document.querySelector("[data-testid=new-match-dialog]").open', true)
         ->click('[data-testid="new-match-dialog"] button:first-of-type')
         ->assertScript('document.querySelector("[data-testid=new-match-dialog]").open', false);
+    diceBrowserRoll($page);
+    $page->assertScript('document.querySelector("[data-testid=roll-button]").disabled', true)
+        ->click('[x-ref="restartButton"]')
+        ->assertScript('document.querySelector("[data-testid=roll-button]").disabled', false);
     $face = diceBrowserRoll($page);
+    $page->assertScript('document.querySelector("[data-testid=roll-button]").disabled', true);
     $page->click('[data-testid="new-match-button"]')
         ->click('[data-testid="confirm-new-match"]')
         ->assertScript('location.pathname', '/dado')

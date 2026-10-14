@@ -77,6 +77,7 @@ new class extends Component
             ? 'Coluna '.$roll.' cheia! Jogador '.strtoupper($state->currentPlayer->value).' perdeu a vez.'
             : null;
         unset($this->matchState, $this->score, $this->winningLine);
+        $this->dispatch('dice-roll-availability-updated', blocked: $result->state->data['pending_roll'] !== null || $result->state->isFinished());
 
         return $roll;
     }
@@ -103,6 +104,7 @@ new class extends Component
         $this->rejectionMessage = null;
         $this->rollNotice = null;
         unset($this->matchState, $this->score, $this->winningLine);
+        $this->dispatch('dice-roll-availability-updated', blocked: $result->state->isFinished());
         if ($result->state->isFinished()) {
             $this->dispatch('dice-round-finished');
         }
@@ -114,6 +116,7 @@ new class extends Component
         $this->rejectionMessage = null;
         $this->rollNotice = null;
         unset($this->matchState, $this->score, $this->winningLine);
+        $this->dispatch('dice-roll-availability-updated', blocked: false);
     }
 
     public function newMatch(): void
@@ -151,6 +154,7 @@ new class extends Component
     x-data="{
         resultOrigin: null,
         rolling: false,
+        rollBlocked: {{ $pendingRoll !== null || $state->isFinished() ? 'true' : 'false' }},
         rollPhase: 'idle',
         rollStartedAt: 0,
         announcedFace: null,
@@ -239,6 +243,7 @@ new class extends Component
         }
     }"
     x-init="registerRollInterceptor()"
+    x-on:dice-roll-availability-updated.window="rollBlocked = $event.detail.blocked"
     x-on:dice-round-finished.window="openRoundResult()"
 >
     <x-design-system.match-header
@@ -279,7 +284,7 @@ new class extends Component
                         @endforeach
                     </span>
                 </span>
-                <button type="button" x-on:click="startRoll()" x-bind:disabled="rolling" @disabled($pendingRoll !== null || $state->isFinished()) data-testid="roll-button" class="min-h-12 rounded-ds-control bg-ds-primary px-4 py-2 text-sm font-extrabold text-ds-on-primary hover:bg-ds-primary-hover focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-ds-focus disabled:cursor-not-allowed disabled:opacity-60">Rolar dado</button>
+                <button type="button" x-on:click="startRoll()" x-bind:disabled="rolling || rollBlocked" @disabled($pendingRoll !== null || $state->isFinished()) data-testid="roll-button" class="min-h-12 rounded-ds-control bg-ds-primary px-4 py-2 text-sm font-extrabold text-ds-on-primary enabled:hover:bg-ds-primary-hover focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-ds-focus disabled:cursor-not-allowed disabled:opacity-60">Rolar dado</button>
             </div>
 
             <p class="sr-only" role="status" aria-live="polite" x-text="rolling ? 'Rolando dado' : (announcedFace ? 'Dado: face ' + announcedFace : '')"></p>

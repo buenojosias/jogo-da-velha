@@ -189,6 +189,10 @@ html[data-design-system='experimental'] .two-lines-5x5-board > button {
 
 html[data-design-system='experimental'] .dice-game .experimental-board > button {
     min-height: 0;
+    display: grid;
+    place-items: center;
+    font-size: clamp(2.25rem, 6vw, 2.75rem);
+    line-height: 1;
 }
 
 html[data-design-system='experimental'] .dice-stage {
