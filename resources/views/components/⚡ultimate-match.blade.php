@@ -190,21 +190,40 @@ new class extends Component
                                 $result = $rules->subBoardResult($state, $boardIndex);
                                 $available = in_array($boardIndex, $availableBoards, true);
                                 $isWinningBoard = in_array($boardIndex, $globalWinningLine ?? [], true);
-                                $resultLabel = $result === 'draw' ? 'empatado' : ($result === null ? 'em andamento' : 'conquistado por '.strtoupper($result));
+                                $statusLabel = match (true) {
+                                    $result === 'draw' => 'empatado',
+                                    $result === 'x' => 'conquistado pelo jogador X',
+                                    $result === 'o' => 'conquistado pelo jogador O',
+                                    $state->isFinished() => 'rodada encerrada, indisponível',
+                                    $targetBoard === $boardIndex => 'obrigatório e disponível para jogar',
+                                    $available => 'disponível para jogar',
+                                    default => 'aguardando, indisponível neste turno',
+                                };
+                                $boardAppearance = match (true) {
+                                    $isWinningBoard => 'border-ds-success bg-ds-hover',
+                                    $result === 'x' => 'border-ds-x bg-ds-surface-muted',
+                                    $result === 'o' => 'border-ds-o bg-ds-surface-muted',
+                                    $result === 'draw' => 'border-dotted border-ds-border bg-ds-elevated',
+                                    $targetBoard === $boardIndex => 'border-ds-primary bg-ds-hover',
+                                    $available => 'border-ds-success bg-ds-surface',
+                                    default => 'border-dashed border-ds-border bg-ds-surface-muted',
+                                };
                             @endphp
                             <button type="button" wire:key="ultimate-overview-{{ $boardIndex }}" data-testid="ultimate-sub-board-{{ $boardIndex }}"
                                 data-result="{{ $result ?? '' }}" data-available="{{ $available ? 'true' : 'false' }}" data-target="{{ $targetBoard === $boardIndex ? 'true' : 'false' }}"
-                                aria-label="Subtabuleiro {{ $boardIndex + 1 }}, {{ $resultLabel }}{{ $available ? ', disponível para jogar' : '' }}"
+                                aria-label="Subtabuleiro {{ $boardIndex + 1 }}, {{ $statusLabel }}"
                                 x-on:click="selectBoard({{ $boardIndex }}, {{ $available ? 'true' : 'false' }})"
                                 x-bind:aria-pressed="focusedBoard === {{ $boardIndex }}"
                                 x-bind:class="focusedBoard === {{ $boardIndex }} ? 'ring-2 ring-ds-focus' : ''"
-                                class="relative min-w-0 rounded-ds-control border-2 p-1 text-ds-text focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-ds-focus sm:p-1.5 {{ $isWinningBoard ? 'border-ds-success bg-ds-hover' : ($available ? 'border-ds-primary bg-ds-surface' : 'border-ds-border bg-ds-surface-muted') }}">
+                                class="relative min-w-0 rounded-ds-control border-2 p-1 text-ds-text focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-ds-focus sm:p-1.5 {{ $boardAppearance }}">
                                 <span class="grid aspect-square grid-cols-3 grid-rows-3 gap-0.5" aria-hidden="true">
                                     @foreach ($board as $cellIndex => $mark)
                                         <span class="flex aspect-square min-h-0 min-w-0 items-center justify-center rounded-sm border border-ds-border bg-ds-elevated text-[0.65rem] font-black leading-none sm:text-sm {{ $mark === 'x' ? 'text-ds-x' : ($mark === 'o' ? 'text-ds-o' : '') }}">{{ strtoupper($mark) }}</span>
                                     @endforeach
                                 </span>
-                                <span class="mt-0.5 block truncate text-center text-[0.65rem] font-extrabold sm:text-xs">{{ $boardIndex + 1 }} · {{ $result === 'draw' ? 'Empate' : ($result ? 'Venceu '.strtoupper($result) : ($available ? 'Livre' : 'Aguarda')) }}</span>
+                                @if ($result !== null || $targetBoard === $boardIndex)
+                                    <span aria-hidden="true" class="pointer-events-none absolute right-0.5 top-0.5 flex size-3 items-center justify-center rounded-full bg-ds-surface text-[0.55rem] font-black leading-none shadow-ds-card {{ $result === 'x' ? 'text-ds-x' : ($result === 'o' ? 'text-ds-o' : ($result === 'draw' ? 'text-ds-text-secondary' : 'text-ds-primary')) }}">{{ $result === 'draw' ? '=' : ($result ? strtoupper($result) : '◆') }}</span>
+                                @endif
                             </button>
                         @endforeach
                     </div>
