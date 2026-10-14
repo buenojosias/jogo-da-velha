@@ -114,12 +114,12 @@ new class extends Component
     $availableBoards = $this->availableBoards;
     $globalWinningLine = $this->globalWinningLine;
     $score = $this->score;
-    $initialFocus = $targetBoard ?? ($availableBoards[0] ?? 0);
+    $initialFocus = $targetBoard ?? ($availableBoards[0] ?? null);
 @endphp
 
 <div class="experimental-match mx-auto flex min-h-screen w-full max-w-6xl flex-col gap-4 px-4 py-4 text-ds-text sm:px-6 sm:py-6"
     x-data="{
-        focusedBoard: {{ $initialFocus }},
+        focusedBoard: {{ $initialFocus === null ? 'null' : $initialFocus }},
         resultOrigin: null,
         openResult() { this.$nextTick(() => { const dialog = this.$refs.resultDialog; if (!dialog || dialog.open) return; this.resultOrigin = document.activeElement; dialog.showModal(); }); },
         closeResult() { this.$refs.resultDialog?.close(); },
@@ -137,17 +137,21 @@ new class extends Component
                 }
             });
         },
-        selectBoard(boardIndex, available) {
-            this.focusedBoard = boardIndex;
-            if (available) this.focusPlayableBoard(boardIndex);
-        },
-        updateBoard(boardIndex) {
+        selectBoard(boardIndex) {
+            const board = this.$refs.overview?.children[boardIndex];
+            if (!board || board.disabled) return;
             this.focusedBoard = boardIndex;
             this.focusPlayableBoard(boardIndex);
         },
+        updateBoard(boardIndex) {
+            const boards = [...(this.$refs.overview?.querySelectorAll('button') ?? [])];
+            const nextIndex = boards[boardIndex] && !boards[boardIndex].disabled ? boardIndex : boards.findIndex(board => !board.disabled);
+            this.focusedBoard = nextIndex >= 0 ? nextIndex : null;
+            if (this.focusedBoard !== null) this.focusPlayableBoard(this.focusedBoard);
+        },
         returnToOverview() {
             const overview = this.$refs.overview?.querySelector(`[data-testid='ultimate-sub-board-${this.focusedBoard}']`);
-            if (!overview) return;
+            if (!overview || overview.disabled) return;
             overview.focus({ preventScroll: true });
             overview.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth', block: 'nearest' });
         }
@@ -212,10 +216,11 @@ new class extends Component
                             <button type="button" wire:key="ultimate-overview-{{ $boardIndex }}" data-testid="ultimate-sub-board-{{ $boardIndex }}"
                                 data-result="{{ $result ?? '' }}" data-available="{{ $available ? 'true' : 'false' }}" data-target="{{ $targetBoard === $boardIndex ? 'true' : 'false' }}"
                                 aria-label="Subtabuleiro {{ $boardIndex + 1 }}, {{ $statusLabel }}"
-                                x-on:click="selectBoard({{ $boardIndex }}, {{ $available ? 'true' : 'false' }})"
-                                x-bind:aria-pressed="focusedBoard === {{ $boardIndex }}"
-                                x-bind:class="focusedBoard === {{ $boardIndex }} ? 'ring-2 ring-ds-focus' : ''"
-                                class="relative min-w-0 rounded-ds-control border-2 p-1 text-ds-text focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-ds-focus sm:p-1.5 {{ $boardAppearance }}">
+                                x-on:click="selectBoard({{ $boardIndex }})"
+                                x-bind:aria-pressed="focusedBoard === {{ $boardIndex }} && ! $el.disabled"
+                                x-bind:class="focusedBoard === {{ $boardIndex }} && ! $el.disabled ? 'ring-2 ring-ds-focus' : ''"
+                                @disabled(! $available)
+                                class="relative min-w-0 rounded-ds-control border-2 p-1 text-ds-text enabled:cursor-pointer disabled:cursor-not-allowed focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-ds-focus sm:p-1.5 {{ $boardAppearance }}">
                                 <span class="grid aspect-square grid-cols-3 grid-rows-3 gap-0.5" aria-hidden="true">
                                     @foreach ($board as $cellIndex => $mark)
                                         <span class="flex aspect-square min-h-0 min-w-0 items-center justify-center rounded-sm border border-ds-border bg-ds-elevated text-[0.65rem] font-black leading-none sm:text-sm {{ $mark === 'x' ? 'text-ds-x' : ($mark === 'o' ? 'text-ds-o' : '') }}">{{ strtoupper($mark) }}</span>

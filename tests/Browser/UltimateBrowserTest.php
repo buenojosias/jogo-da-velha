@@ -188,7 +188,18 @@ it('lets a keyboard user go directly from the overview to a playable cell', func
         ->assertAttribute('[data-testid="ultimate-sub-board-4"]', 'aria-pressed', 'true');
 });
 
-it('keeps focus on the overview when a closed subboard is selected', function () {
+it('keeps waiting subboards disabled while the required subboard remains playable', function () {
+    $page = visit('/ultimate')
+        ->click('[data-testid="ultimate-cell-0-4"]')
+        ->assertAttribute('[data-testid="ultimate-sub-board-0"]', 'data-available', 'false')
+        ->assertAttribute('[data-testid="ultimate-sub-board-4"]', 'aria-pressed', 'true')
+        ->assertScript('(() => { const board = document.querySelector("[data-testid=ultimate-sub-board-0]"); const focus = document.activeElement; board.click(); board.focus(); return board.disabled && board.getAttribute("aria-pressed") === "false" && document.querySelector("[data-testid=ultimate-sub-board-4]").getAttribute("aria-pressed") === "true" && document.activeElement === focus && !document.querySelector("[data-testid=rejection-message]"); })()', true)
+        ->click('[data-testid="ultimate-sub-board-4"]')
+        ->assertScript('document.activeElement?.dataset.testid', 'ultimate-cell-4-0')
+        ->assertNoJavaScriptErrors();
+});
+
+it('keeps conquered subboards disabled and moves selection to the next playable one', function () {
     $page = visit('/ultimate');
     foreach ([[0, 1], [1, 0], [0, 2], [2, 0], [0, 0]] as [$board, $cell]) {
         $page->click('[data-testid="ultimate-sub-board-'.$board.'"]')
@@ -197,9 +208,9 @@ it('keeps focus on the overview when a closed subboard is selected', function ()
     }
 
     $page->assertAttribute('[data-testid="ultimate-sub-board-0"]', 'data-available', 'false')
-        ->click('[data-testid="ultimate-sub-board-0"]')
-        ->assertScript('document.activeElement?.dataset.testid', 'ultimate-sub-board-0')
-        ->assertAttribute('[data-testid="ultimate-sub-board-0"]', 'aria-pressed', 'true')
+        ->assertAttribute('[data-testid="ultimate-sub-board-0"]', 'aria-pressed', 'false')
+        ->assertAttribute('[data-testid="ultimate-sub-board-1"]', 'aria-pressed', 'true')
+        ->assertScript('(() => { const board = document.querySelector("[data-testid=ultimate-sub-board-0]"); const focus = document.activeElement; board.click(); return board.disabled && document.querySelector("[data-testid=ultimate-sub-board-1]").getAttribute("aria-pressed") === "true" && document.activeElement === focus && !!board.querySelector("[data-winner-overlay]") && !document.querySelector("[data-testid=rejection-message]"); })()', true)
         ->assertScript('Array.from(document.querySelectorAll("[data-testid=ultimate-focus-board-0] button")).every(cell => cell.disabled)', true)
         ->assertNoJavaScriptErrors();
 });

@@ -74,6 +74,7 @@ test('shows nine compact overview boards with accessible available states and no
     foreach ($overviewBoards as $index => $board) {
         expect($board->getAttribute('aria-label'))->toBe('Subtabuleiro '.($index + 1).', disponível para jogar');
         expect($board->getAttribute('class'))->toContain('border-ds-success');
+        expect($board->hasAttribute('disabled'))->toBeFalse();
         expect(trim($board->textContent))->toBe('');
     }
 });
@@ -104,6 +105,7 @@ test('distinguishes mandatory waiting conquered and drawn overview boards withou
         $board = $xpath->query('//*[@data-testid="ultimate-sub-board-'.$index.'"]')->item(0);
         expect($board->getAttribute('aria-label'))->toBe('Subtabuleiro '.($index + 1).', '.$status);
         expect($board->getAttribute('class'))->toContain($border);
+        expect($board->hasAttribute('disabled'))->toBe($index !== 4);
         expect($xpath->query('.//span[@aria-hidden="true" and contains(@class, "right-0.5")]', $board)->item(0)?->textContent ?? '')->toBe($indicator);
         $overlay = $xpath->query('.//span[@data-winner-overlay]', $board)->item(0);
         expect(trim($overlay?->textContent ?? ''))->toBe($index === 0 ? 'X' : ($index === 1 ? 'O' : ''));
@@ -139,6 +141,9 @@ test('awards a global win once, then preserves score and alternates the starter 
     $component = Livewire::test('ultimate-match', ['matchId' => $id]);
 
     $component->call('place', 2, 2)->assertSee('Jogador X venceu!')->assertSee('rodada encerrada, indisponível')->assertDispatched('ultimate-round-finished');
+    $document = new DOMDocument;
+    @$document->loadHTML('<?xml encoding="UTF-8">'.$component->html());
+    expect((new DOMXPath($document))->query('//*[@data-testid="ultimate-overview"]//button[@disabled]'))->toHaveCount(9);
     expect($store->score($id)['x'])->toBe(1);
     expect($store->find($id)->winner)->toBe(PlayerMark::X);
     $component->call('place', 8, 8)->assertSee('A rodada terminou');
