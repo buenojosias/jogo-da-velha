@@ -113,6 +113,8 @@ it('marks the blocked piece and explains the restriction to keyboard users', fun
         awaitBrowserCellMark($page, $cell, $turn % 2 === 0 ? 'x' : 'o');
     }
 
+    $page->assertSeeIn('[data-testid="movement-restriction-hint"]', 'Movimentos livres restantes: 3');
+
     foreach ([[0, 5, 'x'], [1, 7, 'o'], [5, 0, 'x'], [7, 1, 'o'], [0, 5, 'x'], [1, 7, 'o']] as [$from, $to, $mark]) {
         $page->click('[data-testid="cell-'.$from.'"]')->click('[data-testid="cell-'.$to.'"]');
         awaitBrowserCellMark($page, $to, $mark);
@@ -120,7 +122,8 @@ it('marks the blocked piece and explains the restriction to keyboard users', fun
 
     $page->assertAttribute('[data-testid="cell-5"]', 'data-restricted-cell', 'true')
         ->assertAttribute('[data-testid="cell-5"]', 'data-mark', 'x')
-        ->assertSeeIn('[data-testid="cell-5"]', 'Aguarde')
+        ->assertSeeIn('[data-testid="movement-restriction-hint"]', 'Restrição ativa:')
+        ->assertScript('document.querySelector("[data-testid=cell-5]").textContent.trim()', 'x')
         ->keys('[data-testid="cell-5"]', 'Enter')
         ->assertSeeIn('[data-testid="restriction-message"]', 'Escolha outra peça.')
         ->click('[data-testid="cell-2"]')

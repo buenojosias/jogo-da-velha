@@ -114,6 +114,17 @@ class Move3x3Rules implements GameRules
             : null;
     }
 
+    public function remainingFreeMoves(MatchState $state): ?int
+    {
+        $this->assertState($state);
+
+        if ($state->isFinished() || count(array_filter($state->data['board'])) < 6) {
+            return null;
+        }
+
+        return max(0, self::UNRESTRICTED_MOVES_PER_PLAYER - $state->data['move_count'][$state->currentPlayer->value]);
+    }
+
     public function validate(MatchState $state, GameAction $action): ActionValidation
     {
         $this->assertState($state);

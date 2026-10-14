@@ -22,6 +22,7 @@ test('opens public movement without login and draws the starting player on the s
     $page->assertOk()->assertViewIs('experimental-move-3x3')
         ->assertSee('Vez do jogador '.$starter->name)
         ->assertSee('data-testid="new-match-button"', false)
+        ->assertDontSee('movement-restriction-hint')
         ->assertDontSee('js/game.js')
         ->assertDontSee('let selectedPiece = null');
     expect(substr_count($page->getContent(), 'data-testid="cell-'))->toBe(9);
@@ -63,7 +64,7 @@ test('keeps a completed result and score across reload and next round', function
         $component->call('place', $cell);
     }
 
-    $this->get(route('3-move'))->assertOk()->assertSee('Jogador X venceu!');
+    $this->get(route('3-move'))->assertOk()->assertSee('Jogador X venceu!')->assertDontSee('movement-restriction-hint');
     expect(app(SessionMatchStore::class)->find($matchId)->status)->toBe(MatchStatus::Completed);
     expect(app(SessionMatchStore::class)->score($matchId)['x'])->toBe(1);
     $component->call('move', 0, 5)->assertSee('A rodada terminou. Inicie uma nova rodada para jogar novamente.');
@@ -193,8 +194,10 @@ test('preserves piece identity and the fourth-move restriction through reload an
     foreach ([0, 1, 2, 3, 4, 6] as $cell) {
         $component->call('place', $cell);
     }
-    foreach ([[0, 5], [1, 7], [5, 0], [7, 1], [0, 5], [1, 7]] as [$from, $to]) {
+    $component->assertSee('Movimentos livres restantes: 3');
+    foreach ([[0, 5, 3], [1, 7, 2], [5, 0, 2], [7, 1, 1], [0, 5, 1], [1, 7, 0]] as [$from, $to, $remaining]) {
         $component->call('move', $from, $to);
+        $component->assertSee($remaining > 0 ? 'Movimentos livres restantes: '.$remaining : 'Restrição ativa: você não pode mover a mesma peça do seu turno anterior.');
     }
     $store = app(SessionMatchStore::class);
     $before = $store->find($id);
@@ -203,7 +206,8 @@ test('preserves piece identity and the fourth-move restriction through reload an
     $this->get(route('3-move'))->assertOk()
         ->assertSee('data-testid="cell-5"', false)
         ->assertSee('data-restricted-cell="true"', false)
-        ->assertSee('Aguarde');
+        ->assertSee('Restrição ativa: você não pode mover a mesma peça do seu turno anterior.')
+        ->assertDontSee('Aguarde');
     Livewire::test('exit-match', ['matchId' => $id, 'modality' => '3-move'])
         ->call('requestExit')->assertSet('confirming', true)
         ->call('keep')->assertRedirect(route('welcome'));

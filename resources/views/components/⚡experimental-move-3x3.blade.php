@@ -144,6 +144,7 @@ new class extends Component
 @php($board = $state->data['board'])
 @php($movementPhase = count(array_filter($board)) === 6)
 @php($blockedCell = app(Move3x3Rules::class)->blockedCell($state))
+@php($remainingFreeMoves = app(Move3x3Rules::class)->remainingFreeMoves($state))
 @php($unavailableCells = $state->isFinished() ? array_keys($board) : ($movementPhase ? array_keys(array_filter($board, fn (string $mark): bool => $mark !== '' && $mark !== $state->currentPlayer->value)) : array_keys(array_filter($board))))
 
 <div
@@ -224,6 +225,11 @@ new class extends Component
             </x-design-system.match-status>
             @if (! $state->isFinished())
                 <p data-testid="phase-instruction" class="mt-2 text-center text-sm font-bold text-ds-text-secondary">{{ $movementPhase ? ($blockedCell === null ? 'Selecione uma peça e depois uma casa vazia' : 'Selecione uma peça disponível e depois uma casa vazia') : 'Coloque uma peça' }}</p>
+            @endif
+            @if ($remainingFreeMoves !== null)
+                <p data-testid="movement-restriction-hint" aria-live="polite" class="mt-1 text-center text-xs font-semibold text-ds-text-muted">
+                    {{ $remainingFreeMoves > 0 ? 'Movimentos livres restantes: '.$remainingFreeMoves : 'Restrição ativa: você não pode mover a mesma peça do seu turno anterior.' }}
+                </p>
             @endif
             <x-design-system.game-board
                 :cells="$board" :columns="3" label="Tabuleiro Movimento 3 por 3"
