@@ -199,9 +199,9 @@ new class extends Component
                                 x-bind:aria-pressed="focusedBoard === {{ $boardIndex }}"
                                 x-bind:class="focusedBoard === {{ $boardIndex }} ? 'ring-2 ring-ds-focus' : ''"
                                 class="relative min-w-0 rounded-ds-control border-2 p-1 text-ds-text focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-ds-focus sm:p-1.5 {{ $isWinningBoard ? 'border-ds-success bg-ds-hover' : ($available ? 'border-ds-primary bg-ds-surface' : 'border-ds-border bg-ds-surface-muted') }}">
-                                <span class="grid aspect-square grid-cols-3 gap-0.5" aria-hidden="true">
+                                <span class="grid aspect-square grid-cols-3 grid-rows-3 gap-0.5" aria-hidden="true">
                                     @foreach ($board as $cellIndex => $mark)
-                                        <span class="flex items-center justify-center rounded-sm border border-ds-border bg-ds-elevated text-[0.65rem] font-black leading-none sm:text-sm {{ $mark === 'x' ? 'text-ds-x' : ($mark === 'o' ? 'text-ds-o' : '') }}">{{ strtoupper($mark) }}</span>
+                                        <span class="flex aspect-square min-h-0 min-w-0 items-center justify-center rounded-sm border border-ds-border bg-ds-elevated text-[0.65rem] font-black leading-none sm:text-sm {{ $mark === 'x' ? 'text-ds-x' : ($mark === 'o' ? 'text-ds-o' : '') }}">{{ strtoupper($mark) }}</span>
                                     @endforeach
                                 </span>
                                 <span class="mt-0.5 block truncate text-center text-[0.65rem] font-extrabold sm:text-xs">{{ $boardIndex + 1 }} · {{ $result === 'draw' ? 'Empate' : ($result ? 'Venceu '.strtoupper($result) : ($available ? 'Livre' : 'Aguarda')) }}</span>

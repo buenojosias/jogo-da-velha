@@ -89,6 +89,42 @@ it('keeps the overview and enlarged board usable without horizontal overflow at 
     'desktop' => [1280, 900],
 ]);
 
+it('keeps every overview cell square and aligned after several marks at :dataset', function (int $width, int $height) {
+    $uniformOverview = <<<'JS'
+        (() => {
+            const boards = [...document.querySelectorAll('[data-testid^="ultimate-sub-board-"]')];
+            if (boards.length !== 9) return false;
+            const firstBoard = boards[0].getBoundingClientRect();
+
+            return boards.every(board => {
+                const bounds = board.getBoundingClientRect();
+                const grid = board.firstElementChild;
+                const gridBounds = grid.getBoundingClientRect();
+                const cells = [...grid.children].map(cell => cell.getBoundingClientRect());
+                const size = cells[0]?.width;
+
+                return Math.abs(bounds.width - firstBoard.width) < 1
+                    && Math.abs(bounds.height - firstBoard.height) < 1
+                    && Math.abs(gridBounds.width - gridBounds.height) < 1
+                    && cells.length === 9
+                    && cells.every(cell => Math.abs(cell.width - size) < 1 && Math.abs(cell.height - size) < 1);
+            });
+        })()
+        JS;
+
+    $page = visit('/ultimate')->resize($width, $height)
+        ->assertScript($uniformOverview, true)
+        ->click('[data-testid="ultimate-cell-0-4"]')
+        ->assertScript('document.querySelector("[data-testid=ultimate-cell-0-4]").dataset.mark !== ""', true);
+
+    $page->click('[data-testid="ultimate-cell-4-0"]')
+        ->assertScript('document.querySelector("[data-testid=ultimate-cell-4-0]").dataset.mark !== ""', true)
+        ->click('[data-testid="ultimate-cell-0-1"]')
+        ->assertScript('document.querySelector("[data-testid=ultimate-cell-0-1]").dataset.mark !== ""', true)
+        ->assertScript($uniformOverview, true)
+        ->assertNoJavaScriptErrors();
+})->with(['mobile' => [390, 844], 'desktop' => [1280, 900]]);
+
 it('moves focus and the viewport to a selected playable subboard at :dataset', function (int $width, int $height) {
     $page = visit('/ultimate')->resize($width, $height)
         ->assertScript('window.scrollY', 0)
