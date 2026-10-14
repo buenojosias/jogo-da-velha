@@ -204,7 +204,7 @@ new class extends Component
                                     $result === 'x' => 'border-ds-x bg-ds-surface-muted',
                                     $result === 'o' => 'border-ds-o bg-ds-surface-muted',
                                     $result === 'draw' => 'border-dotted border-ds-border bg-ds-elevated',
-                                    $targetBoard === $boardIndex => 'border-ds-primary bg-ds-hover',
+                                    $targetBoard === $boardIndex => 'border-ds-ultimate-active bg-ds-ultimate-active/10',
                                     $available => 'border-ds-success bg-ds-surface',
                                     default => 'border-dashed border-ds-border bg-ds-surface-muted',
                                 };
@@ -221,8 +221,12 @@ new class extends Component
                                         <span class="flex aspect-square min-h-0 min-w-0 items-center justify-center rounded-sm border border-ds-border bg-ds-elevated text-[0.65rem] font-black leading-none sm:text-sm {{ $mark === 'x' ? 'text-ds-x' : ($mark === 'o' ? 'text-ds-o' : '') }}">{{ strtoupper($mark) }}</span>
                                     @endforeach
                                 </span>
-                                @if ($result !== null || $targetBoard === $boardIndex)
-                                    <span aria-hidden="true" class="pointer-events-none absolute right-0.5 top-0.5 flex size-3 items-center justify-center rounded-full bg-ds-surface text-[0.55rem] font-black leading-none shadow-ds-card {{ $result === 'x' ? 'text-ds-x' : ($result === 'o' ? 'text-ds-o' : ($result === 'draw' ? 'text-ds-text-secondary' : 'text-ds-primary')) }}">{{ $result === 'draw' ? '=' : ($result ? strtoupper($result) : '◆') }}</span>
+                                @if ($result === 'x' || $result === 'o')
+                                    <span aria-hidden="true" data-winner-overlay="{{ $result }}" class="pointer-events-none absolute inset-[2px] flex items-center justify-center rounded-[0.625rem] {{ $result === 'x' ? 'bg-ds-x/15 text-ds-x' : 'bg-ds-o/15 text-ds-o' }}">
+                                        <span class="text-5xl font-black leading-none opacity-50 sm:text-6xl">{{ strtoupper($result) }}</span>
+                                    </span>
+                                @elseif ($result === 'draw' || $targetBoard === $boardIndex)
+                                    <span aria-hidden="true" class="pointer-events-none absolute right-0.5 top-0.5 flex size-3 items-center justify-center rounded-full bg-ds-surface text-[0.55rem] font-black leading-none shadow-ds-card {{ $result === 'draw' ? 'text-ds-text-secondary' : 'text-ds-ultimate-active' }}">{{ $result === 'draw' ? '=' : '◆' }}</span>
                                 @endif
                             </button>
                         @endforeach

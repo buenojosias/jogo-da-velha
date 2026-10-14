@@ -93,20 +93,29 @@ test('distinguishes mandatory waiting conquered and drawn overview boards withou
     @$document->loadHTML('<?xml encoding="UTF-8">'.Livewire::test('ultimate-match', ['matchId' => $id])->html());
     $xpath = new DOMXPath($document);
     $expected = [
-        0 => ['conquistado pelo jogador X', 'border-ds-x', 'X'],
-        1 => ['conquistado pelo jogador O', 'border-ds-o', 'O'],
+        0 => ['conquistado pelo jogador X', 'border-ds-x', ''],
+        1 => ['conquistado pelo jogador O', 'border-ds-o', ''],
         2 => ['empatado', 'border-dotted', '='],
         3 => ['aguardando, indisponível neste turno', 'border-dashed', ''],
-        4 => ['obrigatório e disponível para jogar', 'border-ds-primary', '◆'],
+        4 => ['obrigatório e disponível para jogar', 'border-ds-ultimate-active', '◆'],
     ];
 
     foreach ($expected as $index => [$status, $border, $indicator]) {
         $board = $xpath->query('//*[@data-testid="ultimate-sub-board-'.$index.'"]')->item(0);
         expect($board->getAttribute('aria-label'))->toBe('Subtabuleiro '.($index + 1).', '.$status);
         expect($board->getAttribute('class'))->toContain($border);
-        expect($xpath->query('.//span[@aria-hidden="true" and contains(@class, "absolute")]', $board)->item(0)?->textContent ?? '')->toBe($indicator);
+        expect($xpath->query('.//span[@aria-hidden="true" and contains(@class, "right-0.5")]', $board)->item(0)?->textContent ?? '')->toBe($indicator);
+        $overlay = $xpath->query('.//span[@data-winner-overlay]', $board)->item(0);
+        expect(trim($overlay?->textContent ?? ''))->toBe($index === 0 ? 'X' : ($index === 1 ? 'O' : ''));
+        if ($overlay !== null) {
+            expect($overlay->getAttribute('class'))->toContain('pointer-events-none', 'inset-[2px]', 'bg-ds-'.($index === 0 ? 'x' : 'o').'/15');
+        }
         expect($board->textContent)->not->toContain('Livre', 'Aguarda', 'Empate', 'Venceu');
     }
+
+    $mandatoryBoard = $xpath->query('//*[@data-testid="ultimate-sub-board-4"]')->item(0);
+    expect($mandatoryBoard->getAttribute('class'))->toContain('border-2', 'bg-ds-ultimate-active/10');
+    expect($mandatoryBoard->getAttribute('x-bind:class'))->toContain('ring-2 ring-ds-focus');
 });
 
 test('awards a global win once, then preserves score and alternates the starter on the next round', function () {

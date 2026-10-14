@@ -35,6 +35,7 @@
     --color-ds-error: var(--ds-error);
     --color-ds-x: var(--ds-x);
     --color-ds-o: var(--ds-o);
+    --color-ds-ultimate-active: var(--ds-ultimate-active);
     --radius-ds-control: var(--ds-radius-control);
     --radius-ds-card: var(--ds-radius-card);
     --shadow-ds-card: var(--ds-shadow-card);
@@ -70,6 +71,7 @@ html[data-design-system='experimental'] {
     --ds-error: #bb3049;
     --ds-x: #3752bb;
     --ds-o: #ad4160;
+    --ds-ultimate-active: #0877b5;
     --ds-radius-control: 0.75rem;
     --ds-radius-card: 1.25rem;
     --ds-shadow-card: 0 8px 24px rgb(38 25 86 / 10%);
@@ -104,6 +106,7 @@ html[data-design-system='experimental'][data-theme='dark'] {
     --ds-error: #ff91a1;
     --ds-x: #94aaff;
     --ds-o: #ff9fb4;
+    --ds-ultimate-active: #70cbf4;
     --ds-shadow-card: 0 8px 24px rgb(4 3 18 / 28%);
     --ds-shadow-elevated: 0 16px 40px rgb(4 3 18 / 38%);
     --ds-overlay: rgb(6 5 18 / 78%);
