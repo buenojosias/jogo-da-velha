@@ -51,6 +51,17 @@ test('creates and resumes an independent public match with two boards and either
     expect(app(SessionMatchStore::class)->score($id))->toBe(['x' => 0, 'o' => 0, 'draws' => 0]);
 })->with(['X' => [1, PlayerMark::X], 'O' => [2, PlayerMark::O]]);
 
+test('renders six cube faces with one through six separate pips', function () {
+    $id = openPublicDice();
+    $html = Livewire::test('dice-match', ['matchId' => $id])->html();
+    $faces = preg_split('/class="dice-cube-face dice-cube-face-\d+"/', $html);
+
+    foreach (range(1, 6) as $face) {
+        expect(substr_count($faces[$face] ?? '', 'class="dice-pip '))->toBe($face);
+    }
+    expect($html)->not->toContain('⚀', '⚁', '⚂', '⚃', '⚄', '⚅');
+});
+
 test('keeps the rolled column across reloads and rejects misplaced actions', function () {
     $id = openPublicDice(2);
     $component = Livewire::test('dice-match', ['matchId' => $id]);

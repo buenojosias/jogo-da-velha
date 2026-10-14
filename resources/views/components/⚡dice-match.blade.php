@@ -136,6 +136,14 @@ new class extends Component
     $lastRoll = $state->data['last_roll'];
     $allowedBoard = $pendingRoll === null ? null : intdiv($pendingRoll - 1, 3);
     $allowedColumn = $pendingRoll === null ? null : ($pendingRoll - 1) % 3;
+    $dicePips = [
+        1 => ['center'],
+        2 => ['top-left', 'bottom-right'],
+        3 => ['top-left', 'center', 'bottom-right'],
+        4 => ['top-left', 'top-right', 'bottom-left', 'bottom-right'],
+        5 => ['top-left', 'top-right', 'center', 'bottom-left', 'bottom-right'],
+        6 => ['top-left', 'top-right', 'middle-left', 'middle-right', 'bottom-left', 'bottom-right'],
+    ];
 @endphp
 
 <div
@@ -262,8 +270,12 @@ new class extends Component
             <div class="mx-auto mt-3 flex max-w-[30rem] items-center justify-center gap-3 rounded-ds-control border border-ds-border bg-ds-surface-muted p-2.5">
                 <span data-testid="dice-face" data-face="{{ $lastRoll ?? '' }}" data-phase="idle" x-bind:data-phase="rollPhase" role="img" x-bind:aria-label="rolling ? 'Rolando dado' : ($el.dataset.face ? 'Dado: face ' + $el.dataset.face : 'Dado ainda não rolado')" class="dice-stage relative flex size-14 shrink-0 items-center justify-center">
                     <span wire:ignore x-ref="diceCube" class="dice-cube" aria-hidden="true">
-                        @foreach (['⚀', '⚁', '⚂', '⚃', '⚄', '⚅'] as $faceIndex => $symbol)
-                            <span class="dice-cube-face dice-cube-face-{{ $faceIndex + 1 }}">{{ $symbol }}</span>
+                        @foreach ($dicePips as $face => $positions)
+                            <span class="dice-cube-face dice-cube-face-{{ $face }}">
+                                @foreach ($positions as $position)
+                                    <span class="dice-pip dice-pip-{{ $position }}"></span>
+                                @endforeach
+                            </span>
                         @endforeach
                     </span>
                 </span>
