@@ -132,6 +132,7 @@ new class extends Component
 ?>
 
 <x-design-system.rotation-match
+    :match-id="$matchId"
     :modality="$modalityKey === '3-rotation' ? 'Rotação 3×3' : 'Rotação 4×4 (3 peças)'"
     :state="$this->matchState"
     :columns="$modalityKey === '3-rotation' ? 3 : 4"

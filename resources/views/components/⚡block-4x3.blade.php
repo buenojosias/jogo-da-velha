@@ -132,6 +132,7 @@ new class extends Component
     x-on:block-line.window="showBlocked($event.detail.cells)"
 >
     <x-design-system.classic-match
+    :match-id="$matchId"
         modality="Bloqueio 4×4"
         :state="$this->matchState"
         :columns="4"

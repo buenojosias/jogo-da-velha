@@ -102,6 +102,7 @@ new class extends Component
 ?>
 
 <x-design-system.hidden-match
+    :match-id="$matchId"
     :finished="$this->matchState->isFinished()"
     :current-player="$this->matchState->currentPlayer?->value"
     :winner="$this->matchState->winner?->value"

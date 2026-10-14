@@ -36,7 +36,6 @@
 
         @isset($actions)
             <div class="flex shrink-0 items-center gap-2">
-                <a href="{{ route('welcome') }}" data-testid="catalog-return" class="inline-flex min-h-11 items-center rounded-ds-control border border-ds-border px-3 text-sm font-bold text-ds-text-secondary hover:bg-ds-hover focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-ds-focus">Catálogo</a>
                 {{ $actions }}
             </div>
         @endisset

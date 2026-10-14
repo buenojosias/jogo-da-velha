@@ -114,6 +114,7 @@ new class extends Component
 ?>
 
 <x-design-system.classic-match
+    :match-id="$matchId"
     modality="Clássico 3×3"
     :state="$this->matchState"
     :columns="3"

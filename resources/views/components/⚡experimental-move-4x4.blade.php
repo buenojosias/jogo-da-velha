@@ -139,6 +139,7 @@ new class extends Component
 ?>
 
 <x-design-system.movement-match
+    :match-id="$matchId"
     :state="$this->matchState" :score="$this->score" :winning-cells="$this->winningCells"
     :rejection-message="$rejectionMessage" :public-entry="$publicEntry"
     modality="Linha de 4 com Movimento" description="Partida local: coloque quatro peças e depois mova para uma casa vazia."

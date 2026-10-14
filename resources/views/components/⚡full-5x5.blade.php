@@ -93,6 +93,7 @@ new class extends Component
 ?>
 
 <x-design-system.classic-match
+    :match-id="$matchId"
     modality="Pontuação 5×5"
     :state="$this->matchState"
     :columns="5"

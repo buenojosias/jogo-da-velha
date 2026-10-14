@@ -1,4 +1,5 @@
 @props([
+    'matchId',
     'modality',
     'state',
     'columns',
@@ -124,6 +125,9 @@
                     <button type="button" x-on:click="$refs.newMatchDialog.showModal()" data-testid="new-match-button" class="mt-2 min-h-11 w-full rounded-ds-control border border-ds-border bg-ds-surface px-4 py-2 text-sm font-semibold text-ds-text-secondary hover:bg-ds-hover focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-ds-focus">
                         Nova partida
                     </button>
+                @endif
+                @if ($publicEntry)
+                    <livewire:exit-match :match-id="$matchId" :modality="$state->modality->key" />
                 @endif
             </x-design-system.match-actions>
 

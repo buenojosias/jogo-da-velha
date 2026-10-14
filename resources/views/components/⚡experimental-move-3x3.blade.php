@@ -244,6 +244,9 @@ new class extends Component
                         Nova partida
                     </button>
                 @endif
+                @if ($publicEntry)
+                <livewire:exit-match :match-id="$matchId" modality="3-move" />
+                @endif
             </x-design-system.match-actions>
             <p data-testid="move-count" class="text-center text-xs font-semibold text-ds-text-muted">Peças no tabuleiro: {{ count(array_filter($board)) }}</p>
         </div>
