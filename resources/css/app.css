@@ -112,11 +112,9 @@ html[data-design-system='experimental'][data-theme='dark'] {
     --ds-overlay: rgb(6 5 18 / 78%);
 }
 
-/* Board visual vocabulary — Stage B: definitions only.
-   These values are not consumed by the existing board components yet.
-   Keep palette aliases tied to the resolved data-theme through --ds-*.
-   Geometry may be overridden on a board container by its presentation density
-   in Stage C; never infer cell size solely from the viewport. */
+/* Shared board vocabulary — stages B–D.
+   Palette aliases follow the resolved data-theme through --ds-*;
+   presentation density depends on the rendered grid, not only the viewport. */
 html[data-design-system='experimental'] {
     /* Foundations: changing --ds-* updates every corresponding alias. */
     --board-surface: var(--ds-surface);
@@ -184,9 +182,8 @@ html[data-design-system='experimental'] [data-density='compact'] {
     --selected-ring: 0 0 0 1px var(--cell-selected-border);
 }
 
-/* Stage C — shared game-board geometry and neutral cell skin.
-   Kept in the components layer so existing Tailwind state utilities retain
-   precedence until the semantic state migration in Stage D. */
+/* Stages C–D — board geometry and common semantic cell states.
+   Scoped to game-board; Ultimate, Maluca and Oculto still own special presentation. */
 @layer components {
     html[data-design-system='experimental'] .ds-board-grid {
         gap: var(--board-gap);
@@ -233,15 +230,96 @@ html[data-design-system='experimental'] .ds-result-dialog::backdrop {
     backdrop-filter: blur(2px);
 }
 
-html[data-design-system='experimental'] .experimental-board [data-winning-cell='true'] {
-    border-color: var(--ds-success);
-    background: var(--ds-hover);
-    box-shadow: var(--cell-winning-glow), var(--ds-shadow-card);
+/* Semantic cell states are intentionally outside @layer: no competing
+   Tailwind state utilities remain on game-board buttons. Ordering provides
+   predictable channels: base < availability/progress < selection < victory.
+   Extra metadata (oldest, last move, restricted) keeps its own border style
+   or overlay without erasing the X/O mark or focus outline. */
+html[data-design-system='experimental'] .ds-board-cell[data-mark='x'] {
+    color: var(--player-x);
 }
 
-html[data-design-system='experimental'] .two-lines-5x5-board [data-line-progress] {
-    border-color: var(--ds-success);
-    background: color-mix(in srgb, var(--ds-success) 13%, var(--ds-surface));
+html[data-design-system='experimental'] .ds-board-cell[data-mark='o'] {
+    color: var(--player-o);
+}
+
+html[data-design-system='experimental'] .ds-board-cell:disabled {
+    cursor: not-allowed;
+    background: var(--cell-surface-muted);
+}
+
+html[data-design-system='experimental'] .ds-board-cell[data-last-move='true'] {
+    border-color: var(--cell-selected-border);
+}
+
+html[data-design-system='experimental'] .ds-board-cell[data-oldest-turn] {
+    border-style: dashed;
+}
+
+html[data-design-system='experimental'] .ds-board-cell[data-oldest-turn='current'] {
+    box-shadow: inset 0 0 0 1px var(--ds-warning), var(--cell-shadow);
+}
+
+html[data-design-system='experimental'] .ds-board-cell[data-oldest-turn='opponent'] {
+    box-shadow: inset 0 0 0 1px var(--ds-border), var(--cell-shadow);
+}
+
+html[data-design-system='experimental'] .ds-board-cell[data-restricted-cell='true'] {
+    border-color: var(--cell-restricted-border);
+    border-style: dashed;
+    cursor: not-allowed;
+}
+
+html[data-design-system='experimental'] .ds-board-cell[data-line-progress] {
+    border-color: var(--cell-winning-border);
+    background: var(--line-progress-surface);
+}
+
+html[data-design-system='experimental'] .ds-board-cell[data-selected='true'] {
+    border-color: var(--cell-selected-border);
+    box-shadow: var(--selected-ring), var(--cell-shadow);
+}
+
+html[data-design-system='experimental'] .ds-board-cell[data-winning-cell='true'] {
+    border-color: var(--cell-winning-border);
+    background: var(--cell-winning-surface);
+    box-shadow: var(--cell-winning-glow), var(--board-shadow);
+}
+
+html[data-design-system='experimental'] .ds-board-cell:focus-visible {
+    outline: 3px solid var(--cell-focus-color);
+    outline-offset: 2px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    html[data-design-system='experimental'] .ds-board-cell:not(:disabled):not([data-restricted-cell='true']):hover {
+        border-color: var(--cell-available-border);
+        background: var(--cell-hover-surface);
+        box-shadow: var(--cell-hover-shadow);
+        cursor: pointer;
+    }
+
+    /* A hover never overrides persistent selection or winning state. */
+    html[data-design-system='experimental'] .ds-board-cell[data-selected='true']:hover {
+        border-color: var(--cell-selected-border);
+        box-shadow: var(--selected-ring), var(--cell-shadow);
+    }
+
+    html[data-design-system='experimental'] .ds-board-cell[data-winning-cell='true']:hover {
+        border-color: var(--cell-winning-border);
+        background: var(--cell-winning-surface);
+        box-shadow: var(--cell-winning-glow), var(--board-shadow);
+    }
+}
+
+html[data-design-system='experimental'] .ds-board-cell:not(:disabled):not([data-restricted-cell='true']):active {
+    transform: scale(0.98);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    html[data-design-system='experimental'] .ds-board-cell {
+        transition: none;
+    }
 }
 
 html[data-design-system='experimental'] .classic-4x3-board > button {
