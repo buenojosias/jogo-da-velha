@@ -12,10 +12,14 @@ function diceBrowserRoll(AwaitableWebpage|PendingAwaitablePage $page): int
         (async () => {
             const before = {$encoded};
             const snapshot = () => JSON.stringify([document.querySelector('[data-testid=match-status]')?.textContent, document.querySelector('[data-testid=dice-instruction]')?.textContent, document.querySelector('[data-testid=dice-roll-notice]')?.textContent, document.querySelector('[data-testid=dice-face]')?.dataset.face]);
-            if (snapshot() !== before) return true;
+            const ready = () => {
+                const stage = document.querySelector('[data-testid=dice-face]');
+                return snapshot() !== before && stage?.dataset.face && stage.dataset.phase === 'idle' && stage.getAttribute('aria-label') !== 'Rolando dado';
+            };
+            if (ready()) return true;
             return await new Promise((resolve, reject) => {
                 const observer = new MutationObserver(() => {
-                    if (snapshot() !== before) {
+                    if (ready()) {
                         observer.disconnect();
                         clearTimeout(timeout);
                         resolve(true);
@@ -56,6 +60,29 @@ function diceBrowserPlace(AwaitableWebpage|PendingAwaitablePage $page, string $s
         JS);
 }
 
+function diceBrowserWaitForFace(AwaitableWebpage|PendingAwaitablePage $page): int
+{
+    $page->script(<<<'JS'
+        (async () => {
+            const stage = document.querySelector('[data-testid=dice-face]');
+            if (stage.dataset.face) return true;
+            return await new Promise((resolve, reject) => {
+                const observer = new MutationObserver(() => {
+                    if (stage.dataset.face) {
+                        observer.disconnect();
+                        clearTimeout(timeout);
+                        resolve(true);
+                    }
+                });
+                observer.observe(stage, { attributes: true, attributeFilter: ['data-face'] });
+                const timeout = setTimeout(() => { observer.disconnect(); reject(new Error('Dice result was not revealed')); }, 10000);
+            });
+        })()
+        JS);
+
+    return (int) $page->script('document.querySelector("[data-testid=dice-face]").dataset.face');
+}
+
 it('keeps the server result hidden until the die finishes landing', function () {
     $page = visit('/dado')->assertNoJavaScriptErrors();
     $before = $page->script('document.querySelector("[data-testid=dice-instruction]").textContent.trim()');
@@ -90,6 +117,202 @@ it('keeps the server result hidden until the die finishes landing', function () 
     expect($face)->toBeGreaterThanOrEqual(1)->toBeLessThanOrEqual(6);
     expect($elapsed)->toBeGreaterThanOrEqual(2300);
     $page->assertScript('(() => { const faces = [...document.querySelectorAll(".dice-flat-face")]; const visible = faces.filter(face => getComputedStyle(face).display !== "none"); return visible.length === 1 && visible[0] === faces['.($face - 1).'] && visible[0].querySelectorAll(".dice-pip").length === '.$face.'; })()', true)
+        ->assertNoJavaScriptErrors();
+});
+
+it('keeps the dice faces changing until the server result appears at :dataset', function (int $width, int $height) {
+    $page = visit('/dado', ['reducedMotion' => 'no-preference'])->resize($width, $height);
+    $before = $page->script('document.querySelector("[data-testid=dice-instruction]").textContent.trim()');
+    $page->script(<<<'JS'
+        (() => {
+            const stage = document.querySelector('[data-testid=dice-face]');
+            const faces = [...stage.querySelectorAll('.dice-flat-face')];
+            window.__diceTrace = [];
+            window.__diceFinalAt = null;
+            window.__diceStartedAt = performance.now();
+            let previous = null;
+            new MutationObserver(() => {
+                if (stage.dataset.face) {
+                    window.__diceFinalAt ??= performance.now();
+                    return;
+                }
+                const visible = faces.findIndex(face => getComputedStyle(face).display !== 'none') + 1;
+                if (visible && visible !== previous) {
+                    window.__diceTrace.push({ face: visible, at: performance.now() });
+                    previous = visible;
+                }
+            }).observe(stage, { subtree: true, attributes: true, attributeFilter: ['style', 'data-face'] });
+        })()
+        JS);
+
+    $early = $page->script(<<<'JS'
+        (async () => {
+            document.querySelector('[data-testid=roll-button]').click();
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            return {
+                trace: window.__diceTrace.length,
+                phase: document.querySelector('[data-testid=dice-face]').dataset.phase,
+                face: document.querySelector('[data-testid=dice-face]').dataset.face,
+                disabled: document.querySelector('[data-testid=roll-button]').disabled,
+                instruction: document.querySelector('[data-testid=dice-instruction]').textContent.trim(),
+            };
+        })()
+        JS);
+    expect($early['trace'])->toBeGreaterThanOrEqual(7);
+    expect($early['phase'])->toBe('spinning');
+    expect($early['face'])->toBe('');
+    expect($early['disabled'])->toBeTrue();
+    expect($early['instruction'])->toBe($before);
+
+    $face = diceBrowserWaitForFace($page);
+    $page->assertScript('(() => { const trace = window.__diceTrace; const gaps = trace.slice(1).map((entry, index) => entry.at - trace[index].at); return trace.length >= 18 && trace.every((entry, index) => index === 0 || entry.face !== trace[index - 1].face) && gaps.every(gap => gap < 300) && window.__diceFinalAt - trace.at(-1).at < 300 && window.__diceFinalAt - window.__diceStartedAt >= 2300; })()', true)
+        ->assertScript('(() => { const stage = document.querySelector("[data-testid=dice-face]"); const faces = [...stage.querySelectorAll(".dice-flat-face")]; return faces.findIndex(face => getComputedStyle(face).display !== "none") + 1 === Number(stage.dataset.face); })()', true)
+        ->assertScript('document.querySelector("[data-testid=dice-instruction]").textContent.includes("Dado "+document.querySelector("[data-testid=dice-face]").dataset.face)', true)
+        ->assertScript('document.documentElement.scrollWidth <= innerWidth', true);
+    $count = $page->script('window.__diceTrace.length');
+    $page->script('new Promise(resolve => setTimeout(resolve, 400))');
+    $page->assertScript('window.__diceTrace.length', $count)
+        ->assertScript('document.querySelector("[data-testid=dice-face]").dataset.face', (string) $face)
+        ->assertScript('document.querySelector("[data-testid=dice-face]").dataset.phase', 'idle')
+        ->assertNoJavaScriptErrors();
+})->with([
+    'smartphone' => [320, 800],
+    'tablet' => [768, 900],
+    'desktop' => [1280, 900],
+]);
+
+it('continues cycling while a slow server response is pending and blocks another roll', function () {
+    $page = visit('/dado', ['reducedMotion' => 'no-preference'])->resize(320, 800);
+    $pending = $page->script(<<<'JS'
+        (async () => {
+            const originalFetch = window.fetch;
+            const stage = document.querySelector('[data-testid=dice-face]');
+            const faces = [...stage.querySelectorAll('.dice-flat-face')];
+            let previous = 1;
+            window.__diceChanges = 0;
+            window.__diceLastChange = performance.now();
+            window.__diceRequestCount = 0;
+            new MutationObserver(() => {
+                const visible = faces.findIndex(face => getComputedStyle(face).display !== 'none') + 1;
+                if (visible && visible !== previous) {
+                    previous = visible;
+                    window.__diceChanges++;
+                    window.__diceLastChange = performance.now();
+                }
+            }).observe(stage, { subtree: true, attributes: true, attributeFilter: ['style'] });
+            window.fetch = (...arguments) => {
+                window.__diceRequestCount++;
+                return originalFetch(...arguments).then(async response => {
+                    await new Promise(resolve => { window.__releaseRollResponse = resolve; });
+                    return response;
+                });
+            };
+            document.querySelector('[data-testid=roll-button]').click();
+            await new Promise(resolve => setTimeout(resolve, 2800));
+            return {
+                phase: stage.dataset.phase,
+                face: stage.dataset.face,
+                changes: window.__diceChanges,
+                lastChangeAge: performance.now() - window.__diceLastChange,
+                requests: window.__diceRequestCount,
+                responseReady: typeof window.__releaseRollResponse === 'function',
+                blocked: document.querySelector('[data-testid=roll-button]').disabled,
+            };
+        })()
+        JS);
+    expect($pending['phase'])->toBe('spinning');
+    expect($pending['face'])->toBe('');
+    expect($pending['changes'])->toBeGreaterThanOrEqual(25);
+    expect($pending['lastChangeAge'])->toBeLessThan(250);
+    expect($pending['requests'])->toBe(1);
+    expect($pending['responseReady'])->toBeTrue();
+    expect($pending['blocked'])->toBeTrue();
+
+    $page->script('document.querySelector("[data-testid=roll-button]").click(); window.__releaseRollResponse()');
+    $face = diceBrowserWaitForFace($page);
+    $page->assertScript('window.__diceRequestCount', 1)
+        ->assertScript('(() => { const stage = document.querySelector("[data-testid=dice-face]"); return [...stage.querySelectorAll(".dice-flat-face")].findIndex(face => getComputedStyle(face).display !== "none") + 1 === Number(stage.dataset.face); })()', true)
+        ->assertScript('document.querySelector("[data-testid=dice-instruction]").textContent.includes("Dado "+document.querySelector("[data-testid=dice-face]").dataset.face)', true)
+        ->assertScript('document.querySelector("[data-testid=dice-face]").dataset.face', (string) $face)
+        ->assertNoJavaScriptErrors();
+});
+
+it('respects reduced motion without revealing the result before a pending response', function () {
+    $page = visit('/dado', ['reducedMotion' => 'reduce'])->resize(320, 800)
+        ->assertScript('matchMedia("(prefers-reduced-motion: reduce)").matches', true);
+    $pending = $page->script(<<<'JS'
+        (async () => {
+            const originalFetch = window.fetch;
+            const stage = document.querySelector('[data-testid=dice-face]');
+            const faces = [...stage.querySelectorAll('.dice-flat-face')];
+            const initialFace = faces.findIndex(face => getComputedStyle(face).display !== 'none') + 1;
+            let changes = 0;
+            new MutationObserver(() => { changes++; }).observe(stage.querySelector('.dice-flat'), { subtree: true, attributes: true, attributeFilter: ['style'] });
+            window.fetch = (...arguments) => originalFetch(...arguments).then(async response => {
+                await new Promise(resolve => { window.__releaseRollResponse = resolve; });
+                return response;
+            });
+            document.querySelector('[data-testid=roll-button]').click();
+            await new Promise(resolve => setTimeout(resolve, 400));
+            return {
+                phase: stage.dataset.phase,
+                face: stage.dataset.face,
+                changes,
+                initialFace,
+                currentFace: faces.findIndex(face => getComputedStyle(face).display !== 'none') + 1,
+                animation: getComputedStyle(stage.querySelector('.dice-flat')).animationName,
+                responseReady: typeof window.__releaseRollResponse === 'function',
+            };
+        })()
+        JS);
+    expect($pending)->toBe([
+        'phase' => 'spinning',
+        'face' => '',
+        'changes' => 0,
+        'initialFace' => 1,
+        'currentFace' => 1,
+        'animation' => 'none',
+        'responseReady' => true,
+    ]);
+
+    $page->script('window.__releaseRollResponse()');
+    $face = diceBrowserWaitForFace($page);
+    $page->assertScript('document.querySelector("[data-testid=dice-face]").dataset.face', (string) $face)
+        ->assertScript('document.querySelector("[data-testid=dice-face]").dataset.phase', 'idle')
+        ->assertNoJavaScriptErrors();
+});
+
+it('stops the dice animation and unlocks the roll button after a network failure', function () {
+    $page = visit('/dado', ['reducedMotion' => 'no-preference']);
+    $page->script(<<<'JS'
+        (() => {
+            window.fetch = () => Promise.reject(new TypeError('Network unavailable'));
+            document.querySelector('[data-testid=roll-button]').click();
+        })()
+        JS);
+    $page->script(<<<'JS'
+        (async () => {
+            const error = document.querySelector('[data-testid=dice-roll-error]');
+            if (error.textContent.trim()) return true;
+            return await new Promise((resolve, reject) => {
+                const observer = new MutationObserver(() => {
+                    if (error.textContent.trim()) {
+                        observer.disconnect();
+                        clearTimeout(timeout);
+                        resolve(true);
+                    }
+                });
+                observer.observe(error, { subtree: true, childList: true, characterData: true });
+                const timeout = setTimeout(() => { observer.disconnect(); reject(new Error('Dice error was not shown')); }, 5000);
+            });
+        })()
+        JS);
+
+    $page->assertSeeIn('[data-testid="dice-roll-error"]', 'Não foi possível confirmar a rolagem')
+        ->assertScript('document.querySelector("[data-testid=dice-face]").dataset.phase', 'idle')
+        ->assertScript('document.querySelector("[data-testid=dice-face]").dataset.face', '')
+        ->assertScript('document.querySelector("[data-testid=roll-button]").disabled', false)
+        ->assertScript('Alpine.$data(document.querySelector(".dice-game")).faceFrame', null)
         ->assertNoJavaScriptErrors();
 });
 
@@ -212,7 +435,9 @@ it('confirms a new match while cancellation leaves the current boards intact', f
     diceBrowserRoll($page);
     $page->assertScript('document.querySelector("[data-testid=roll-button]").disabled', true)
         ->click('[x-ref="restartButton"]')
-        ->assertScript('document.querySelector("[data-testid=roll-button]").disabled', false);
+        ->assertScript('document.querySelector("[data-testid=roll-button]").disabled', false)
+        ->assertScript('document.querySelector("[data-testid=dice-face]").dataset.face', '')
+        ->assertScript('(() => [...document.querySelectorAll(".dice-flat-face")].findIndex(face => getComputedStyle(face).display !== "none") === 0)()', true);
     $face = diceBrowserRoll($page);
     $page->assertScript('document.querySelector("[data-testid=roll-button]").disabled', true);
     $page->click('[data-testid="new-match-button"]')

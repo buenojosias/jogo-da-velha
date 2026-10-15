@@ -51,10 +51,10 @@ test('creates and resumes an independent public match with two boards and either
     expect(app(SessionMatchStore::class)->score($id))->toBe(['x' => 0, 'o' => 0, 'draws' => 0]);
 })->with(['X' => [1, PlayerMark::X], 'O' => [2, PlayerMark::O]]);
 
-test('renders six cube faces with one through six separate pips', function () {
+test('renders six flat faces with one through six separate pips', function () {
     $id = openPublicDice();
     $html = Livewire::test('dice-match', ['matchId' => $id])->html();
-    $faces = preg_split('/class="dice-cube-face dice-cube-face-\d+"/', $html);
+    $faces = preg_split('/class="dice-flat-face"/', $html);
 
     foreach (range(1, 6) as $face) {
         expect(substr_count($faces[$face] ?? '', 'class="dice-pip '))->toBe($face);
@@ -112,7 +112,8 @@ test('awards a win on either board and preserves the score after the next round'
     expect(substr_count($component->html(), 'data-winning-cell="true"'))->toBe(3);
     $component->call('place', $board, 5)->assertSee('A rodada terminou.');
     expect(app(SessionMatchStore::class)->score($id)[$winner->value])->toBe(1);
-    $component->call('restart')->assertDispatched('dice-roll-availability-updated', blocked: false);
+    $component->call('restart')->assertDispatched('dice-roll-availability-updated', blocked: false)
+        ->assertDispatched('dice-roll-reset');
     expect(app(SessionMatchStore::class)->find($id)->data['boards'])->toBe([array_fill(0, 9, ''), array_fill(0, 9, '')]);
     expect(app(SessionMatchStore::class)->find($id)->data['pending_roll'])->toBeNull();
     expect(app(SessionMatchStore::class)->score($id)[$winner->value])->toBe(1);

@@ -117,6 +117,7 @@ new class extends Component
         $this->rollNotice = null;
         unset($this->matchState, $this->score, $this->winningLine);
         $this->dispatch('dice-roll-availability-updated', blocked: false);
+        $this->dispatch('dice-roll-reset');
     }
 
     public function newMatch(): void
@@ -157,7 +158,8 @@ new class extends Component
         rollBlocked: {{ $pendingRoll !== null || $state->isFinished() ? 'true' : 'false' }},
         rollPhase: 'idle',
         rollStartedAt: 0,
-        announcedFace: null,
+        reducedMotion: false,
+        announcedFace: {{ $lastRoll ?? 'null' }},
         rollError: null,
         registerRollInterceptor() {
             this.$wire.$interceptMessage('roll', ({ onSuccess, onError }) => {
@@ -170,7 +172,34 @@ new class extends Component
             });
         },
         visualFace: {{ $lastRoll ?? 1 }},
-        faceInterval: null,
+        faceFrame: null,
+        lastFaceChange: 0,
+        showFace(face) {
+            [...this.$refs.diceFlat.children].forEach((element, index) => {
+                element.style.display = index + 1 === face ? 'grid' : 'none';
+            });
+            this.visualFace = face;
+        },
+        animateFace(now) {
+            if (!this.rolling) return;
+            if (now - this.lastFaceChange >= 80) {
+                let next = 1 + Math.floor(Math.random() * 5);
+                if (next >= this.visualFace) next++;
+                this.showFace(next);
+                this.lastFaceChange = now;
+            }
+            this.faceFrame = requestAnimationFrame(time => this.animateFace(time));
+        },
+        stopFaceAnimation() {
+            if (this.faceFrame !== null) cancelAnimationFrame(this.faceFrame);
+            this.faceFrame = null;
+        },
+        resetFace() {
+            this.stopFaceAnimation();
+            this.showFace(1);
+            this.announcedFace = null;
+            this.rollPhase = 'idle';
+        },
         async startRoll() {
             if (this.rolling || this.rollBlocked) return;
             this.rolling = true;
@@ -178,41 +207,31 @@ new class extends Component
             this.announcedFace = null;
             this.rollStartedAt = performance.now();
             this.rollPhase = 'spinning';
-            const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-            if (!reduced) {
-                this.faceInterval = window.setInterval(() => {
-                    let next = 1 + Math.floor(Math.random() * 6);
-                    if (next === this.visualFace) next = (next % 6) + 1;
-                    this.visualFace = next;
-                }, 95);
+            this.reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+            if (!this.reducedMotion) {
+                this.lastFaceChange = this.rollStartedAt;
+                this.faceFrame = requestAnimationFrame(time => this.animateFace(time));
             }
             try {
-                const face = await this.$wire.roll();
-                this.announcedFace = face;
+                await this.$wire.roll();
             } catch (error) {
                 this.rollError = 'Não foi possível confirmar a rolagem. Atualize a página para conferir a partida.';
             } finally {
-                if (this.faceInterval !== null) {
-                    clearInterval(this.faceInterval);
-                    this.faceInterval = null;
-                }
-                this.rollPhase = 'idle';
+                this.stopFaceAnimation();
+                if (this.reducedMotion || this.rollPhase !== 'landing') this.rollPhase = 'idle';
                 this.rolling = false;
             }
         },
         async landRoll(face) {
             if (!this.rolling) return;
-            const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
             const elapsed = performance.now() - this.rollStartedAt;
-            const wait = reduced ? 0 : Math.max(0, 2500 - elapsed);
+            const wait = this.reducedMotion ? 0 : Math.max(0, 2500 - elapsed);
             if (wait) await new Promise(resolve => setTimeout(resolve, wait));
-            if (this.faceInterval !== null) {
-                clearInterval(this.faceInterval);
-                this.faceInterval = null;
-            }
+            this.stopFaceAnimation();
             if (Number.isInteger(face) && face >= 1 && face <= 6) {
-                this.rollPhase = 'landing';
-                this.visualFace = face;
+                this.showFace(face);
+                this.announcedFace = face;
+                this.rollPhase = this.reducedMotion ? 'idle' : 'landing';
             } else {
                 this.rollError = 'Não foi possível confirmar a rolagem. Atualize a página para conferir a partida.';
             }
@@ -234,6 +253,7 @@ new class extends Component
     }"
     x-init="registerRollInterceptor()"
     x-on:dice-roll-availability-updated.window="rollBlocked = $event.detail.blocked"
+    x-on:dice-roll-reset.window="resetFace()"
     x-on:dice-round-finished.window="openRoundResult()"
 >
     <x-design-system.match-header
@@ -263,10 +283,10 @@ new class extends Component
             </x-design-system.match-status>
 
             <div class="mx-auto mt-3 flex max-w-[30rem] items-center justify-center gap-3 rounded-ds-control border border-ds-border bg-ds-surface-muted p-2.5">
-                <span data-testid="dice-face" data-face="{{ $lastRoll ?? '' }}" data-phase="idle" x-bind:data-phase="rollPhase" role="img" x-bind:aria-label="rolling ? 'Rolando dado' : (announcedFace ? 'Dado: face ' + announcedFace : ($el.dataset.face ? 'Dado: face ' + $el.dataset.face : 'Dado ainda não rolado'))" class="dice-stage relative flex size-14 shrink-0 items-center justify-center">
-                    <span wire:ignore class="dice-flat" aria-hidden="true">
+                <span data-testid="dice-face" data-face="{{ $lastRoll ?? '' }}" x-bind:data-face="announcedFace ?? ''" data-phase="idle" x-bind:data-phase="rollPhase" role="img" x-bind:aria-label="rolling ? 'Rolando dado' : (announcedFace ? 'Dado: face ' + announcedFace : 'Dado ainda não rolado')" class="dice-stage relative flex size-14 shrink-0 items-center justify-center">
+                    <span wire:ignore x-ref="diceFlat" class="dice-flat" aria-hidden="true" x-on:animationend="if (rollPhase === 'landing') rollPhase = 'idle'">
                         @foreach ($dicePips as $face => $positions)
-                            <span x-show="visualFace === {{ $face }}" class="dice-flat-face" @if ($face !== ($lastRoll ?? 1)) x-cloak @endif>
+                            <span class="dice-flat-face" style="display: {{ $face === ($lastRoll ?? 1) ? 'grid' : 'none' }}">
                                 @foreach ($positions as $position)
                                     <span class="dice-pip dice-pip-{{ $position }}"></span>
                                 @endforeach
