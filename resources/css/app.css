@@ -243,6 +243,10 @@ html[data-design-system='experimental'] .ds-board-cell[data-mark='o'] {
     color: var(--player-o);
 }
 
+html[data-design-system='experimental'] .ds-board-cell:not(:disabled):not([data-restricted-cell='true']) {
+    cursor: pointer;
+}
+
 html[data-design-system='experimental'] .ds-board-cell:disabled {
     cursor: not-allowed;
     background: var(--cell-surface-muted);
