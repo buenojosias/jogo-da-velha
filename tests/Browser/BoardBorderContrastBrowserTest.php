@@ -25,7 +25,7 @@ it('keeps an empty board cell boundary at least 3:1 in the :theme theme on :moda
             return `rgb(${[1, 3, 5].map(start => parseInt(token.slice(start, start + 2), 16)).join(", ")})`;
         };
         const targetBorder = tokenColor("--ds-board-border");
-        const targetBackground = tokenColor(cell.closest("[data-testid=ultimate-focus-region]") ? "--ds-elevated" : "--ds-surface");
+        const targetBackground = tokenColor(cell.closest("[data-testid=ultimate-overview]") ? "--ds-elevated" : "--ds-surface");
         let result = measure();
         const deadline = performance.now() + 3000;
         while ((result.border !== targetBorder || result.background !== targetBackground) && performance.now() < deadline) {

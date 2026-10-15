@@ -10,8 +10,7 @@ it('directs moves, marks a conquered subboard, and finishes a global line', func
     ];
     foreach ($moves as $turn => [$board, $cell]) {
         $mark = $turn % 2 === 0 ? $starter : ($starter === 'x' ? 'o' : 'x');
-        $page->click('[data-testid="ultimate-sub-board-'.$board.'"]')
-            ->click('[data-testid="ultimate-cell-'.$board.'-'.$cell.'"]')
+        $page->click('[data-testid="ultimate-cell-'.$board.'-'.$cell.'"]')
             ->assertAttribute('[data-testid="ultimate-cell-'.$board.'-'.$cell.'"]', 'data-mark', $mark);
         if ($turn === 4) {
             $page->assertAttribute('[data-testid="ultimate-sub-board-0"]', 'data-result', $starter)
@@ -39,8 +38,7 @@ it('shows the draw dialog after all nine subboards close without a global winner
         [6, 2], [1, 6], [5, 5], [5, 2],
     ];
     foreach ($moves as [$board, $cell]) {
-        $page->click('[data-testid="ultimate-sub-board-'.$board.'"]')
-            ->click('[data-testid="ultimate-cell-'.$board.'-'.$cell.'"]')
+        $page->click('[data-testid="ultimate-cell-'.$board.'-'.$cell.'"]')
             ->assertScript('document.querySelector("[data-testid=ultimate-cell-'.$board.'-'.$cell.']").dataset.mark !== ""', true);
     }
 
@@ -50,221 +48,255 @@ it('shows the draw dialog after all nine subboards close without a global winner
         ->assertNoJavaScriptErrors();
 });
 
-it('requires a manual choice on free turns and allows switching without using the turn', function () {
-    $page = visit('/ultimate')
-        ->assertVisible('[data-testid="ultimate-selection-prompt"]')
-        ->assertScript('Array.from(document.querySelectorAll("[data-testid^=ultimate-sub-board-]")).every(board => board.getAttribute("aria-pressed") === "false")', true)
-        ->assertScript('Array.from(document.querySelectorAll("[data-testid^=ultimate-focus-board-]")).every(board => getComputedStyle(board).display === "none")', true);
+function ultimateLongPress($page, int $board, int $cell = 0): void
+{
+    $page->script('(async () => {
+        const cell = document.querySelector("[data-testid=ultimate-cell-'.$board.'-'.$cell.']");
+        const bounds = cell.getBoundingClientRect();
+        const options = { bubbles: true, pointerId: 31, pointerType: "touch", clientX: bounds.left + bounds.width / 2, clientY: bounds.top + bounds.height / 2 };
+        cell.dispatchEvent(new PointerEvent("pointerdown", options));
+        await new Promise(resolve => setTimeout(resolve, 500));
+        window.dispatchEvent(new PointerEvent("pointerup", options));
+        cell.click();
+    })()');
+}
+
+it('allows manual visual selection without making a move and routes the next move automatically', function () {
+    $page = visit('/ultimate');
     $turn = $page->script('document.querySelector("[data-testid=match-status]").textContent.trim()');
 
-    $page->click('[data-testid="ultimate-sub-board-4"]')
-        ->assertAttribute('[data-testid="ultimate-sub-board-4"]', 'aria-pressed', 'true')
-        ->click('[data-testid="ultimate-sub-board-0"]')
-        ->assertAttribute('[data-testid="ultimate-sub-board-4"]', 'aria-pressed', 'false')
-        ->assertAttribute('[data-testid="ultimate-sub-board-0"]', 'aria-pressed', 'true')
-        ->assertVisible('[data-testid="ultimate-focus-board-0"]')
-        ->assertScript('getComputedStyle(document.querySelector("[data-testid=ultimate-focus-board-4]")).display', 'none')
+    $page->script('document.querySelector("[data-testid=ultimate-sub-board-4]").click()');
+    $page->assertAttribute('[data-testid="ultimate-sub-board-4"]', 'data-selected', 'true')
+        ->assertScript('Array.from(document.querySelectorAll("[data-testid^=ultimate-cell-]")).every(cell => cell.dataset.mark === "")', true)
         ->assertScript('document.querySelector("[data-testid=match-status]").textContent.trim()', $turn)
-        ->assertScript('Array.from(document.querySelectorAll("[data-testid^=ultimate-cell-]")).every(cell => cell.dataset.mark === "")', true);
-
-    $page->navigate('/ultimate')
-        ->assertVisible('[data-testid="ultimate-selection-prompt"]')
-        ->assertScript('Array.from(document.querySelectorAll("[data-testid^=ultimate-sub-board-]")).every(board => board.getAttribute("aria-pressed") === "false")', true)
-        ->click('[data-testid="ultimate-sub-board-0"]')
         ->click('[data-testid="ultimate-cell-0-4"]')
         ->assertAttribute('[data-testid="ultimate-sub-board-4"]', 'data-target', 'true')
-        ->assertAttribute('[data-testid="ultimate-sub-board-4"]', 'aria-pressed', 'true')
-        ->click('[x-ref="restartButton"]')
-        ->assertVisible('[data-testid="ultimate-selection-prompt"]')
-        ->assertScript('Array.from(document.querySelectorAll("[data-testid^=ultimate-sub-board-]")).every(board => board.getAttribute("aria-pressed") === "false")', true)
+        ->assertAttribute('[data-testid="ultimate-sub-board-4"]', 'data-selected', 'true')
+        ->assertScript('document.querySelector("[data-testid=ultimate-cell-0-4]").dataset.mark !== ""', true)
         ->assertNoJavaScriptErrors();
 });
 
-it('uses one blue border for selected overview boards in both themes', function () {
-    $page = visit('/ultimate')->click('[data-testid="ultimate-sub-board-0"]');
+it('keeps blocked boards and occupied cells unavailable in the main grid', function () {
+    $page = visit('/ultimate')->click('[data-testid="ultimate-cell-0-4"]')
+        ->assertAttribute('[data-testid="ultimate-sub-board-0"]', 'data-available', 'false')
+        ->assertAttribute('[data-testid="ultimate-sub-board-4"]', 'data-available', 'true')
+        ->assertScript('document.querySelector("[data-testid=ultimate-cell-0-0]").disabled', true)
+        ->assertScript('document.querySelector("[data-testid=ultimate-cell-0-4]").disabled', true)
+        ->assertScript('document.querySelector("[data-testid=ultimate-cell-4-0]").disabled', false);
+    $mark = $page->script('document.querySelector("[data-testid=ultimate-cell-0-4]").dataset.mark');
+    $page->script('document.querySelector("[data-testid=ultimate-cell-0-4]").click()');
+    $page->assertAttribute('[data-testid="ultimate-cell-0-4"]', 'data-mark', $mark)
+        ->assertNoJavaScriptErrors();
+});
+
+it('keeps nine square subboards in one 3 by 3 grid without horizontal overflow at :dataset', function (int $width, int $height) {
+    $page = visit('/ultimate')->resize($width, $height);
 
     foreach (['light', 'dark'] as $theme) {
         $page->select('[data-theme-selector]', $theme)
-            ->assertScript('(() => { const board = document.querySelector("[data-testid=ultimate-sub-board-0]"); const style = getComputedStyle(board); const colors = getComputedStyle(document.documentElement); const rgb = name => { let hex = colors.getPropertyValue(name).trim().slice(1); if (hex.length === 3) hex = [...hex].map(char => char + char).join(""); return `rgb(${hex.match(/\w\w/g).map(pair => parseInt(pair, 16)).join(", ")})`; }; return board.getAttribute("aria-pressed") === "true" && style.borderTopWidth === "2px" && style.borderTopColor === rgb("--ds-ultimate-active") && style.backgroundColor === rgb("--ds-surface") && style.boxShadow === "none"; })()', true)
-            ->assertScript('(() => { const board = document.querySelector("[data-testid=ultimate-sub-board-1]"); const colors = getComputedStyle(document.documentElement); let hex = colors.getPropertyValue("--ds-success").trim().slice(1); if (hex.length === 3) hex = [...hex].map(char => char + char).join(""); const rgb = `rgb(${hex.match(/\w\w/g).map(pair => parseInt(pair, 16)).join(", ")})`; return board.getAttribute("aria-pressed") === "false" && getComputedStyle(board).borderTopColor === rgb; })()', true);
+            ->assertCount('[data-testid^="ultimate-sub-board-"]', 9)
+            ->assertCount('[data-testid^="ultimate-cell-"]', 81)
+            ->assertMissing('[data-testid="ultimate-focus-region"]')
+            ->assertScript('(() => {
+                const grid = document.querySelector("[data-testid=ultimate-overview]");
+                const boards = [...grid.children];
+                const first = boards[0].getBoundingClientRect();
+                return getComputedStyle(grid).gridTemplateColumns.split(" ").length === 3
+                    && boards.every(board => {
+                        const bounds = board.getBoundingClientRect();
+                        const cells = [...board.querySelectorAll("button")];
+                        return Math.abs(bounds.width - first.width) < 1
+                            && Math.abs(bounds.height - first.height) < 1
+                            && cells.length === 9
+                            && cells.every(cell => Math.abs(cell.clientWidth - cell.clientHeight) <= 1 && cell.getBoundingClientRect().right <= innerWidth);
+                    }) && document.documentElement.scrollWidth <= innerWidth;
+            })()', true);
     }
 
-    $page->click('[data-testid="ultimate-cell-0-4"]')
-        ->assertAttribute('[data-testid="ultimate-sub-board-4"]', 'aria-pressed', 'true')
-        ->assertScript('(() => { const board = document.querySelector("[data-testid=ultimate-sub-board-4]"); const style = getComputedStyle(board); const colors = getComputedStyle(document.documentElement); const rgb = name => { let hex = colors.getPropertyValue(name).trim().slice(1); if (hex.length === 3) hex = [...hex].map(char => char + char).join(""); return `rgb(${hex.match(/\w\w/g).map(pair => parseInt(pair, 16)).join(", ")})`; }; return style.borderTopColor === rgb("--ds-ultimate-active") && style.backgroundColor === rgb("--ds-surface") && style.boxShadow === "none"; })()', true)
-        ->assertNoJavaScriptErrors();
-});
-
-it('retains the directed move and theme after reload, then asks before creating a new match', function () {
-    $page = visit('/ultimate')
-        ->select('[data-theme-selector]', 'dark')
-        ->click('[data-testid="ultimate-sub-board-0"]')
-        ->click('[data-testid="ultimate-cell-0-4"]')
-        ->assertSeeIn('[data-testid="target-board-status"]', 'Subtabuleiro obrigatório: 5');
-    $page->navigate('/ultimate')
-        ->assertSelected('[data-theme-selector]', 'dark')
-        ->assertScript('document.querySelector("[data-testid=ultimate-cell-0-4]").dataset.mark !== ""', true)
-        ->assertSeeIn('[data-testid="target-board-status"]', 'Subtabuleiro obrigatório: 5')
-        ->click('[data-testid="new-match-button"]')
-        ->assertScript('document.querySelector("[data-testid=new-match-dialog]").open', true)
-        ->click('[data-testid="new-match-dialog"] button:first-of-type')
-        ->assertSeeIn('[data-testid="target-board-status"]', 'Subtabuleiro obrigatório: 5')
-        ->click('[data-testid="new-match-button"]')
-        ->click('[data-testid="confirm-new-match"]')
-        ->assertSeeIn('[data-testid="target-board-status"]', 'qualquer subtabuleiro disponível')
-        ->assertVisible('[data-testid="ultimate-selection-prompt"]')
-        ->assertScript('Array.from(document.querySelectorAll("[data-testid^=ultimate-sub-board-]")).every(board => board.getAttribute("aria-pressed") === "false")', true)
-        ->select('[data-theme-selector]', 'light')
-        ->assertScript('document.documentElement.dataset.theme', 'light')
-        ->assertNoJavaScriptErrors();
-});
-
-it('keeps the overview and enlarged board usable without horizontal overflow at :dataset', function (int $width, int $height) {
-    $page = visit('/ultimate')->resize($width, $height)
-        ->assertVisible('[data-testid="ultimate-overview"]')
-        ->assertVisible('[data-testid="ultimate-focus-region"]')
-        ->assertCount('[data-testid^="ultimate-sub-board-"]', 9)
-        ->assertScript('Array.from(document.querySelectorAll("[data-testid^=ultimate-cell-]")).every(cell => cell.hasAttribute("aria-label"))', true)
-        ->assertScript('document.documentElement.scrollWidth <= document.documentElement.clientWidth', true)
-        ->click('[data-testid="ultimate-sub-board-0"]')
-        ->assertScript('(() => { const cell = document.querySelector("[data-testid=ultimate-cell-0-0]"); return cell.getBoundingClientRect().width >= 44 && cell.getBoundingClientRect().height >= 44; })()', true)
-        ->click('[data-testid="ultimate-cell-0-0"]')
+    $page->click('[data-testid="ultimate-cell-0-0"]')
         ->assertScript('document.querySelector("[data-testid=ultimate-cell-0-0]").dataset.mark !== ""', true)
         ->assertNoJavaScriptErrors();
 })->with([
-    'small mobile' => [360, 800],
-    'landscape 740' => [740, 360],
-    'landscape 800' => [800, 360],
-    'desktop' => [1280, 900],
+    '320px' => [320, 720],
+    '360px' => [360, 800],
+    '375px' => [375, 812],
+    '390px' => [390, 844],
+    '414px' => [414, 896],
+    '768px' => [768, 1024],
+    '1280px' => [1280, 900],
 ]);
 
-it('keeps every overview cell square and aligned after several marks at :dataset', function (int $width, int $height) {
-    $uniformOverview = <<<'JS'
-        (() => {
-            const boards = [...document.querySelectorAll('[data-testid^="ultimate-sub-board-"]')];
-            if (boards.length !== 9) return false;
-            const firstBoard = boards[0].getBoundingClientRect();
+it('does not scroll when a board is selected or a direct move is made', function () {
+    $page = visit('/ultimate')->resize(320, 720);
+    $page->script('window.scrollTo(0, 100)');
+    $before = $page->script('window.scrollY');
 
-            return boards.every(board => {
-                const bounds = board.getBoundingClientRect();
-                const grid = board.firstElementChild;
-                const gridBounds = grid.getBoundingClientRect();
-                const cells = [...grid.children].map(cell => cell.getBoundingClientRect());
-                const size = cells[0]?.width;
-
-                return Math.abs(bounds.width - firstBoard.width) < 1
-                    && Math.abs(bounds.height - firstBoard.height) < 1
-                    && Math.abs(gridBounds.width - gridBounds.height) < 1
-                    && cells.length === 9
-                    && cells.every(cell => Math.abs(cell.width - size) < 1 && Math.abs(cell.height - size) < 1);
-            });
-        })()
-        JS;
-
-    $page = visit('/ultimate')->resize($width, $height)
-        ->assertScript($uniformOverview, true)
-        ->click('[data-testid="ultimate-sub-board-0"]')
-        ->click('[data-testid="ultimate-cell-0-4"]')
-        ->assertScript('document.querySelector("[data-testid=ultimate-cell-0-4]").dataset.mark !== ""', true);
-
-    $page->click('[data-testid="ultimate-cell-4-0"]')
-        ->assertScript('document.querySelector("[data-testid=ultimate-cell-4-0]").dataset.mark !== ""', true)
-        ->click('[data-testid="ultimate-cell-0-1"]')
-        ->assertScript('document.querySelector("[data-testid=ultimate-cell-0-1]").dataset.mark !== ""', true)
-        ->assertScript($uniformOverview, true)
-        ->assertNoJavaScriptErrors();
-})->with(['mobile' => [390, 844], 'desktop' => [1280, 900]]);
-
-it('moves focus and the viewport to a selected playable subboard at :dataset', function (int $width, int $height) {
-    $page = visit('/ultimate')->resize($width, $height)
-        ->assertScript('window.scrollY', 0)
-        ->click('[data-testid="ultimate-sub-board-4"]')
-        ->assertNoJavaScriptErrors();
-
-    expect($page->script('async () => {
-        const expected = "ultimate-cell-4-0";
-        const deadline = performance.now() + 3000;
-        while (performance.now() < deadline) {
-            const cell = document.activeElement;
-            const rect = cell?.getBoundingClientRect();
-            if (cell?.dataset.testid === expected && rect.top >= 0 && rect.bottom <= innerHeight
-                && document.elementFromPoint(rect.left + rect.width / 2, rect.top + rect.height / 2) === cell) return true;
-            await new Promise(requestAnimationFrame);
-        }
-        return false;
-    }'))->toBeTrue();
-
-    $page->assertAttribute('[data-testid="ultimate-sub-board-4"]', 'aria-pressed', 'true')
-        ->assertScript('document.documentElement.scrollWidth <= document.documentElement.clientWidth', true)
+    $page->script('document.querySelector("[data-testid=ultimate-sub-board-4]").click()');
+    $page->assertScript('window.scrollY', $before)
         ->click('[data-testid="ultimate-cell-4-0"]')
-        ->assertScript('document.querySelector("[data-testid=ultimate-cell-4-0]").dataset.mark !== ""', true);
-
-    expect($page->script('async () => {
-        const deadline = performance.now() + 3000;
-        while (performance.now() < deadline) {
-            if (document.activeElement?.dataset.testid === "ultimate-cell-0-0") return true;
-            await new Promise(requestAnimationFrame);
-        }
-        return false;
-    }'))->toBeTrue();
-
-    $page->assertSeeIn('[data-testid="target-board-status"]', 'Subtabuleiro obrigatório: 1')
+        ->assertScript('document.querySelector("[data-testid=ultimate-cell-4-0]").dataset.mark !== ""', true)
+        ->assertScript('window.scrollY', $before)
         ->assertNoJavaScriptErrors();
-})->with([
-    'portrait 360' => [360, 800],
-    'landscape 740' => [740, 360],
-    'landscape 800' => [800, 360],
-    'desktop 1280' => [1280, 900],
-]);
-
-it('lets a keyboard user go directly from the overview to a playable cell', function () {
-    $page = visit('/ultimate')->resize(740, 360)
-        ->keys('[data-testid="ultimate-sub-board-4"]', 'Enter');
-
-    expect($page->script('async () => {
-        const deadline = performance.now() + 3000;
-        while (performance.now() < deadline) {
-            if (document.activeElement?.dataset.testid === "ultimate-cell-4-0") return true;
-            await new Promise(requestAnimationFrame);
-        }
-        return false;
-    }'))->toBeTrue();
-
-    $page->assertAttribute('[data-testid="ultimate-sub-board-4"]', 'aria-pressed', 'true')
-        ->assertNoJavaScriptErrors();
-
-    $page->keys('[data-testid="ultimate-cell-4-0"]', 'Escape')
-        ->assertScript('document.activeElement?.dataset.testid', 'ultimate-sub-board-4')
-        ->assertAttribute('[data-testid="ultimate-sub-board-4"]', 'aria-pressed', 'true');
 });
 
-it('keeps waiting subboards disabled while the required subboard remains playable', function () {
-    $page = visit('/ultimate')
-        ->click('[data-testid="ultimate-sub-board-0"]')
+it('opens a persistent touch enlargement and closes it only after a confirmed move', function () {
+    $page = visit('/ultimate')->resize(320, 720);
+    $before = $page->script('window.scrollY');
+
+    ultimateLongPress($page, 4);
+    $page->assertVisible('[data-testid="ultimate-zoom-panel"]')
+        ->assertAttribute('[data-testid="ultimate-cell-4-0"]', 'data-mark', '')
+        ->assertScript('window.scrollY', $before)
+        ->assertScript('(() => { const panel = document.querySelector("[data-testid=ultimate-zoom-panel]").getBoundingClientRect(); return panel.left >= 0 && panel.top >= 0 && panel.right <= innerWidth && panel.bottom <= innerHeight; })()', true)
+        ->resize(360, 640)
+        ->assertScript('(() => { const panel = document.querySelector("[data-testid=ultimate-zoom-panel]").getBoundingClientRect(); return panel.left >= 0 && panel.top >= 0 && panel.right <= innerWidth && panel.bottom <= innerHeight; })()', true)
+        ->click('[data-testid="ultimate-zoom-cell-4-0"]')
+        ->assertScript('document.querySelector("[data-testid=ultimate-cell-4-0]").dataset.mark !== ""', true)
+        ->assertScript('window.scrollY', $before)
+        ->assertNoJavaScriptErrors();
+    expect($page->script('async () => { const panel = document.querySelector("[data-testid=ultimate-zoom-layer]"); const deadline = performance.now() + 2000; while (performance.now() < deadline) { if (getComputedStyle(panel).display === "none") return true; await new Promise(requestAnimationFrame); } return false; }'))->toBeTrue();
+});
+
+it('cancels enlargement by outside touch, close button, and Escape without changing the turn', function () {
+    $page = visit('/ultimate')->resize(390, 844);
+    $turn = $page->script('document.querySelector("[data-testid=match-status]").textContent.trim()');
+
+    ultimateLongPress($page, 4);
+    $page->script('new Promise(resolve => setTimeout(resolve, 180))');
+    $page->script('document.querySelector("[data-testid=ultimate-zoom-backdrop]").click()');
+    $page->assertScript('getComputedStyle(document.querySelector("[data-testid=ultimate-zoom-layer]")).display', 'none');
+    ultimateLongPress($page, 0);
+    $page->click('[data-testid="ultimate-zoom-close"]')->assertScript('getComputedStyle(document.querySelector("[data-testid=ultimate-zoom-layer]")).display', 'none');
+    ultimateLongPress($page, 1);
+    $page->keys('[data-testid="ultimate-zoom-close"]', 'Escape')
+        ->assertScript('getComputedStyle(document.querySelector("[data-testid=ultimate-zoom-layer]")).display', 'none')
+        ->assertScript('document.querySelector("[data-testid=match-status]").textContent.trim()', $turn)
+        ->assertScript('Array.from(document.querySelectorAll("[data-testid^=ultimate-cell-]")).every(cell => cell.dataset.mark === "")', true)
+        ->assertNoJavaScriptErrors();
+});
+
+it('does not interpret a scrolling gesture or short touch as enlargement', function () {
+    $page = visit('/ultimate')->resize(360, 800);
+    $result = $page->script('(async () => {
+        const cell = document.querySelector("[data-testid=ultimate-cell-0-0]");
+        const options = { bubbles: true, pointerId: 41, pointerType: "touch", clientX: 60, clientY: 180 };
+        cell.dispatchEvent(new PointerEvent("pointerdown", options));
+        window.dispatchEvent(new PointerEvent("pointermove", { ...options, clientY: 215 }));
+        await new Promise(resolve => setTimeout(resolve, 500));
+        window.dispatchEvent(new PointerEvent("pointerup", options));
+        cell.dispatchEvent(new PointerEvent("pointerdown", { ...options, pointerId: 42 }));
+        window.dispatchEvent(new PointerEvent("pointerup", { ...options, pointerId: 42 }));
+        return getComputedStyle(document.querySelector("[data-testid=ultimate-zoom-layer]")).display;
+    })()');
+
+    expect($result)->toBe('none');
+    $page->assertNoJavaScriptErrors();
+});
+
+it('does not play a cell when the player holds the long press after enlargement opens', function () {
+    $page = visit('/ultimate')->resize(320, 720);
+    $page->script('(async () => {
+        const cell = document.querySelector("[data-testid=ultimate-cell-4-0]");
+        const options = { bubbles: true, pointerType: "touch", pointerId: 61, clientX: 60, clientY: 180 };
+        cell.dispatchEvent(new PointerEvent("pointerdown", options));
+        await new Promise(resolve => setTimeout(resolve, 1250));
+        window.dispatchEvent(new PointerEvent("pointerup", options));
+        cell.click();
+    })()');
+
+    $page->assertVisible('[data-testid="ultimate-zoom-panel"]')
+        ->assertAttribute('[data-testid="ultimate-cell-4-0"]', 'data-mark', '')
+        ->assertNoJavaScriptErrors();
+});
+
+it('allows long press over an occupied cell of an available subboard', function () {
+    $page = visit('/ultimate')->resize(320, 720)
         ->click('[data-testid="ultimate-cell-0-4"]')
-        ->assertAttribute('[data-testid="ultimate-sub-board-0"]', 'data-available', 'false')
-        ->assertAttribute('[data-testid="ultimate-sub-board-4"]', 'aria-pressed', 'true')
-        ->assertScript('(() => { const board = document.querySelector("[data-testid=ultimate-sub-board-0]"); const focus = document.activeElement; board.click(); board.focus(); return board.disabled && board.getAttribute("aria-pressed") === "false" && document.querySelector("[data-testid=ultimate-sub-board-4]").getAttribute("aria-pressed") === "true" && document.activeElement === focus && !document.querySelector("[data-testid=rejection-message]"); })()', true)
-        ->click('[data-testid="ultimate-sub-board-4"]')
-        ->assertScript('document.activeElement?.dataset.testid', 'ultimate-cell-4-0')
+        ->click('[data-testid="ultimate-cell-4-4"]')
+        ->assertAttribute('[data-testid="ultimate-sub-board-4"]', 'data-available', 'true');
+
+    $page->script('(async () => {
+        const cell = document.querySelector("[data-testid=ultimate-cell-4-4]");
+        const bounds = cell.getBoundingClientRect();
+        const x = bounds.left + bounds.width / 2;
+        const y = bounds.top + bounds.height / 2;
+        const target = document.elementFromPoint(x, y);
+        target.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, pointerType: "touch", pointerId: 51, clientX: x, clientY: y }));
+        await new Promise(resolve => setTimeout(resolve, 500));
+        window.dispatchEvent(new PointerEvent("pointerup", { bubbles: true, pointerType: "touch", pointerId: 51, clientX: x, clientY: y }));
+    })()');
+
+    $page->assertVisible('[data-testid="ultimate-zoom-panel"]')
+        ->assertScript('document.querySelector("[data-testid=ultimate-zoom-cell-4-4]").disabled', true)
         ->assertNoJavaScriptErrors();
 });
 
-it('keeps conquered subboards disabled and waits for a manual choice', function () {
-    $page = visit('/ultimate');
-    foreach ([[0, 1], [1, 0], [0, 2], [2, 0], [0, 0]] as [$board, $cell]) {
-        $page->click('[data-testid="ultimate-sub-board-'.$board.'"]')
-            ->click('[data-testid="ultimate-cell-'.$board.'-'.$cell.'"]')
-            ->assertScript('document.querySelector("[data-testid=ultimate-cell-'.$board.'-'.$cell.']").dataset.mark !== ""', true);
-    }
+it('blocks duplicate moves while a Livewire request is pending', function () {
+    $page = visit('/ultimate')->resize(320, 720);
+    $pending = $page->script('(async () => {
+        const originalFetch = window.fetch;
+        window.__ultimateRequests = 0;
+        window.fetch = (...args) => {
+            window.__ultimateRequests++;
+            return originalFetch(...args).then(response => new Promise(resolve => { window.__releaseUltimate = () => resolve(response); }));
+        };
+        const cell = document.querySelector("[data-testid=ultimate-cell-0-4]");
+        cell.click();
+        cell.click();
+        await new Promise(resolve => setTimeout(resolve, 150));
+        return { requests: window.__ultimateRequests, disabled: cell.disabled, mark: cell.dataset.mark };
+    })()');
 
-    $page->assertAttribute('[data-testid="ultimate-sub-board-0"]', 'data-available', 'false')
-        ->assertAttribute('[data-testid="ultimate-sub-board-0"]', 'aria-pressed', 'false')
-        ->assertVisible('[data-testid="ultimate-selection-prompt"]')
-        ->assertScript('Array.from(document.querySelectorAll("[data-testid^=ultimate-sub-board-]")).every(board => board.getAttribute("aria-pressed") === "false")', true)
-        ->assertScript('(() => { const board = document.querySelector("[data-testid=ultimate-sub-board-0]"); const focus = document.activeElement; board.click(); return board.disabled && document.querySelector("[data-testid=ultimate-sub-board-1]").getAttribute("aria-pressed") === "false" && document.activeElement === focus && !!board.querySelector("[data-winner-overlay]") && !document.querySelector("[data-testid=rejection-message]"); })()', true)
-        ->assertScript('Array.from(document.querySelectorAll("[data-testid=ultimate-focus-board-0] button")).every(cell => cell.disabled)', true)
-        ->click('[data-testid="ultimate-sub-board-1"]')
-        ->assertAttribute('[data-testid="ultimate-sub-board-1"]', 'aria-pressed', 'true')
+    expect($pending)->toBe(['requests' => 1, 'disabled' => true, 'mark' => '']);
+    $page->script('window.__releaseUltimate()');
+    $page->assertScript('document.querySelector("[data-testid=ultimate-cell-0-4]").dataset.mark !== ""', true)
+        ->assertScript('window.__ultimateRequests', 1)
+        ->assertNoJavaScriptErrors();
+});
+
+it('keeps the enlargement open and allows retry after a failed request', function () {
+    $page = visit('/ultimate')->resize(320, 720);
+    ultimateLongPress($page, 4);
+    $page->script('window.__ultimateOriginalFetch = window.fetch; window.fetch = () => Promise.reject(new TypeError("Network unavailable")); document.querySelector("[data-testid=ultimate-zoom-cell-4-0]").click()');
+
+    expect($page->script('async () => {
+        const deadline = performance.now() + 5000;
+        while (performance.now() < deadline) {
+            if (document.querySelector("[data-testid=ultimate-request-error]").textContent.trim()) return true;
+            await new Promise(requestAnimationFrame);
+        }
+        return false;
+    }'))->toBeTrue();
+
+    $page->assertSeeIn('[data-testid="ultimate-request-error"]', 'Não foi possível concluir a jogada')
+        ->assertVisible('[data-testid="ultimate-zoom-panel"]')
+        ->assertAttribute('[data-testid="ultimate-cell-4-0"]', 'data-mark', '')
+        ->assertScript('Alpine.$data(document.querySelector(".experimental-match")).busy', false)
+        ->assertNoJavaScriptErrors();
+
+    $page->script('window.fetch = window.__ultimateOriginalFetch');
+    $page->click('[data-testid="ultimate-zoom-cell-4-0"]')
+        ->assertScript('document.querySelector("[data-testid=ultimate-cell-4-0]").dataset.mark !== ""', true)
+        ->assertScript('getComputedStyle(document.querySelector("[data-testid=ultimate-zoom-layer]")).display', 'none')
+        ->assertNoJavaScriptErrors();
+});
+
+it('opens the enlargement with reduced motion enabled', function () {
+    $page = visit('/ultimate', ['reducedMotion' => 'reduce'])->resize(320, 720)
+        ->assertScript('matchMedia("(prefers-reduced-motion: reduce)").matches', true);
+
+    ultimateLongPress($page, 4);
+
+    $page->assertVisible('[data-testid="ultimate-zoom-panel"]')
+        ->assertScript('window.scrollY', 0)
+        ->assertScript('document.querySelector("[data-testid=ultimate-cell-4-0]").dataset.mark', '')
+        ->assertNoJavaScriptErrors();
+});
+
+it('supports keyboard moves directly and preserves focus styling', function () {
+    $page = visit('/ultimate')->resize(390, 844)
+        ->keys('[data-testid="ultimate-cell-0-4"]', 'Enter')
+        ->assertScript('document.querySelector("[data-testid=ultimate-cell-0-4]").dataset.mark !== ""', true)
+        ->assertAttribute('[data-testid="ultimate-sub-board-4"]', 'data-target', 'true')
         ->assertNoJavaScriptErrors();
 });

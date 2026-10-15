@@ -50,7 +50,7 @@ it('renders the :dataset modality route with its expected view and structure', f
     'score 5x5' => ['/5-cheia', 'full-5x5', 'Pontuação 5×5', ['data-testid="classic-board"', 'data-testid="cell-0"', 'data-testid="cell-24"', 'data-testid="round-points-x"', 'data-testid="new-match-button"']],
     'dice' => ['/dado', 'dice-match', 'Dados da Velha', ['data-testid="dice-board-esquerdo"', 'data-testid="dice-board-direito"', 'data-testid="dice-face"', 'data-testid="roll-button"', 'data-testid="new-match-button"']],
     'crazy' => ['/maluca', 'crazy-match', 'Conquista Maluca', ['data-testid="crazy-board"', 'data-testid="crazy-cell-0"', 'data-testid="crazy-cell-8"', 'data-testid="piece-selector"', 'data-testid="new-match-button"']],
-    'ultimate' => ['/ultimate', 'ultimate-match', 'Ultimate', ['data-testid="ultimate-overview"', 'data-testid="ultimate-sub-board-0"', 'data-testid="ultimate-sub-board-8"', 'data-testid="ultimate-focus-region"', 'data-testid="new-match-button"']],
+    'ultimate' => ['/ultimate', 'ultimate-match', 'Ultimate', ['data-testid="ultimate-overview"', 'data-testid="ultimate-sub-board-0"', 'data-testid="ultimate-sub-board-8"', 'data-testid="ultimate-zoom-panel"', 'data-testid="new-match-button"']],
 ]);
 
 it('renders the expected number of cells for the :dataset shared-layout modality', function (string $uri, int $cellCount) {

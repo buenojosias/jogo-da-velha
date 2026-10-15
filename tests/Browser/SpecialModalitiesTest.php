@@ -187,7 +187,6 @@ it('directs the next ultimate move to the matching sub-board', function () {
         ->assertCount('[data-testid^="ultimate-cell-"]', 81);
 
     $page
-        ->click('[data-testid="ultimate-sub-board-0"]')
         ->click('[data-testid="ultimate-cell-0-4"]')
         ->assertAttribute('[data-testid="ultimate-sub-board-4"]', 'data-target', 'true')
         ->assertSeeIn('[data-testid="target-board-status"]', 'Subtabuleiro obrigatório: 5')

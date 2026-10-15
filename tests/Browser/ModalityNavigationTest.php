@@ -142,7 +142,7 @@ function browserModalities(): array
             'board' => '[data-testid="ultimate-overview"]',
             'cells' => '[data-testid^="ultimate-cell-"]',
             'cell_count' => 81,
-            'additional' => ['[data-testid^="ultimate-sub-board-"]' => 9, '[data-testid="ultimate-focus-region"]' => 1],
+            'additional' => ['[data-testid^="ultimate-sub-board-"]' => 9, '[data-testid="ultimate-zoom-panel"]' => 1],
         ]],
     ];
 }

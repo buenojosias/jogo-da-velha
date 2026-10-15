@@ -112,8 +112,12 @@ html[data-design-system='experimental'][data-theme='dark'] {
     --ds-overlay: rgb(6 5 18 / 78%);
 }
 
-html[data-design-system='experimental'] .ultimate-overview > button[aria-pressed='true'] {
+html[data-design-system='experimental'] .ultimate-overview > [data-selected='true'] {
     border-color: var(--ds-ultimate-active);
+}
+
+html[data-design-system='experimental'] .ultimate-overview > [data-zoomed='true'] {
+    opacity: 0.65;
 }
 
 html[data-design-system='experimental'] body {

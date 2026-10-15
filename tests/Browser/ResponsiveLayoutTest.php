@@ -48,7 +48,7 @@ function specialResponsiveCases(): array
     $modalities = [
         'dice' => ['/dado', '[data-testid="dice-board-esquerdo"]', '[data-testid="roll-button"]'],
         'crazy' => ['/maluca', '[data-testid="crazy-board"]', '[data-testid="piece-selector"]'],
-        'ultimate' => ['/ultimate', '[data-testid="ultimate-overview"]', '[data-testid="ultimate-focus-region"]'],
+        'ultimate' => ['/ultimate', '[data-testid="ultimate-overview"]', '[data-testid="ultimate-cell-0-0"]'],
     ];
     $viewports = [
         '360px' => [360, 800],

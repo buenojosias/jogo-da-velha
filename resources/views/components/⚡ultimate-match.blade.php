@@ -60,7 +60,7 @@ new class extends Component
         return app(UltimateRules::class)->globalWinningLine($this->matchState);
     }
 
-    public function place(mixed $board, mixed $cell): void
+    public function place(mixed $board, mixed $cell): bool
     {
         $state = $this->matchState;
         $result = app(UltimateRules::class)->apply($state, new GameAction(
@@ -77,7 +77,7 @@ new class extends Component
                 default => 'Escolha um subtabuleiro e uma casa válidos.',
             };
 
-            return;
+            return false;
         }
         app(SessionMatchStore::class)->save($this->matchId, $result->state);
         $this->rejectionMessage = null;
@@ -86,6 +86,8 @@ new class extends Component
         if ($result->state->isFinished()) {
             $this->dispatch('ultimate-round-finished');
         }
+
+        return true;
     }
 
     public function restart(): void
@@ -113,58 +115,121 @@ new class extends Component
     $availableBoards = $this->availableBoards;
     $globalWinningLine = $this->globalWinningLine;
     $score = $this->score;
-    $initialFocus = $targetBoard;
 @endphp
 
 <div class="experimental-match mx-auto flex min-h-screen w-full max-w-6xl flex-col gap-4 px-4 py-4 text-ds-text sm:px-6 sm:py-6"
     x-data="{
-        focusedBoard: {{ $initialFocus === null ? 'null' : $initialFocus }},
+        selectedBoard: {{ $targetBoard === null ? 'null' : $targetBoard }},
+        zoomBoard: null,
+        busy: false,
+        press: null,
+        longPressPointerId: null,
+        suppressBoard: null,
+        suppressUntil: 0,
+        releaseClickUntil: 0,
+        zoomPosition: { left: 12, top: 12 },
+        zoomOrigin: null,
+        requestError: null,
         resultOrigin: null,
         openResult() { this.$nextTick(() => { const dialog = this.$refs.resultDialog; if (!dialog || dialog.open) return; this.resultOrigin = document.activeElement; dialog.showModal(); }); },
         closeResult() { this.$refs.resultDialog?.close(); },
         restoreFocus() { const origin = this.resultOrigin; requestAnimationFrame(() => (origin instanceof HTMLElement && origin.isConnected && origin.tabIndex >= 0 && !origin.matches(':disabled') ? origin : this.$refs.restartButton)?.focus()); },
-        focusPlayableBoard(boardIndex) {
-            this.$nextTick(() => {
-                const region = this.$refs.focusRegion;
-                const board = region?.querySelector(`[data-testid='ultimate-focus-board-${boardIndex}']`);
-                const firstCell = board?.querySelector('button:not(:disabled)');
-                if (!firstCell || this.$refs.resultDialog?.open) return;
-                firstCell.focus({ preventScroll: true });
-                const bounds = region.getBoundingClientRect();
-                if (bounds.top < 0 || bounds.bottom > window.innerHeight) {
-                    region.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth', block: 'start' });
-                }
-            });
-        },
         selectBoard(boardIndex) {
-            const board = this.$refs.overview?.children[boardIndex];
-            if (!board || board.disabled) return;
-            this.focusedBoard = boardIndex;
-            this.focusPlayableBoard(boardIndex);
+            if (this.$refs.overview?.children[boardIndex]?.dataset.available !== 'true') return;
+            this.selectedBoard = boardIndex;
         },
         updateBoard(boardIndex) {
-            const board = boardIndex === null ? null : this.$refs.overview?.children[boardIndex];
-            this.focusedBoard = board && !board.disabled ? boardIndex : null;
-            if (this.focusedBoard !== null) {
-                this.focusPlayableBoard(this.focusedBoard);
+            this.selectedBoard = boardIndex;
+        },
+        async play(boardIndex, cellIndex) {
+            if (this.busy || this.$refs.overview?.children[boardIndex]?.dataset.available !== 'true') return;
+            this.busy = true;
+            this.requestError = null;
+            this.selectedBoard = boardIndex;
+            try {
+                if (await this.$wire.place(boardIndex, cellIndex)) this.closeZoom(false, true);
+            } catch {
+                this.requestError = 'Não foi possível concluir a jogada. Tente novamente.';
+            } finally {
+                this.busy = false;
+            }
+        },
+        beginPress(event, boardIndex) {
+            if (event.pointerType !== 'touch' || this.busy || this.$refs.overview?.children[boardIndex]?.dataset.available !== 'true') return;
+            this.cancelPress();
+            const press = { pointerId: event.pointerId, x: event.clientX, y: event.clientY, boardIndex, timer: null };
+            press.timer = setTimeout(() => {
+                if (this.press?.pointerId !== press.pointerId) return;
+                this.suppressBoard = boardIndex;
+                this.suppressUntil = Infinity;
+                this.longPressPointerId = press.pointerId;
+                this.openZoom(boardIndex);
+                this.press = null;
+            }, 450);
+            this.press = press;
+        },
+        movePress(event) {
+            if (this.press?.pointerId !== event.pointerId) return;
+            if (Math.hypot(event.clientX - this.press.x, event.clientY - this.press.y) > 12) this.cancelPress();
+        },
+        endPress(event) {
+            if (this.press?.pointerId === event.pointerId) this.cancelPress();
+            if (this.longPressPointerId === event.pointerId) {
+                this.longPressPointerId = null;
+                this.suppressUntil = performance.now() + 700;
+                this.releaseClickUntil = performance.now() + 150;
+            }
+        },
+        cancelPress() {
+            if (this.press?.timer) clearTimeout(this.press.timer);
+            this.press = null;
+        },
+        suppressLongClick(event, boardIndex) {
+            if (this.suppressBoard !== boardIndex) return;
+            if (performance.now() > this.suppressUntil) {
+                this.suppressBoard = null;
                 return;
             }
+            event.preventDefault();
+            event.stopPropagation();
+            this.suppressBoard = null;
+        },
+        openZoom(boardIndex) {
+            if (this.busy || this.$refs.overview?.children[boardIndex]?.dataset.available !== 'true') return;
+            this.selectedBoard = boardIndex;
+            this.zoomOrigin = document.activeElement;
+            this.zoomBoard = boardIndex;
             this.$nextTick(() => {
-                const overview = this.$refs.overview;
-                if (!overview || this.$refs.resultDialog?.open) return;
-                overview.focus({ preventScroll: true });
-                overview.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth', block: 'nearest' });
+                this.positionZoom();
+                this.$refs.zoomClose?.focus({ preventScroll: true });
             });
         },
-        returnToOverview() {
-            const overview = this.focusedBoard === null ? this.$refs.overview : this.$refs.overview?.children[this.focusedBoard];
-            if (!overview || overview.disabled) return;
-            overview.focus({ preventScroll: true });
-            overview.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth', block: 'nearest' });
+        positionZoom() {
+            const board = this.$refs.overview?.children[this.zoomBoard];
+            const panel = this.$refs.zoomPanel;
+            if (!board || !panel) return;
+            const bounds = board.getBoundingClientRect();
+            const width = panel.offsetWidth;
+            const height = panel.offsetHeight;
+            this.zoomPosition = {
+                left: Math.max(12, Math.min(bounds.left + (bounds.width - width) / 2, innerWidth - width - 12)),
+                top: Math.max(12, Math.min(bounds.top + (bounds.height - height) / 2, innerHeight - height - 12)),
+            };
+        },
+        closeZoom(restoreFocus = true, confirmed = false) {
+            if (this.zoomBoard === null || (this.busy && !confirmed)) return;
+            this.zoomBoard = null;
+            if (restoreFocus && this.zoomOrigin instanceof HTMLElement && this.zoomOrigin.isConnected) this.zoomOrigin.focus({ preventScroll: true });
+            this.zoomOrigin = null;
         }
     }"
     x-on:ultimate-state-updated.window="updateBoard($event.detail.focus)"
     x-on:ultimate-round-finished.window="openResult()"
+    x-on:pointermove.window="movePress($event)"
+    x-on:pointerup.window="endPress($event)"
+    x-on:pointercancel.window="endPress($event)"
+    x-on:keydown.escape.window="closeZoom()"
+    x-on:resize.window="if (zoomBoard !== null) positionZoom()"
 >
     <x-design-system.match-header modality="Ultimate" title="Jogo da Velha" description="Conquiste três subtabuleiros em linha." data-testid="match-header">
         <x-slot:actions><x-design-system.theme-selector data-testid="theme-selector" /></x-slot:actions>
@@ -192,82 +257,78 @@ new class extends Component
                 @endif
             </p>
 
-            <div class="mt-3 grid min-w-0 items-start gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(14rem,17rem)]">
-                <section aria-label="Visão geral dos nove subtabuleiros" class="min-w-0">
-                    <h2 class="text-center text-sm font-extrabold">Visão geral</h2>
-                    <div data-testid="ultimate-overview" x-ref="overview" role="group" aria-label="Escolha um subtabuleiro disponível" tabindex="-1" class="ultimate-overview mx-auto mt-2 grid w-full max-w-[35rem] grid-cols-3 gap-1.5 sm:gap-2">
-                        @foreach ($boards as $boardIndex => $board)
-                            @php
-                                $result = $rules->subBoardResult($state, $boardIndex);
-                                $available = in_array($boardIndex, $availableBoards, true);
-                                $isWinningBoard = in_array($boardIndex, $globalWinningLine ?? [], true);
-                                $statusLabel = match (true) {
-                                    $result === 'draw' => 'empatado',
-                                    $result === 'x' => 'conquistado pelo jogador X',
-                                    $result === 'o' => 'conquistado pelo jogador O',
-                                    $state->isFinished() => 'rodada encerrada, indisponível',
-                                    $targetBoard === $boardIndex => 'obrigatório e disponível para jogar',
-                                    $available => 'disponível para jogar',
-                                    default => 'aguardando, indisponível neste turno',
-                                };
-                                $boardAppearance = match (true) {
-                                    $isWinningBoard => 'border-ds-success bg-ds-hover',
-                                    $result === 'x' => 'border-ds-x bg-ds-surface-muted',
-                                    $result === 'o' => 'border-ds-o bg-ds-surface-muted',
-                                    $result === 'draw' => 'border-dotted border-ds-border bg-ds-elevated',
-                                    $available => 'border-ds-success bg-ds-surface',
-                                    default => 'border-dashed border-ds-border bg-ds-surface-muted',
-                                };
-                            @endphp
-                            <button type="button" wire:key="ultimate-overview-{{ $boardIndex }}" data-testid="ultimate-sub-board-{{ $boardIndex }}"
-                                data-result="{{ $result ?? '' }}" data-available="{{ $available ? 'true' : 'false' }}" data-target="{{ $targetBoard === $boardIndex ? 'true' : 'false' }}"
-                                aria-label="Subtabuleiro {{ $boardIndex + 1 }}, {{ $statusLabel }}"
-                                x-on:click="selectBoard({{ $boardIndex }})"
-                                x-bind:aria-pressed="focusedBoard === {{ $boardIndex }} && ! $el.disabled"
-                                @disabled(! $available)
-                                class="relative min-w-0 rounded-ds-control border-2 p-1 text-ds-text enabled:cursor-pointer disabled:cursor-not-allowed focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-ds-focus sm:p-1.5 {{ $boardAppearance }}">
-                                <span class="grid aspect-square grid-cols-3 grid-rows-3 gap-0.5" aria-hidden="true">
-                                    @foreach ($board as $cellIndex => $mark)
-                                        <span class="flex aspect-square min-h-0 min-w-0 items-center justify-center rounded-sm border border-ds-border bg-ds-elevated text-[0.65rem] font-black leading-none sm:text-sm {{ $mark === 'x' ? 'text-ds-x' : ($mark === 'o' ? 'text-ds-o' : '') }}">{{ strtoupper($mark) }}</span>
-                                    @endforeach
-                                </span>
-                                @if ($result === 'x' || $result === 'o')
-                                    <span aria-hidden="true" data-winner-overlay="{{ $result }}" class="pointer-events-none absolute inset-[2px] flex items-center justify-center rounded-[0.625rem] {{ $result === 'x' ? 'bg-ds-x/15 text-ds-x' : 'bg-ds-o/15 text-ds-o' }}">
-                                        <span class="text-5xl font-black leading-none opacity-50 sm:text-6xl">{{ strtoupper($result) }}</span>
-                                    </span>
-                                @elseif ($result === 'draw')
-                                    <span aria-hidden="true" class="pointer-events-none absolute right-0.5 top-0.5 flex size-3 items-center justify-center rounded-full bg-ds-surface text-[0.55rem] font-black leading-none shadow-ds-card text-ds-text-secondary">=</span>
-                                @endif
-                            </button>
-                        @endforeach
-                    </div>
-                </section>
-
-                <section aria-label="Subtabuleiro ampliado" data-testid="ultimate-focus-region" x-ref="focusRegion" x-on:keydown.escape.stop="returnToOverview()" aria-keyshortcuts="Escape" class="min-w-0 rounded-ds-card border border-ds-border bg-ds-surface-muted p-2.5 sm:p-3">
-                    <h2 class="text-center text-sm font-extrabold">Jogue no subtabuleiro ampliado</h2>
-                    @if (! $state->isFinished())
-                        <p x-show="focusedBoard === null" x-cloak data-testid="ultimate-selection-prompt" role="status" class="mt-3 text-center text-sm font-semibold text-ds-text-secondary">Escolha um subtabuleiro disponível na visão geral para continuar.</p>
-                    @endif
+            <section aria-label="Visão geral dos nove subtabuleiros" class="mt-3 min-w-0">
+                <h2 class="text-center text-sm font-extrabold">Tabuleiro Ultimate</h2>
+                <div data-testid="ultimate-overview" x-ref="overview" role="group" aria-label="Nove subtabuleiros; jogue diretamente em uma casa disponível" class="ultimate-overview mx-auto mt-2 grid w-full max-w-[38rem] grid-cols-3 gap-1 sm:gap-2">
                     @foreach ($boards as $boardIndex => $board)
-                        @php $available = in_array($boardIndex, $availableBoards, true); $localLine = $rules->localWinningLine($state, $boardIndex); @endphp
-                        <div wire:key="ultimate-focus-{{ $boardIndex }}" x-show="focusedBoard === {{ $boardIndex }}" x-cloak data-testid="ultimate-focus-board-{{ $boardIndex }}" class="mt-2">
-                            <p class="mb-2 text-center text-xs font-bold text-ds-text-secondary">Subtabuleiro {{ $boardIndex + 1 }}{{ $available ? ' · disponível' : ' · indisponível' }}</p>
-                            <div role="group" aria-label="Casas do subtabuleiro {{ $boardIndex + 1 }}" class="mx-auto grid w-full max-w-[20rem] grid-cols-3 gap-1.5">
-                                @foreach ($board as $cellIndex => $mark)
-                                    <button type="button" wire:key="ultimate-cell-{{ $boardIndex }}-{{ $cellIndex }}" data-testid="ultimate-cell-{{ $boardIndex }}-{{ $cellIndex }}" data-mark="{{ $mark }}"
-                                        aria-label="Subtabuleiro {{ $boardIndex + 1 }}, casa {{ $cellIndex + 1 }}{{ $mark ? ', '.strtoupper($mark) : ', vazia' }}"
-                                        wire:click="place({{ $boardIndex }}, {{ $cellIndex }})" wire:loading.attr="disabled"
-                                        @disabled(! $available || $mark !== '')
-                                        class="aspect-square min-h-12 rounded-ds-control border-2 bg-ds-elevated text-3xl font-black shadow-ds-card enabled:hover:bg-ds-hover focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-ds-focus disabled:cursor-not-allowed {{ in_array($cellIndex, $localLine ?? [], true) ? 'border-ds-success ring-2 ring-ds-success' : 'border-ds-board-border' }} {{ $mark === 'x' ? 'text-ds-x' : 'text-ds-o' }}">{{ strtoupper($mark) }}</button>
-                                @endforeach
-                            </div>
+                        @php
+                            $result = $rules->subBoardResult($state, $boardIndex);
+                            $available = in_array($boardIndex, $availableBoards, true);
+                            $isWinningBoard = in_array($boardIndex, $globalWinningLine ?? [], true);
+                            $statusLabel = match (true) {
+                                $result === 'draw' => 'empatado',
+                                $result === 'x' => 'conquistado pelo jogador X',
+                                $result === 'o' => 'conquistado pelo jogador O',
+                                $state->isFinished() => 'rodada encerrada, indisponível',
+                                $targetBoard === $boardIndex => 'obrigatório e disponível para jogar',
+                                $available => 'disponível para jogar',
+                                default => 'aguardando, indisponível neste turno',
+                            };
+                            $boardAppearance = match (true) {
+                                $isWinningBoard => 'border-ds-success bg-ds-hover',
+                                $result === 'x' => 'border-ds-x bg-ds-surface-muted',
+                                $result === 'o' => 'border-ds-o bg-ds-surface-muted',
+                                $result === 'draw' => 'border-dotted border-ds-border bg-ds-elevated',
+                                $available => 'border-ds-success bg-ds-surface',
+                                default => 'border-dashed border-ds-border bg-ds-surface-muted',
+                            };
+                            $localLine = $rules->localWinningLine($state, $boardIndex);
+                        @endphp
+                        <div wire:key="ultimate-overview-{{ $boardIndex }}" data-testid="ultimate-sub-board-{{ $boardIndex }}"
+                            data-result="{{ $result ?? '' }}" data-available="{{ $available ? 'true' : 'false' }}" data-target="{{ $targetBoard === $boardIndex ? 'true' : 'false' }}"
+                            role="group" aria-label="Subtabuleiro {{ $boardIndex + 1 }}, {{ $statusLabel }}"
+                            x-on:click="selectBoard({{ $boardIndex }})"
+                            x-on:focusin="selectBoard({{ $boardIndex }})"
+                            x-on:click.capture="suppressLongClick($event, {{ $boardIndex }})"
+                            x-on:pointerdown="beginPress($event, {{ $boardIndex }})"
+                            x-on:contextmenu.prevent
+                            x-bind:data-selected="selectedBoard === {{ $boardIndex }} && $el.dataset.available === 'true'"
+                            x-bind:data-zoomed="zoomBoard === {{ $boardIndex }}"
+                            class="relative min-w-0 rounded-ds-control border-2 p-0.5 text-ds-text touch-pan-y sm:p-1.5 {{ $boardAppearance }}">
+                            <x-ultimate-board-cells :board="$board" :board-index="$boardIndex" :available="$available" :local-line="$localLine" />
+                            @if ($result === 'x' || $result === 'o')
+                                <span aria-hidden="true" data-winner-overlay="{{ $result }}" class="pointer-events-none absolute inset-[2px] flex items-center justify-center rounded-[0.625rem] {{ $result === 'x' ? 'bg-ds-x/15 text-ds-x' : 'bg-ds-o/15 text-ds-o' }}">
+                                    <span class="text-5xl font-black leading-none opacity-50 sm:text-6xl">{{ strtoupper($result) }}</span>
+                                </span>
+                            @elseif ($result === 'draw')
+                                <span aria-hidden="true" class="pointer-events-none absolute right-0.5 top-0.5 flex size-3 items-center justify-center rounded-full bg-ds-surface text-[0.55rem] font-black leading-none shadow-ds-card text-ds-text-secondary">=</span>
+                            @endif
                         </div>
                     @endforeach
-                    <p x-show="focusedBoard !== null" x-cloak class="mt-2 text-center text-xs text-ds-text-secondary">Escolha na visão geral. Pressione Escape para voltar a ela.</p>
+                </div>
+            </section>
+
+            <div x-show="zoomBoard !== null" x-cloak data-testid="ultimate-zoom-layer" class="fixed inset-0 z-50">
+                <div data-testid="ultimate-zoom-backdrop" x-on:click="if (performance.now() >= releaseClickUntil) closeZoom()" class="absolute inset-0 bg-ds-canvas/45"></div>
+                <section x-ref="zoomPanel" data-testid="ultimate-zoom-panel" role="dialog" aria-modal="false" aria-label="Subtabuleiro ampliado temporariamente"
+                    x-bind:style="`left: ${zoomPosition.left}px; top: ${zoomPosition.top}px`"
+                    x-transition:enter="transition duration-150 ease-out motion-reduce:transition-none" x-transition:enter-start="scale-95 opacity-0" x-transition:enter-end="scale-100 opacity-100"
+                    class="fixed w-[min(19rem,calc(100vw-1.5rem),calc(100dvh-4.5rem))] max-h-[calc(100dvh-1.5rem)] overflow-y-auto rounded-ds-card border-2 border-ds-ultimate-active bg-ds-surface p-2.5 text-ds-text shadow-ds-elevated sm:p-3">
+                    <div class="mb-2 flex items-center justify-between gap-2">
+                        <h2 class="text-sm font-extrabold" x-text="`Subtabuleiro ${zoomBoard === null ? '' : zoomBoard + 1}`"></h2>
+                        <button type="button" x-ref="zoomClose" data-testid="ultimate-zoom-close" aria-label="Fechar ampliação do subtabuleiro" x-on:click="closeZoom()" class="flex size-9 items-center justify-center rounded-ds-control border border-ds-border bg-ds-surface-muted text-xl font-bold leading-none focus-visible:outline-3 focus-visible:outline-ds-focus">×</button>
+                    </div>
+                    @foreach ($boards as $boardIndex => $board)
+                        @php $available = in_array($boardIndex, $availableBoards, true); $localLine = $rules->localWinningLine($state, $boardIndex); @endphp
+                        <div wire:key="ultimate-zoom-board-{{ $boardIndex }}" x-show="zoomBoard === {{ $boardIndex }}" x-cloak>
+                            <x-ultimate-board-cells :board="$board" :board-index="$boardIndex" :available="$available" :local-line="$localLine" enlarged />
+                        </div>
+                    @endforeach
                 </section>
             </div>
 
             @if ($rejectionMessage)<p data-testid="rejection-message" role="alert" class="mt-3 rounded-ds-control border border-ds-warning bg-ds-warning-surface p-3 text-sm text-ds-warning">{{ $rejectionMessage }}</p>@endif
+            <p x-show="requestError" x-cloak x-text="requestError" data-testid="ultimate-request-error" role="alert" class="mt-3 rounded-ds-control border border-ds-warning bg-ds-warning-surface p-3 text-sm text-ds-warning"></p>
             <p wire:loading role="status" class="mt-2 text-sm text-ds-text-secondary">Processando jogada…</p>
         </div>
 

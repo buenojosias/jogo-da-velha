@@ -81,23 +81,24 @@ test('returns to manual choice when the destination subboard closes', function (
     expect($state->currentPlayer)->toBe(PlayerMark::O);
 });
 
-test('shows nine compact overview boards with accessible available states and no captions', function () {
+test('shows nine directly playable subboards with accessible available states', function () {
     $id = openPublicUltimate();
     $html = Livewire::test('ultimate-match', ['matchId' => $id])->html();
     $document = new DOMDocument;
     @$document->loadHTML('<?xml encoding="UTF-8">'.$html);
     $xpath = new DOMXPath($document);
-    $overviewBoards = $xpath->query('//*[@data-testid="ultimate-overview"]//button');
+    $overviewBoards = $xpath->query('//*[@data-testid="ultimate-overview"]/*[@data-testid]');
 
     expect($overviewBoards)->toHaveCount(9);
-    expect($xpath->query('//*[@data-testid="ultimate-overview"]')->item(0)->getAttribute('aria-label'))->toBe('Escolha um subtabuleiro disponível');
-    expect($document->textContent)->toContain('Escolha um subtabuleiro disponível na visão geral para continuar.');
-    expect($html)->toContain('focusedBoard: null');
+    expect($xpath->query('//*[@data-testid="ultimate-overview"]')->item(0)->getAttribute('aria-label'))->toContain('jogue diretamente');
+    expect($xpath->query('//*[@data-testid="ultimate-overview"]//button'))->toHaveCount(81);
+    expect($xpath->query('//*[@data-testid="ultimate-focus-region"]'))->toHaveCount(0);
+    expect($html)->toContain('selectedBoard: null');
     foreach ($overviewBoards as $index => $board) {
         expect($board->getAttribute('aria-label'))->toBe('Subtabuleiro '.($index + 1).', disponível para jogar');
         expect($board->getAttribute('class'))->toContain('border-ds-success');
-        expect($board->hasAttribute('disabled'))->toBeFalse();
-        expect(trim($board->textContent))->toBe('');
+        expect($board->getAttribute('data-available'))->toBe('true');
+        expect($xpath->query('.//button[not(@disabled)]', $board))->toHaveCount(9);
     }
 });
 
@@ -128,7 +129,8 @@ test('distinguishes mandatory waiting conquered and drawn overview boards withou
         $board = $xpath->query('//*[@data-testid="ultimate-sub-board-'.$index.'"]')->item(0);
         expect($board->getAttribute('aria-label'))->toBe('Subtabuleiro '.($index + 1).', '.$status);
         expect($board->getAttribute('class'))->toContain($border);
-        expect($board->hasAttribute('disabled'))->toBe($index !== 4);
+        expect($board->getAttribute('data-available'))->toBe($index === 4 ? 'true' : 'false');
+        expect($xpath->query('.//button[not(@disabled)]', $board))->toHaveCount($index === 4 ? 9 : 0);
         expect($xpath->query('.//span[@aria-hidden="true" and contains(@class, "right-0.5")]', $board)->item(0)?->textContent ?? '')->toBe($indicator);
         $overlay = $xpath->query('.//span[@data-winner-overlay]', $board)->item(0);
         expect(trim($overlay?->textContent ?? ''))->toBe($index === 0 ? 'X' : ($index === 1 ? 'O' : ''));
@@ -139,10 +141,10 @@ test('distinguishes mandatory waiting conquered and drawn overview boards withou
     }
 
     $mandatoryBoard = $xpath->query('//*[@data-testid="ultimate-sub-board-4"]')->item(0);
-    expect($mandatoryBoard->getAttribute('class'))->toContain('border-2', 'bg-ds-surface', 'focus-visible:outline-ds-focus');
+    expect($mandatoryBoard->getAttribute('class'))->toContain('border-2', 'bg-ds-surface');
     expect($mandatoryBoard->hasAttribute('x-bind:class'))->toBeFalse();
-    expect($mandatoryBoard->getAttribute('x-bind:aria-pressed'))->toContain('focusedBoard === 4');
-    expect($html)->toContain('focusedBoard: 4');
+    expect($mandatoryBoard->getAttribute('x-bind:data-selected'))->toContain('selectedBoard === 4');
+    expect($html)->toContain('selectedBoard: 4');
 });
 
 test('awards a global win once, then preserves score and alternates the starter on the next round', function () {
@@ -168,7 +170,7 @@ test('awards a global win once, then preserves score and alternates the starter 
     $component->call('place', 2, 2)->assertSee('Jogador X venceu!')->assertSee('rodada encerrada, indisponível')->assertDontSee('Escolha um subtabuleiro disponível na visão geral para continuar.')->assertDispatched('ultimate-round-finished');
     $document = new DOMDocument;
     @$document->loadHTML('<?xml encoding="UTF-8">'.$component->html());
-    expect((new DOMXPath($document))->query('//*[@data-testid="ultimate-overview"]//button[@disabled]'))->toHaveCount(9);
+    expect((new DOMXPath($document))->query('//*[@data-testid="ultimate-overview"]//button[@disabled]'))->toHaveCount(81);
     expect($store->score($id)['x'])->toBe(1);
     expect($store->find($id)->winner)->toBe(PlayerMark::X);
     $component->call('place', 8, 8)->assertSee('A rodada terminou');
