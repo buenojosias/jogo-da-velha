@@ -141,14 +141,14 @@ new class extends Component
             </x-design-system.match-status>
             <p class="crazy-instruction mt-2 text-center text-sm font-semibold text-ds-text-secondary">Peça maior cobre menor. A linha vence se o rival não puder cobri-la.</p>
 
-            <div data-testid="crazy-board" role="group" aria-label="Tabuleiro 3 por 3" class="crazy-board mx-auto mt-3 grid w-full max-w-[25rem] grid-cols-3 gap-2">
+            <div data-testid="crazy-board" role="group" aria-label="Tabuleiro 3 por 3" class="crazy-board ds-board-grid mx-auto mt-3 grid w-full max-w-[25rem] grid-cols-3">
                 @foreach ($stacks as $index => $stack)
                     @php $top = $stack === [] ? null : $stack[array_key_last($stack)]; @endphp
-                    <button type="button" data-testid="crazy-cell-{{ $index }}" data-cell="{{ $index }}" data-top="{{ $top ?? '' }}" data-stack-count="{{ count($stack) }}"
+                    <button type="button" data-testid="crazy-cell-{{ $index }}" data-cell="{{ $index }}" data-top="{{ $top ?? '' }}" data-stack-count="{{ count($stack) }}" data-winning-cell="{{ in_array($index, $line ?? [], true) ? 'true' : 'false' }}"
                         aria-label="Casa {{ $index + 1 }}{{ $top ? ', peça '.strtoupper($top[0]).' '.strtolower($sizeLabels[(int) $top[2]]).', '.count($stack).' na pilha' : ', vazia' }}"
                         x-on:click="if (selectedPiece) $wire.place(selectedPiece.size, {{ $index }})"
                         wire:loading.attr="disabled" @disabled($state->isFinished())
-                        class="crazy-cell relative aspect-square min-h-16 rounded-ds-control border-2 bg-ds-elevated transition-colors hover:bg-ds-hover focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-ds-focus disabled:cursor-not-allowed {{ in_array($index, $line ?? [], true) ? 'border-ds-success ring-1 ring-inset ring-ds-success' : 'border-ds-board-border' }}">
+                        class="ds-board-cell crazy-cell relative aspect-square min-h-16 transition-colors">
                         @if ($top)
                             <span class="crazy-board-piece mx-auto flex aspect-square shrink-0 items-center justify-center rounded-full border-2 border-current bg-ds-hover font-black shadow-ds-card {{ $top[0] === 'x' ? 'text-ds-x' : 'text-ds-o' }} {{ (int) $top[2] === 1 ? 'w-[32%] text-sm sm:text-lg' : ((int) $top[2] === 2 ? 'w-[58%] text-xl sm:text-2xl' : 'w-[86%] text-2xl sm:text-3xl') }}">{{ strtoupper($top[0]) }}</span>
                             @if (count($stack) > 1)<span class="absolute bottom-1 right-1 rounded-full bg-ds-surface px-1.5 text-xs font-bold text-ds-text">{{ count($stack) }}</span>@endif

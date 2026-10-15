@@ -111,7 +111,7 @@ new class extends Component
             this.blockedCells = [];
             this.$el.querySelectorAll('[data-block-feedback=true]').forEach(cell => {
                 cell.dataset.blockFeedback = 'false';
-                cell.classList.remove('ring-4', 'ring-ds-warning');
+
             });
         },
         showBlocked(cells) {
@@ -122,7 +122,7 @@ new class extends Component
                     const cell = this.$el.querySelector('[data-testid=cell-' + index + ']');
                     if (!cell) return;
                     cell.dataset.blockFeedback = 'true';
-                    cell.classList.add('ring-4', 'ring-ds-warning');
+
                 });
             });
             this.blockedTimer = setTimeout(() => this.clearBlocked(), 1000);

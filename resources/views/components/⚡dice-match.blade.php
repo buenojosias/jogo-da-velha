@@ -328,7 +328,7 @@ new class extends Component
                                 :interaction="'dice'"
                                 :board-index="$boardIndex"
                                 :allowed-column="$allowedBoard === $boardIndex ? $allowedColumn : null"
-                                class="dice-board"
+                                data-density="dense" class="dice-board"
                                 data-testid="dice-board-{{ $side }}"
                             />
                         </div>

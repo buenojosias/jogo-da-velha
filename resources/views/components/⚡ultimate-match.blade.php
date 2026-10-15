@@ -274,17 +274,9 @@ new class extends Component
                                 $available => 'disponível para jogar',
                                 default => 'aguardando, indisponível neste turno',
                             };
-                            $boardAppearance = match (true) {
-                                $isWinningBoard => 'border-ds-success bg-ds-hover',
-                                $result === 'x' => 'border-ds-x bg-ds-surface-muted',
-                                $result === 'o' => 'border-ds-o bg-ds-surface-muted',
-                                $result === 'draw' => 'border-dotted border-ds-border bg-ds-elevated',
-                                $available => 'border-ds-success bg-ds-surface',
-                                default => 'border-dashed border-ds-border bg-ds-surface-muted',
-                            };
                         @endphp
                         <div wire:key="ultimate-overview-{{ $boardIndex }}" data-testid="ultimate-sub-board-{{ $boardIndex }}"
-                            data-result="{{ $result ?? '' }}" data-available="{{ $available ? 'true' : 'false' }}" data-target="{{ $targetBoard === $boardIndex ? 'true' : 'false' }}"
+                            data-result="{{ $result ?? '' }}" data-available="{{ $available ? 'true' : 'false' }}" data-target="{{ $targetBoard === $boardIndex ? 'true' : 'false' }}" data-global-winning="{{ $isWinningBoard ? 'true' : 'false' }}"
                             role="group" aria-label="Subtabuleiro {{ $boardIndex + 1 }}, {{ $statusLabel }}"
                             x-on:click="selectBoard({{ $boardIndex }})"
                             x-on:focusin="selectBoard({{ $boardIndex }})"
@@ -293,7 +285,7 @@ new class extends Component
                             x-on:contextmenu.prevent
                             x-bind:data-selected="selectedBoard === {{ $boardIndex }} && $el.dataset.available === 'true'"
                             x-bind:data-zoomed="zoomBoard === {{ $boardIndex }}"
-                            class="relative min-w-0 rounded-[5px] border-2 p-0.5 text-ds-text touch-pan-y sm:rounded-ds-control sm:p-1.5 {{ $boardAppearance }}">
+                            class="ds-sub-board relative min-w-0 p-0.5 text-ds-text touch-pan-y sm:p-1.5">
                             <x-ultimate-board-cells :board="$board" :board-index="$boardIndex" :available="$available" />
                             @if ($result === 'x' || $result === 'o')
                                 <span aria-hidden="true" data-winner-overlay="{{ $result }}" class="pointer-events-none absolute inset-[2px] flex items-center justify-center rounded-[3px] sm:rounded-[0.625rem] {{ $result === 'x' ? 'bg-ds-x/15 text-ds-x' : 'bg-ds-o/15 text-ds-o' }}">

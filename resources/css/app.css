@@ -112,8 +112,186 @@ html[data-design-system='experimental'][data-theme='dark'] {
     --ds-overlay: rgb(6 5 18 / 78%);
 }
 
-html[data-design-system='experimental'] .ultimate-overview > [data-selected='true'] {
-    border-color: var(--ds-ultimate-active);
+/* Shared board vocabulary — stages B–D.
+   Palette aliases follow the resolved data-theme through --ds-*;
+   presentation density depends on the rendered grid, not only the viewport. */
+html[data-design-system='experimental'] {
+    /* Foundations: changing --ds-* updates every corresponding alias. */
+    --board-surface: var(--ds-surface);
+    --board-border: var(--ds-board-border);
+    --board-shadow: var(--ds-shadow-card);
+    --cell-surface: var(--ds-surface);
+    --cell-surface-muted: var(--ds-surface-muted);
+    --cell-border: var(--ds-board-border);
+    --cell-hover-surface: var(--ds-hover);
+    --cell-focus-color: var(--ds-focus);
+    --player-x: var(--ds-x);
+    --player-o: var(--ds-o);
+
+    /* Semantic roles; final state priority is set by components in Stage D. */
+    --cell-available-border: var(--ds-primary);
+    --cell-selected-border: var(--ds-primary);
+    --cell-winning-border: var(--ds-success);
+    --cell-winning-surface: var(--ds-hover);
+    --cell-restricted-border: var(--ds-warning);
+    --cell-disabled-surface: var(--cell-surface);
+    --line-progress-surface: color-mix(in srgb, var(--ds-success) 13%, var(--ds-surface));
+    --sub-board-border: var(--ds-board-border);
+    --sub-board-available-border: var(--ds-success);
+    --sub-board-selected-border: var(--ds-ultimate-active);
+    --sub-board-captured-x: color-mix(in srgb, var(--player-x) 13%, var(--ds-surface));
+    --sub-board-captured-o: color-mix(in srgb, var(--player-o) 13%, var(--ds-surface));
+    --sub-board-draw-border: var(--ds-board-border);
+
+    /* Regular-density candidates: opt-in only, not a global visual change. */
+    --cell-border-width: 2px;
+    --board-border-width: 1px;
+    --sub-board-border-width: 2px;
+    --board-gap: 0.5rem;
+    --sub-board-gap: 0.25rem;
+    --cell-radius: var(--ds-radius-control);
+    --board-radius: var(--ds-radius-control);
+    --sub-board-radius: 0.375rem;
+    --cell-shadow: 0 1px 2px rgb(0 0 0 / 8%);
+    --cell-hover-shadow: var(--ds-shadow-card);
+    --cell-winning-glow: inset 0 0 0 1px var(--cell-winning-border);
+    --selected-ring: 0 0 0 2px var(--cell-selected-border);
+    --cell-unavailable-opacity: 1;
+    --cell-pressed-scale: 1;
+}
+
+/* Presentation density is a choice of the rendering context, not game logic.
+   These profiles intentionally do not select themselves by route or viewport.
+   Future components opt in via data-density. */
+html[data-design-system='experimental'] [data-density='dense'] {
+    --cell-border-width: 2px;
+    --board-gap: 0.375rem;
+    --cell-radius: 0.5rem;
+    --cell-winning-glow: inset 0 0 0 1px var(--cell-winning-border);
+}
+
+html[data-design-system='experimental'] [data-density='compact'] {
+    --cell-border-width: 1px;
+    --board-gap: 0.125rem;
+    --sub-board-gap: 0.25rem;
+    --cell-radius: 0.125rem;
+    --sub-board-radius: 0.3125rem;
+    --cell-shadow: none;
+    --cell-hover-shadow: none;
+    --cell-winning-glow: inset 0 0 0 1px var(--cell-winning-border);
+    --selected-ring: 0 0 0 1px var(--cell-selected-border);
+}
+
+/* Stages C–E — board geometry and common semantic cell states.
+   Special board renderers inherit the base without changing their game behavior. */
+@layer components {
+    html[data-design-system='experimental'] .ds-board-grid {
+        gap: var(--board-gap);
+    }
+
+    html[data-design-system='experimental'] .ds-board-cell {
+        min-width: 0;
+        border: var(--cell-border-width) solid var(--cell-border);
+        border-radius: var(--cell-radius);
+        background: var(--cell-surface);
+        box-shadow: var(--cell-shadow);
+    }
+
+    @media (min-width: 40rem) {
+        html[data-design-system='experimental'] .ds-board-grid {
+            --board-gap: 0.75rem;
+        }
+    }
+}
+
+
+/* Stage F — Ultimate subboards retain separate result, availability, target,
+   selection and global-win channels. Their semantic colors come from shared
+   tokens; the local three-cell win line is intentionally not highlighted. */
+html[data-design-system='experimental'] .ds-sub-board {
+    border: var(--sub-board-border-width) solid var(--sub-board-border);
+    border-radius: var(--sub-board-radius);
+    background: var(--board-surface);
+}
+
+html[data-design-system='experimental'] .ds-sub-board[data-available='false'] {
+    border-style: dashed;
+    background: var(--cell-surface-muted);
+}
+
+html[data-design-system='experimental'] .ds-sub-board[data-available='true'] {
+    border-color: var(--sub-board-available-border);
+}
+
+html[data-design-system='experimental'] .ds-sub-board[data-result='x'],
+html[data-design-system='experimental'] .ds-sub-board[data-result='o'] {
+    border-style: solid;
+    background: var(--cell-surface-muted);
+}
+
+html[data-design-system='experimental'] .ds-sub-board[data-result='x'] {
+    border-color: var(--player-x);
+}
+
+html[data-design-system='experimental'] .ds-sub-board[data-result='o'] {
+    border-color: var(--player-o);
+}
+
+html[data-design-system='experimental'] .ds-sub-board[data-result='draw'] {
+    border-color: var(--sub-board-draw-border);
+    border-style: dotted;
+    background: var(--ds-elevated);
+}
+
+html[data-design-system='experimental'] .ds-sub-board[data-selected='true'][data-available='true'] {
+    outline: 2px solid var(--sub-board-selected-border);
+    outline-offset: 1px;
+}
+
+html[data-design-system='experimental'] .ds-sub-board[data-global-winning='true'] {
+    border-color: var(--cell-winning-border);
+    border-style: solid;
+    background: var(--cell-winning-surface);
+}
+
+html[data-design-system='experimental'] .ds-ultimate-cells {
+    gap: var(--board-gap);
+}
+
+html[data-design-system='experimental'] .ds-ultimate-cells[data-density='regular'] {
+    --board-gap: 0.375rem;
+    --cell-border-width: 1px;
+    --cell-radius: 0.125rem;
+    --cell-shadow: var(--board-shadow);
+    --cell-surface: var(--ds-elevated);
+}
+
+html[data-design-system='experimental'] .ds-ultimate-cells[data-density='compact'] {
+    --cell-surface: var(--ds-elevated);
+}
+
+/* An occupied Ultimate cell remains elevated even when disabled.
+   Stronger specificity than the shared disabled state further below. */
+html[data-design-system='experimental'] .ds-ultimate-cells .ds-ultimate-cell:disabled {
+    background: var(--cell-surface);
+}
+
+@media (hover: hover) and (pointer: fine) {
+    html[data-design-system='experimental'] .ds-ultimate-cell:not(:disabled):hover {
+        background: var(--cell-hover-surface);
+    }
+}
+
+/* Blocking feedback is temporary and additive. An outline would compete
+   with keyboard focus; a non-interactive pseudo-element leaves focus, winning
+   and selection shadows intact. */
+html[data-design-system='experimental'] .ds-board-cell[data-block-feedback='true']::after {
+    content: '';
+    position: absolute;
+    inset: -3px;
+    border: 2px solid var(--ds-warning);
+    border-radius: inherit;
+    pointer-events: none;
 }
 
 html[data-design-system='experimental'] .ultimate-overview > [data-zoomed='true'] {
@@ -138,15 +316,124 @@ html[data-design-system='experimental'] .ds-result-dialog::backdrop {
     backdrop-filter: blur(2px);
 }
 
-html[data-design-system='experimental'] .experimental-board [data-winning-cell='true'] {
-    border-color: var(--ds-success);
-    background: var(--ds-hover);
-    box-shadow: inset 0 0 0 2px var(--ds-success), var(--ds-shadow-card);
+/* Semantic cell states are intentionally outside @layer: no competing
+   Tailwind state utilities remain on game-board buttons. Ordering provides
+   predictable channels: base < availability/progress < selection < victory.
+   Extra metadata (oldest, last move, restricted) keeps its own border style
+   or overlay without erasing the X/O mark or focus outline. */
+html[data-design-system='experimental'] .ds-board-cell[data-mark='x'] {
+    color: var(--player-x);
 }
 
-html[data-design-system='experimental'] .two-lines-5x5-board [data-line-progress] {
-    border-color: var(--ds-success);
-    background: color-mix(in srgb, var(--ds-success) 13%, var(--ds-surface));
+html[data-design-system='experimental'] .ds-board-cell[data-mark='o'] {
+    color: var(--player-o);
+}
+
+html[data-design-system='experimental'] .ds-board-cell:not(:disabled):not([data-restricted-cell='true']) {
+    cursor: pointer;
+}
+
+html[data-design-system='experimental'] .ds-board-cell:disabled {
+    cursor: not-allowed;
+    background: var(--cell-surface-muted);
+}
+
+html[data-design-system='experimental'] .ds-board-cell[data-last-move='true'] {
+    border-color: var(--cell-selected-border);
+}
+
+html[data-design-system='experimental'] .ds-board-cell[data-oldest-turn] {
+    border-style: dashed;
+}
+
+html[data-design-system='experimental'] .ds-board-cell[data-oldest-turn='current'] {
+    box-shadow: inset 0 0 0 1px var(--ds-warning), var(--cell-shadow);
+}
+
+html[data-design-system='experimental'] .ds-board-cell[data-oldest-turn='opponent'] {
+    box-shadow: inset 0 0 0 1px var(--ds-border), var(--cell-shadow);
+}
+
+html[data-design-system='experimental'] .ds-board-cell[data-restricted-cell='true'] {
+    border-color: var(--cell-restricted-border);
+    border-style: dashed;
+    cursor: not-allowed;
+}
+
+html[data-design-system='experimental'] .ds-board-cell[data-line-progress] {
+    border-color: var(--cell-winning-border);
+    background: var(--line-progress-surface);
+}
+
+html[data-design-system='experimental'] .ds-board-cell[data-selected='true'] {
+    border-color: var(--cell-selected-border);
+    box-shadow: var(--selected-ring), var(--cell-shadow);
+}
+
+html[data-design-system='experimental'] .ds-board-cell[data-winning-cell='true'] {
+    border-color: var(--cell-winning-border);
+    background: var(--cell-winning-surface);
+    box-shadow: var(--cell-winning-glow), var(--board-shadow);
+}
+
+html[data-design-system='experimental'] .ds-board-cell:focus-visible {
+    outline: 3px solid var(--cell-focus-color);
+    outline-offset: 2px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    html[data-design-system='experimental'] .ds-board-cell:not(:disabled):not([data-restricted-cell='true']):hover {
+        border-color: var(--cell-available-border);
+        background: var(--cell-hover-surface);
+        box-shadow: var(--cell-hover-shadow);
+        cursor: pointer;
+    }
+
+    /* A hover never overrides persistent selection or winning state. */
+    html[data-design-system='experimental'] .ds-board-cell[data-selected='true']:hover {
+        border-color: var(--cell-selected-border);
+        box-shadow: var(--selected-ring), var(--cell-shadow);
+    }
+
+    html[data-design-system='experimental'] .ds-board-cell[data-winning-cell='true']:hover {
+        border-color: var(--cell-winning-border);
+        background: var(--cell-winning-surface);
+        box-shadow: var(--cell-winning-glow), var(--board-shadow);
+    }
+}
+
+html[data-design-system='experimental'] .ds-board-cell:not(:disabled):not([data-restricted-cell='true']):active {
+    transform: scale(0.98);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    html[data-design-system='experimental'] .ds-board-cell {
+        transition: none;
+    }
+}
+
+/* Stage E — modality adapters. All three retain the shared board palette.
+   Hidden keeps its question marks and animation; Crazy retains its piece stacks.
+   Dice stays in two narrow columns with its own responsive gap. */
+html[data-design-system='experimental'] .hidden-feedback-cell:disabled {
+    cursor: wait;
+}
+
+html[data-design-system='experimental'] .crazy-board .crazy-cell {
+    background: var(--ds-elevated);
+}
+
+html[data-design-system='experimental'] .crazy-board .crazy-cell[data-winning-cell='true'] {
+    border-color: var(--cell-winning-border);
+    box-shadow: var(--cell-winning-glow), var(--cell-shadow);
+}
+
+@media (hover: hover) and (pointer: fine) {
+    html[data-design-system='experimental'] .crazy-board .crazy-cell:not(:disabled):not([data-winning-cell='true']):hover {
+        border-color: var(--cell-available-border);
+        background: var(--cell-hover-surface);
+        box-shadow: var(--cell-hover-shadow);
+    }
 }
 
 html[data-design-system='experimental'] .classic-4x3-board > button {
@@ -207,7 +494,7 @@ html[data-design-system='experimental'] .dice-game .dice-board > button {
 }
 
 html[data-design-system='experimental'] .dice-game .dice-board > button:disabled:not([data-winning-cell='true']) {
-    background-color: var(--ds-surface);
+    background-color: var(--cell-disabled-surface);
 }
 
 html[data-design-system='experimental'] .dice-game .dice-board > button > span {
