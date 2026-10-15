@@ -319,7 +319,6 @@ new class extends Component
             @if ($rejectionMessage)
                 <p data-testid="rejection-message" role="alert" class="mt-3 rounded-ds-control border border-ds-warning bg-ds-warning-surface p-3 text-sm text-ds-warning">{{ $rejectionMessage }}</p>
             @endif
-            <p wire:loading role="status" class="mt-3 text-sm text-ds-text-secondary">Processando jogada…</p>
         </div>
 
         <div class="experimental-match-sidebar flex min-w-0 flex-col gap-3">

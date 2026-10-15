@@ -56,7 +56,7 @@ function diceBrowserPlace(AwaitableWebpage|PendingAwaitablePage $page, string $s
         JS);
 }
 
-it('keeps the server result hidden until the 3D die finishes landing', function () {
+it('keeps the server result hidden until the die finishes landing', function () {
     $page = visit('/dado')->assertNoJavaScriptErrors();
     $before = $page->script('document.querySelector("[data-testid=dice-instruction]").textContent.trim()');
     $page->script('window.__diceRollStartedAt = performance.now()');
@@ -89,14 +89,8 @@ it('keeps the server result hidden until the 3D die finishes landing', function 
     $elapsed = $page->script('performance.now() - window.__diceRollStartedAt');
     expect($face)->toBeGreaterThanOrEqual(1)->toBeLessThanOrEqual(6);
     expect($elapsed)->toBeGreaterThanOrEqual(2300);
-    $page->assertScript('document.querySelector(".dice-cube").style.transform', [
-        1 => 'rotateX(0deg) rotateY(0deg)',
-        2 => 'rotateX(0deg) rotateY(-90deg)',
-        3 => 'rotateX(-90deg) rotateY(0deg)',
-        4 => 'rotateX(90deg) rotateY(0deg)',
-        5 => 'rotateX(0deg) rotateY(90deg)',
-        6 => 'rotateX(0deg) rotateY(180deg)',
-    ][$face])->assertNoJavaScriptErrors();
+    $page->assertScript('(() => { const faces = [...document.querySelectorAll(".dice-flat-face")]; const visible = faces.filter(face => getComputedStyle(face).display !== "none"); return visible.length === 1 && visible[0] === faces['.($face - 1).'] && visible[0].querySelectorAll(".dice-pip").length === '.$face.'; })()', true)
+        ->assertNoJavaScriptErrors();
 });
 
 it('rolls on the server, retains a pending result and applies only an authorized placement', function () {
@@ -127,6 +121,58 @@ it('rolls on the server, retains a pending result and applies only an authorized
         ->assertScript('document.querySelector("[data-testid=roll-button]").disabled', false)
         ->assertNoJavaScriptErrors();
 });
+
+it('keeps the cells unchanged and hides processing messages during dice actions in :dataset', function (string $theme) {
+    $page = visit('/dado')->resize(320, 800)->select('[data-theme-selector]', $theme);
+    $page->script(<<<'JS'
+        (() => {
+            window.__diceProcessingMessageSeen = false;
+            new MutationObserver(() => {
+                if (document.body.textContent.includes('Processando jogada')) window.__diceProcessingMessageSeen = true;
+            }).observe(document.body, { subtree: true, childList: true, attributes: true, characterData: true });
+        })()
+        JS);
+
+    $face = diceBrowserRoll($page);
+    $page->assertScript('window.__diceProcessingMessageSeen', false)
+        ->assertScript('document.querySelector("[data-testid=roll-button]").disabled', true);
+
+    $selector = '[data-testid=dice-board-'.($face <= 3 ? 'esquerdo' : 'direito').'] [data-testid=cell-'.(($face - 1) % 3).']';
+    $page->script(<<<'JS'
+        (() => {
+            const originalFetch = window.fetch;
+            window.__diceCellBackground = getComputedStyle(document.querySelector('.dice-board > button:not(:disabled)')).backgroundColor;
+            window.fetch = (...arguments) => originalFetch(...arguments).then(async response => {
+                await new Promise(resolve => { window.__releaseDiceResponse = resolve; });
+                return response;
+            });
+        })()
+        JS);
+    $page->click($selector)
+        ->assertScript('typeof window.__releaseDiceResponse', 'function')
+        ->assertScript('(() => { const cells = [...document.querySelectorAll(".dice-board > button")]; return cells.every(cell => cell.disabled && (cell.dataset.mark !== "" || getComputedStyle(cell).backgroundColor === window.__diceCellBackground)); })()', true)
+        ->assertScript('window.__diceProcessingMessageSeen', false);
+    $page->script('document.querySelector('.json_encode($selector, JSON_THROW_ON_ERROR).').click(); window.__releaseDiceResponse()');
+    $page->script(<<<'JS'
+        (async () => {
+            if (document.querySelectorAll('.dice-board [data-mark]:not([data-mark=""])').length === 1) return true;
+            return await new Promise((resolve, reject) => {
+                const observer = new MutationObserver(() => {
+                    if (document.querySelectorAll('.dice-board [data-mark]:not([data-mark=""])').length === 1) {
+                        observer.disconnect();
+                        clearTimeout(timeout);
+                        resolve(true);
+                    }
+                });
+                observer.observe(document.body, { subtree: true, attributes: true });
+                const timeout = setTimeout(() => { observer.disconnect(); reject(new Error('Dice placement did not update the board')); }, 10000);
+            });
+        })()
+        JS);
+    $page->assertScript('document.querySelectorAll(".dice-board [data-mark]:not([data-mark=\"\"])").length', 1)
+        ->assertScript('window.__diceProcessingMessageSeen', false)
+        ->assertNoJavaScriptErrors();
+})->with(['light', 'dark']);
 
 it('plays through a random dice game until the server displays a result and offers the next round', function () {
     $page = visit('/dado');

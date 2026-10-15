@@ -202,6 +202,10 @@ html[data-design-system='experimental'] .dice-game .dice-board > button {
     line-height: 1;
 }
 
+html[data-design-system='experimental'] .dice-game .dice-board > button:disabled:not([data-winning-cell='true']) {
+    background-color: var(--ds-surface);
+}
+
 html[data-design-system='experimental'] .dice-game .dice-board > button > span {
     font-size: clamp(0.625rem, 2.5vw, 1rem);
 }
