@@ -182,8 +182,8 @@ html[data-design-system='experimental'] [data-density='compact'] {
     --selected-ring: 0 0 0 1px var(--cell-selected-border);
 }
 
-/* Stages C–D — board geometry and common semantic cell states.
-   Scoped to game-board; Ultimate, Maluca and Oculto still own special presentation. */
+/* Stages C–E — board geometry and common semantic cell states.
+   Special board renderers inherit the base without changing their game behavior. */
 @layer components {
     html[data-design-system='experimental'] .ds-board-grid {
         gap: var(--board-gap);
@@ -326,6 +326,30 @@ html[data-design-system='experimental'] .ds-board-cell:not(:disabled):not([data-
     }
 }
 
+/* Stage E — modality adapters. All three retain the shared board palette.
+   Hidden keeps its question marks and animation; Crazy retains its piece stacks.
+   Dice stays in two narrow columns with its own responsive gap. */
+html[data-design-system='experimental'] .hidden-feedback-cell:disabled {
+    cursor: wait;
+}
+
+html[data-design-system='experimental'] .crazy-board .crazy-cell {
+    background: var(--ds-elevated);
+}
+
+html[data-design-system='experimental'] .crazy-board .crazy-cell[data-winning-cell='true'] {
+    border-color: var(--cell-winning-border);
+    box-shadow: var(--cell-winning-glow), var(--cell-shadow);
+}
+
+@media (hover: hover) and (pointer: fine) {
+    html[data-design-system='experimental'] .crazy-board .crazy-cell:not(:disabled):not([data-winning-cell='true']):hover {
+        border-color: var(--cell-available-border);
+        background: var(--cell-hover-surface);
+        box-shadow: var(--cell-hover-shadow);
+    }
+}
+
 html[data-design-system='experimental'] .classic-4x3-board > button {
     min-height: 0;
 }
@@ -384,7 +408,7 @@ html[data-design-system='experimental'] .dice-game .dice-board > button {
 }
 
 html[data-design-system='experimental'] .dice-game .dice-board > button:disabled:not([data-winning-cell='true']) {
-    background-color: var(--ds-surface);
+    background-color: var(--cell-disabled-surface);
 }
 
 html[data-design-system='experimental'] .dice-game .dice-board > button > span {
