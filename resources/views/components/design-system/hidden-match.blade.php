@@ -73,7 +73,7 @@
                     class="classic-4x3-board"
                 />
             @else
-                <div data-testid="hidden-board" class="experimental-board classic-4x3-board mx-auto mt-3 grid w-full max-w-[28rem] grid-cols-4 gap-2 sm:mt-4 sm:gap-3" role="group" aria-label="Tabuleiro Oculto 4 por 4">
+                <div data-testid="hidden-board" class="experimental-board ds-board-grid classic-4x3-board mx-auto mt-3 grid w-full max-w-[28rem] grid-cols-4 sm:mt-4" role="group" aria-label="Tabuleiro Oculto 4 por 4">
                     @foreach ($displayCells as $index => $cell)
                         <button
                             type="button"
@@ -84,7 +84,7 @@
                             data-testid="cell-{{ $index }}"
                             x-bind:data-feedback-kind="feedbackCell === {{ $index }} ? feedbackKind : null"
                             aria-label="Escolher casa linha {{ intdiv($index, 4) + 1 }}, coluna {{ $index % 4 + 1 }}"
-                            class="hidden-feedback-cell relative aspect-square min-h-18 rounded-ds-control border-2 border-ds-board-border bg-ds-surface text-5xl font-black uppercase shadow-sm enabled:hover:border-ds-primary enabled:hover:bg-ds-hover enabled:hover:shadow-ds-card enabled:active:scale-[0.98] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-ds-focus disabled:cursor-wait motion-safe:transition-[transform,background-color,border-color,box-shadow] motion-safe:duration-200 motion-reduce:transition-none"
+                            class="ds-board-cell hidden-feedback-cell relative aspect-square min-h-18 text-5xl font-black uppercase motion-safe:transition-[transform,background-color,border-color,box-shadow] motion-safe:duration-200"
                         ><span aria-hidden="true" class="text-ds-text-muted">?</span></button>
                     @endforeach
                 </div>
