@@ -12,6 +12,7 @@ test('renders a labelled square board with the configured number of columns', fu
         ->toContain('data-testid="board-example"')
         ->toContain('role="group"')
         ->toContain('aria-label="'.$label.'"')
+        ->toContain('ds-board-grid')
         ->toContain('grid-cols-'.$columns)
         ->toContain('aria-label="Casa linha '.$columns.', coluna '.$columns.': vazia"')
         ->toContain('wire:click="place('.($columns * $columns - 1).')"');
@@ -47,7 +48,7 @@ test('renders marks, highlighted cells, and unavailable cells without changing t
     expect($availableCell->getAttribute('aria-label'))->toBe('Casa linha 1, coluna 2: vazia');
     expect($availableCell->getAttribute('wire:loading.attr'))->toBe('disabled');
     expect($availableCell->getAttribute('class'))->toContain('focus-visible:outline-ds-focus');
-    expect($availableCell->getAttribute('class'))->toContain('border-ds-board-border');
+    expect($availableCell->getAttribute('class'))->toContain('ds-board-cell');
 });
 
 test('accepts a column count passed as a Blade attribute', function () {
