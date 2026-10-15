@@ -39,16 +39,16 @@ test('renders marks, highlighted cells, and unavailable cells without changing t
     expect($highlightedCell->hasAttribute('disabled'))->toBeTrue();
     expect($highlightedCell->getAttribute('data-winning-cell'))->toBe('true');
     expect($highlightedCell->getAttribute('aria-label'))->toBe('Casa linha 2, coluna 2: X, casa vencedora');
-    expect($highlightedCell->getAttribute('class'))->toContain('text-ds-x');
+    expect($highlightedCell->getAttribute('data-mark'))->toBe('x');
     expect($html)->toContain('✦');
     expect($occupiedOCell->hasAttribute('disabled'))->toBeTrue();
     expect($occupiedOCell->getAttribute('aria-label'))->toBe('Casa linha 3, coluna 3: O');
-    expect($occupiedOCell->getAttribute('class'))->toContain('text-ds-o');
+    expect($occupiedOCell->getAttribute('data-mark'))->toBe('o');
     expect($availableCell->hasAttribute('disabled'))->toBeFalse();
     expect($availableCell->getAttribute('aria-label'))->toBe('Casa linha 1, coluna 2: vazia');
     expect($availableCell->getAttribute('wire:loading.attr'))->toBe('disabled');
-    expect($availableCell->getAttribute('class'))->toContain('focus-visible:outline-ds-focus');
     expect($availableCell->getAttribute('class'))->toContain('ds-board-cell');
+    expect($availableCell->getAttribute('class'))->not->toContain('enabled:hover:');
 });
 
 test('accepts a column count passed as a Blade attribute', function () {
