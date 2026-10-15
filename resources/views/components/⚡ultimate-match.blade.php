@@ -282,7 +282,6 @@ new class extends Component
                                 $available => 'border-ds-success bg-ds-surface',
                                 default => 'border-dashed border-ds-border bg-ds-surface-muted',
                             };
-                            $localLine = $rules->localWinningLine($state, $boardIndex);
                         @endphp
                         <div wire:key="ultimate-overview-{{ $boardIndex }}" data-testid="ultimate-sub-board-{{ $boardIndex }}"
                             data-result="{{ $result ?? '' }}" data-available="{{ $available ? 'true' : 'false' }}" data-target="{{ $targetBoard === $boardIndex ? 'true' : 'false' }}"
@@ -294,10 +293,10 @@ new class extends Component
                             x-on:contextmenu.prevent
                             x-bind:data-selected="selectedBoard === {{ $boardIndex }} && $el.dataset.available === 'true'"
                             x-bind:data-zoomed="zoomBoard === {{ $boardIndex }}"
-                            class="relative min-w-0 rounded-ds-control border-2 p-0.5 text-ds-text touch-pan-y sm:p-1.5 {{ $boardAppearance }}">
-                            <x-ultimate-board-cells :board="$board" :board-index="$boardIndex" :available="$available" :local-line="$localLine" />
+                            class="relative min-w-0 rounded-[5px] border-2 p-0.5 text-ds-text touch-pan-y sm:rounded-ds-control sm:p-1.5 {{ $boardAppearance }}">
+                            <x-ultimate-board-cells :board="$board" :board-index="$boardIndex" :available="$available" />
                             @if ($result === 'x' || $result === 'o')
-                                <span aria-hidden="true" data-winner-overlay="{{ $result }}" class="pointer-events-none absolute inset-[2px] flex items-center justify-center rounded-[0.625rem] {{ $result === 'x' ? 'bg-ds-x/15 text-ds-x' : 'bg-ds-o/15 text-ds-o' }}">
+                                <span aria-hidden="true" data-winner-overlay="{{ $result }}" class="pointer-events-none absolute inset-[2px] flex items-center justify-center rounded-[3px] sm:rounded-[0.625rem] {{ $result === 'x' ? 'bg-ds-x/15 text-ds-x' : 'bg-ds-o/15 text-ds-o' }}">
                                     <span class="text-5xl font-black leading-none opacity-50 sm:text-6xl">{{ strtoupper($result) }}</span>
                                 </span>
                             @elseif ($result === 'draw')
@@ -319,9 +318,9 @@ new class extends Component
                         <button type="button" x-ref="zoomClose" data-testid="ultimate-zoom-close" aria-label="Fechar ampliação do subtabuleiro" x-on:click="closeZoom()" class="flex size-9 items-center justify-center rounded-ds-control border border-ds-border bg-ds-surface-muted text-xl font-bold leading-none focus-visible:outline-3 focus-visible:outline-ds-focus">×</button>
                     </div>
                     @foreach ($boards as $boardIndex => $board)
-                        @php $available = in_array($boardIndex, $availableBoards, true); $localLine = $rules->localWinningLine($state, $boardIndex); @endphp
+                        @php $available = in_array($boardIndex, $availableBoards, true); @endphp
                         <div wire:key="ultimate-zoom-board-{{ $boardIndex }}" x-show="zoomBoard === {{ $boardIndex }}" x-cloak>
-                            <x-ultimate-board-cells :board="$board" :board-index="$boardIndex" :available="$available" :local-line="$localLine" enlarged />
+                            <x-ultimate-board-cells :board="$board" :board-index="$boardIndex" :available="$available" enlarged />
                         </div>
                     @endforeach
                 </section>

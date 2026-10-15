@@ -136,6 +136,9 @@ test('distinguishes mandatory waiting conquered and drawn overview boards withou
         expect(trim($overlay?->textContent ?? ''))->toBe($index === 0 ? 'X' : ($index === 1 ? 'O' : ''));
         if ($overlay !== null) {
             expect($overlay->getAttribute('class'))->toContain('pointer-events-none', 'inset-[2px]', 'bg-ds-'.($index === 0 ? 'x' : 'o').'/15');
+            foreach ($xpath->query('.//button', $board) as $cell) {
+                expect($cell->getAttribute('class'))->toContain('border-ds-board-border')->not->toContain('ring-2');
+            }
         }
         expect($board->textContent)->not->toContain('Livre', 'Aguarda', 'Empate', 'Venceu');
     }

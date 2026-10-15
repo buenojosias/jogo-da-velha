@@ -14,6 +14,7 @@ it('directs moves, marks a conquered subboard, and finishes a global line', func
             ->assertAttribute('[data-testid="ultimate-cell-'.$board.'-'.$cell.'"]', 'data-mark', $mark);
         if ($turn === 4) {
             $page->assertAttribute('[data-testid="ultimate-sub-board-0"]', 'data-result', $starter)
+                ->assertScript('(() => { const board = document.querySelector("[data-testid=ultimate-sub-board-0]"); return !!board.querySelector("[data-winner-overlay]") && [...board.querySelectorAll("button")].every(cell => !cell.classList.contains("ring-2") && cell.classList.contains("border-ds-board-border")); })()', true)
                 ->assertSeeIn('[data-testid="target-board-status"]', 'qualquer subtabuleiro disponível');
         }
     }
@@ -110,7 +111,8 @@ it('keeps nine square subboards in one 3 by 3 grid without horizontal overflow a
                             && cells.length === 9
                             && cells.every(cell => Math.abs(cell.clientWidth - cell.clientHeight) <= 1 && cell.getBoundingClientRect().right <= innerWidth);
                     }) && document.documentElement.scrollWidth <= innerWidth;
-            })()', true);
+            })()', true)
+            ->assertScript('(() => { const radius = parseFloat(getComputedStyle(document.querySelector("[data-testid=ultimate-sub-board-0]")).borderTopLeftRadius); return '.($width < 640 ? 'radius >= 4 && radius <= 6' : 'radius > 6').' ; })()', true);
     }
 
     $page->click('[data-testid="ultimate-cell-0-0"]')
