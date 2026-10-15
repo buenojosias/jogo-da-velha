@@ -180,6 +180,32 @@ it('confirms a new match while cancellation leaves the current boards intact', f
 });
 
 it('keeps both boards accessible in :dataset', function (int $width, int $height, string $theme) {
+    $boardLayout = <<<'JS'
+        (() => {
+            const boards = ['esquerdo', 'direito'].map(side => document.querySelector(`[data-testid=dice-board-${side}]`));
+            const bounds = boards.map(board => board.getBoundingClientRect());
+            const cells = boards.map(board => [...board.querySelectorAll('[data-testid^=cell-]')].map(element => ({ ...element.getBoundingClientRect().toJSON(), element })));
+            const tolerance = 1;
+
+            return bounds[0].right + tolerance <= bounds[1].left
+                && Math.abs(bounds[0].top - bounds[1].top) <= tolerance
+                && Math.abs(bounds[0].width - bounds[1].width) <= tolerance
+                && bounds.every((rect, index) => rect.left >= 0 && rect.right <= innerWidth
+                    && cells[index].length === 9
+                    && cells[index].every((cell, cellIndex) =>
+                        Math.abs(cell.width - cell.height) <= tolerance
+                        && Math.abs(cell.width - cells[index][0].width) <= tolerance
+                        && cell.width >= (innerWidth <= 320 ? 38 : 44)
+                        && cell.left >= rect.left - tolerance
+                        && cell.right <= rect.right + tolerance
+                        && cell.top >= rect.top - tolerance
+                        && cell.bottom <= rect.bottom + tolerance
+                        && cell.element.scrollWidth <= cell.element.clientWidth + tolerance
+                        && (cellIndex % 3 === 0 || cells[index][cellIndex - 1].right <= cell.left + tolerance)
+                    ));
+        })()
+        JS;
+
     $page = visit('/dado')->resize($width, $height);
     $page->select('[data-theme-selector]', $theme)
         ->assertScript('document.documentElement.dataset.theme', $theme)
@@ -188,14 +214,30 @@ it('keeps both boards accessible in :dataset', function (int $width, int $height
         ->assertVisible('[data-testid="roll-button"]')
         ->assertCount('[data-testid^="cell-"]', 18)
         ->assertScript('document.documentElement.scrollWidth <= innerWidth', true)
-        ->assertScript('(() => [...document.querySelectorAll("[data-testid^=cell-]")].every(cell => { const rect = cell.getBoundingClientRect(); return rect.width >= 44 && rect.height >= 44 && rect.left >= 0 && rect.right <= innerWidth; }))()', true);
+        ->assertScript($boardLayout, true)
+        ->click('[data-testid="dice-board-esquerdo"] [data-testid="cell-0"]')
+        ->assertSeeIn('[data-testid="rejection-message"]', 'Role o dado antes');
+    $starter = strtolower(substr($page->script('document.querySelector("[data-testid=match-status]").textContent.trim()'), -1));
     $face = diceBrowserRoll($page);
+    diceBrowserPlace($page, $face <= 3 ? 'esquerdo' : 'direito', ($face - 1) % 3, $starter);
+
     $page->refresh()->assertScript('document.documentElement.dataset.theme', $theme)
         ->assertScript('document.querySelector("[data-testid=dice-face]").dataset.face', (string) $face)
+        ->assertScript($boardLayout, true)
         ->assertNoJavaScriptErrors();
 })->with([
-    'portrait light' => [360, 800, 'light'],
-    'landscape dark' => [740, 360, 'dark'],
-    'wide landscape light' => [800, 360, 'light'],
-    'desktop dark' => [1280, 900, 'dark'],
+    '320 light' => [320, 800, 'light'],
+    '320 dark' => [320, 800, 'dark'],
+    '360 light' => [360, 800, 'light'],
+    '360 dark' => [360, 800, 'dark'],
+    '375 light' => [375, 812, 'light'],
+    '375 dark' => [375, 812, 'dark'],
+    '390 light' => [390, 844, 'light'],
+    '390 dark' => [390, 844, 'dark'],
+    '414 light' => [414, 896, 'light'],
+    '414 dark' => [414, 896, 'dark'],
+    '768 light' => [768, 900, 'light'],
+    '768 dark' => [768, 900, 'dark'],
+    '1280 light' => [1280, 900, 'light'],
+    '1280 dark' => [1280, 900, 'dark'],
 ]);

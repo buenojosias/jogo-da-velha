@@ -150,7 +150,7 @@ new class extends Component
 @endphp
 
 <div
-    class="dice-game experimental-match mx-auto flex min-h-screen w-full max-w-6xl flex-col gap-4 px-4 py-4 text-ds-text sm:px-6 sm:py-6"
+    class="dice-game experimental-match mx-auto flex min-h-screen w-full max-w-6xl flex-col gap-4 px-2 py-4 text-ds-text sm:px-6 sm:py-6"
     x-data="{
         resultOrigin: null,
         rolling: false,
@@ -248,7 +248,7 @@ new class extends Component
     </x-design-system.match-header>
 
     <section aria-label="Partida local" class="experimental-match-layout grid items-start gap-4 md:grid-cols-[minmax(0,1fr)_15rem] md:gap-5 xl:grid-cols-[minmax(0,1fr)_17rem]">
-        <div data-testid="game-region" class="experimental-game-region min-w-0 rounded-ds-card border border-t-4 border-ds-border border-t-ds-primary bg-ds-surface p-3 shadow-ds-elevated sm:p-5">
+        <div data-testid="game-region" class="experimental-game-region min-w-0 rounded-ds-card border border-t-4 border-ds-border border-t-ds-primary bg-ds-surface p-2 shadow-ds-elevated sm:p-5">
             <x-design-system.match-status
                 :tone="$state->status === MatchStatus::Completed ? 'win' : ($state->status === MatchStatus::Drawn ? 'draw' : 'turn')"
                 data-testid="match-status"
@@ -294,11 +294,11 @@ new class extends Component
                 <p data-testid="dice-roll-notice" role="status" class="mt-2 rounded-ds-control border border-ds-warning bg-ds-warning-surface px-3 py-2 text-center text-sm font-bold text-ds-warning">{{ $rollNotice }}</p>
             @endif
 
-            <div x-bind:inert="rolling" class="mt-3 grid grid-cols-1 items-start gap-3 min-[38rem]:grid-cols-2">
+            <div x-bind:inert="rolling" class="mt-3 grid grid-cols-[repeat(2,minmax(0,1fr))] items-start gap-2 sm:gap-3">
                 @foreach (['esquerdo', 'direito'] as $boardIndex => $side)
-                    <section class="min-w-0 rounded-ds-card border border-ds-border bg-ds-surface-muted p-2.5 sm:p-3" aria-label="Tabuleiro {{ $side }}">
-                        <h2 class="text-center text-sm font-extrabold text-ds-text">Tabuleiro {{ ucfirst($side) }}</h2>
-                        <div class="mx-auto max-w-[18rem]">
+                    <section class="min-w-0 rounded-ds-card border border-ds-border bg-ds-surface-muted p-1 sm:p-3" aria-label="Tabuleiro {{ $side }}">
+                        <h2 class="text-center text-xs leading-tight font-extrabold text-ds-text sm:text-sm">Tabuleiro {{ ucfirst($side) }}</h2>
+                        <div class="mx-auto min-w-0 max-w-[18rem]">
                             <x-design-system.game-board
                                 :cells="$state->data['boards'][$boardIndex]"
                                 :columns="3"
@@ -308,6 +308,7 @@ new class extends Component
                                 :interaction="'dice'"
                                 :board-index="$boardIndex"
                                 :allowed-column="$allowedBoard === $boardIndex ? $allowedColumn : null"
+                                class="dice-board"
                                 data-testid="dice-board-{{ $side }}"
                             />
                         </div>

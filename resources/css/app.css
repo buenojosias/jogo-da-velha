@@ -187,12 +187,23 @@ html[data-design-system='experimental'] .two-lines-5x5-board > button {
     min-height: 0;
 }
 
-html[data-design-system='experimental'] .dice-game .experimental-board > button {
+html[data-design-system='experimental'] .dice-game .dice-board {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: clamp(0.25rem, 0.8vw, 0.75rem);
+    margin-top: clamp(0.5rem, 1.5vw, 1rem);
+}
+
+html[data-design-system='experimental'] .dice-game .dice-board > button {
     min-height: 0;
+    min-width: 0;
     display: grid;
     place-items: center;
-    font-size: clamp(2.25rem, 6vw, 2.75rem);
+    font-size: clamp(1.25rem, 6vw, 2.75rem);
     line-height: 1;
+}
+
+html[data-design-system='experimental'] .dice-game .dice-board > button > span {
+    font-size: clamp(0.625rem, 2.5vw, 1rem);
 }
 
 /* The animated die is deliberately flat: no 3D context or compositing required. */
