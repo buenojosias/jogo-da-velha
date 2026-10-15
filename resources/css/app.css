@@ -184,6 +184,29 @@ html[data-design-system='experimental'] [data-density='compact'] {
     --selected-ring: 0 0 0 1px var(--cell-selected-border);
 }
 
+/* Stage C — shared game-board geometry and neutral cell skin.
+   Kept in the components layer so existing Tailwind state utilities retain
+   precedence until the semantic state migration in Stage D. */
+@layer components {
+    html[data-design-system='experimental'] .ds-board-grid {
+        gap: var(--board-gap);
+    }
+
+    html[data-design-system='experimental'] .ds-board-cell {
+        min-width: 0;
+        border: var(--cell-border-width) solid var(--cell-border);
+        border-radius: var(--cell-radius);
+        background: var(--cell-surface);
+        box-shadow: var(--cell-shadow);
+    }
+
+    @media (min-width: 40rem) {
+        html[data-design-system='experimental'] .ds-board-grid {
+            --board-gap: 0.75rem;
+        }
+    }
+}
+
 html[data-design-system='experimental'] .ultimate-overview > [data-selected='true'] {
     border-color: var(--ds-ultimate-active);
 }
