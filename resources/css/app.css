@@ -270,7 +270,9 @@ html[data-design-system='experimental'] .ds-ultimate-cells[data-density='compact
     --cell-surface: var(--ds-elevated);
 }
 
-html[data-design-system='experimental'] .ds-ultimate-cell:disabled {
+/* An occupied Ultimate cell remains elevated even when disabled.
+   Stronger specificity than the shared disabled state further below. */
+html[data-design-system='experimental'] .ds-ultimate-cells .ds-ultimate-cell:disabled {
     background: var(--cell-surface);
 }
 
@@ -280,9 +282,16 @@ html[data-design-system='experimental'] .ds-ultimate-cell:disabled {
     }
 }
 
-/* Bloqueio is transient feedback; do not use the permanent unavailable state. */
-html[data-design-system='experimental'] .ds-board-cell[data-block-feedback='true'] {
-    box-shadow: inset 0 0 0 1px var(--ds-warning), 0 0 0 2px var(--ds-warning);
+/* Blocking feedback is temporary and additive. An outline would compete
+   with keyboard focus; a non-interactive pseudo-element leaves focus, winning
+   and selection shadows intact. */
+html[data-design-system='experimental'] .ds-board-cell[data-block-feedback='true']::after {
+    content: '';
+    position: absolute;
+    inset: -3px;
+    border: 2px solid var(--ds-warning);
+    border-radius: inherit;
+    pointer-events: none;
 }
 
 html[data-design-system='experimental'] .ultimate-overview > [data-zoomed='true'] {
