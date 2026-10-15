@@ -15,6 +15,8 @@ use InvalidArgumentException;
 
 class Classic4x3Rules implements GameRules
 {
+    public const int STATE_VERSION = 2;
+
     /**
      * @var list<array{int, int, int}>
      */
@@ -36,13 +38,14 @@ class Classic4x3Rules implements GameRules
             $participants,
             MatchStatus::InProgress,
             $startingPlayer,
-            ['board' => array_fill(0, 16, '')],
+            ['board' => array_fill(0, 16, ''), 'version' => self::STATE_VERSION, 'last_move' => null],
         );
     }
 
     public function validate(MatchState $state, GameAction $action): ActionValidation
     {
         $this->assertModality($state->modality);
+        $this->assertState($state);
 
         if ($state->status === MatchStatus::Awaiting) {
             return ActionValidation::invalid('game_not_started');
@@ -70,6 +73,10 @@ class Classic4x3Rules implements GameRules
             return ActionValidation::invalid('cell_occupied');
         }
 
+        if (! in_array($cellIndex, $this->availableCells($state), true)) {
+            return ActionValidation::invalid('not_adjacent');
+        }
+
         return ActionValidation::valid();
     }
 
@@ -83,6 +90,7 @@ class Classic4x3Rules implements GameRules
 
         $board = $this->board($state);
         $board[$action->payload['cell']] = $action->player->value;
+        $data = ['board' => $board, 'version' => self::STATE_VERSION, 'last_move' => $action->payload['cell']];
 
         if ($this->matchingWinningLine($board, $action->player) !== null) {
             return ActionResult::accepted(new MatchState(
@@ -90,7 +98,7 @@ class Classic4x3Rules implements GameRules
                 $state->participants,
                 MatchStatus::Completed,
                 null,
-                ['board' => $board],
+                $data,
                 $action->player,
             ));
         }
@@ -101,7 +109,7 @@ class Classic4x3Rules implements GameRules
                 $state->participants,
                 MatchStatus::Drawn,
                 null,
-                ['board' => $board],
+                $data,
             ));
         }
 
@@ -112,8 +120,88 @@ class Classic4x3Rules implements GameRules
             $state->participants,
             MatchStatus::InProgress,
             $nextPlayer,
-            ['board' => $board],
+            $data,
         ));
+    }
+
+    /** @return list<int> */
+    public function availableCells(MatchState $state): array
+    {
+        $this->assertState($state);
+
+        if ($state->status !== MatchStatus::InProgress) {
+            return [];
+        }
+
+        $board = $this->board($state);
+        $emptyCells = array_keys($board, '', true);
+
+        if ($this->moveMode($state) === 'first') {
+            return $emptyCells;
+        }
+
+        $lastMove = $state->data['last_move'];
+        $row = intdiv($lastMove, 4);
+        $column = $lastMove % 4;
+        $neighbors = [];
+
+        for ($rowOffset = -1; $rowOffset <= 1; $rowOffset++) {
+            for ($columnOffset = -1; $columnOffset <= 1; $columnOffset++) {
+                $neighborRow = $row + $rowOffset;
+                $neighborColumn = $column + $columnOffset;
+
+                if (($rowOffset !== 0 || $columnOffset !== 0)
+                    && $neighborRow >= 0 && $neighborRow < 4
+                    && $neighborColumn >= 0 && $neighborColumn < 4) {
+                    $neighbor = $neighborRow * 4 + $neighborColumn;
+                    if ($board[$neighbor] === '') {
+                        $neighbors[] = $neighbor;
+                    }
+                }
+            }
+        }
+
+        return $neighbors === [] ? $emptyCells : $neighbors;
+    }
+
+    public function moveMode(MatchState $state): string
+    {
+        $this->assertState($state);
+
+        if ($state->status !== MatchStatus::InProgress) {
+            return 'finished';
+        }
+
+        return in_array($state->currentPlayer->value, $this->board($state), true) ? 'proximity' : 'first';
+    }
+
+    public function assertState(MatchState $state): void
+    {
+        $this->assertModality($state->modality);
+        $board = $this->board($state);
+        $lastMove = $state->data['last_move'] ?? null;
+
+        if (($state->data['version'] ?? null) !== self::STATE_VERSION
+            || ! array_key_exists('last_move', $state->data)
+            || ($lastMove !== null && (! is_int($lastMove) || $lastMove < 0 || $lastMove > 15))
+            || ($lastMove === null) !== (count(array_filter($board)) === 0)
+            || ($lastMove !== null && $board[$lastMove] === '')
+            || abs(count(array_keys($board, 'x', true)) - count(array_keys($board, 'o', true))) > 1) {
+            throw new InvalidArgumentException('Invalid classic 4x3 proximity state.');
+        }
+
+        if ($state->status === MatchStatus::InProgress && $lastMove !== null
+            && $board[$lastMove] === $state->currentPlayer->value) {
+            throw new InvalidArgumentException('Invalid classic 4x3 last move.');
+        }
+
+        if (($state->status === MatchStatus::Completed
+                && ($lastMove === null || $board[$lastMove] !== $state->winner->value
+                    || $this->matchingWinningLine($board, $state->winner) === null))
+            || ($state->status === MatchStatus::Drawn && in_array('', $board, true))
+            || ($state->status === MatchStatus::InProgress && ! in_array('', $board, true))) {
+            throw new InvalidArgumentException('Invalid classic 4x3 round outcome.');
+        }
     }
 
     /**

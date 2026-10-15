@@ -16,9 +16,11 @@
     'roundPoints' => null,
     'lineProgress' => null,
     'firstLineMessage' => null,
+    'availableCells' => null,
+    'lastMove' => null,
 ])
 @use('App\Games\{MatchStatus, PlayerMark}')
-@php($unavailableCells = $state->isFinished() ? array_keys($state->data['board']) : array_keys(array_filter($state->data['board'])))
+@php($unavailableCells = $availableCells === null ? ($state->isFinished() ? array_keys($state->data['board']) : array_keys(array_filter($state->data['board']))) : array_values(array_diff(array_keys($state->data['board']), $availableCells)))
 
 <div
     class="experimental-match mx-auto flex min-h-screen w-full max-w-5xl flex-col gap-4 px-4 py-4 text-ds-text sm:px-6 sm:py-6"
@@ -107,6 +109,7 @@
                 :highlighted-cells="$winningCells"
                 :progress-cells="$lineProgress === null || $state->isFinished() ? [] : ['x' => $lineProgress['x']['cells'], 'o' => $lineProgress['o']['cells']]"
                 :unavailable-cells="$unavailableCells"
+                :last-move="$lastMove"
                 highlight-label="casa vencedora"
                 data-testid="classic-board"
                 class="{{ $boardClass }}"

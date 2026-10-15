@@ -60,6 +60,32 @@ new class extends Component
         return app(Classic4x3Rules::class)->winningLine($this->matchState) ?? [];
     }
 
+    /** @return list<int> */
+    #[Computed]
+    public function availableCells(): array
+    {
+        return app(Classic4x3Rules::class)->availableCells($this->matchState);
+    }
+
+    #[Computed]
+    public function proximityInstruction(): ?string
+    {
+        $state = $this->matchState;
+        $rules = app(Classic4x3Rules::class);
+
+        if ($state->isFinished()) {
+            return null;
+        }
+
+        if ($rules->moveMode($state) === 'first') {
+            return 'Escolha qualquer casa vazia.';
+        }
+
+        return count($this->availableCells) === count(array_keys($state->data['board'], '', true))
+            ? 'Sem casas vizinhas disponíveis. Escolha qualquer casa vazia.'
+            : 'Jogue em uma casa vizinha da última peça do adversário.';
+    }
+
     public function place(mixed $cellIndex): void
     {
         $state = $this->matchState;
@@ -75,6 +101,7 @@ new class extends Component
                 'cell_occupied' => 'Esta casa já está ocupada.',
                 'game_finished' => 'A rodada terminou. Inicie uma nova rodada para jogar novamente.',
                 'invalid_cell' => 'Escolha uma casa válida.',
+                'not_adjacent' => 'Escolha uma casa vizinha da última peça do adversário.',
                 default => 'Não foi possível realizar esta jogada.',
             };
 
@@ -82,7 +109,7 @@ new class extends Component
         }
 
         $this->rejectionMessage = null;
-        unset($this->matchState, $this->score, $this->winningCells);
+        unset($this->matchState, $this->score, $this->winningCells, $this->availableCells, $this->proximityInstruction);
 
         if ($result->state->isFinished()) {
             $this->dispatch('classic4x3-round-finished');
@@ -98,7 +125,7 @@ new class extends Component
         );
 
         $this->rejectionMessage = null;
-        unset($this->matchState, $this->score, $this->winningCells);
+        unset($this->matchState, $this->score, $this->winningCells, $this->availableCells, $this->proximityInstruction);
     }
 
     public function newMatch(): void
@@ -108,7 +135,7 @@ new class extends Component
 
         $this->matchId = $matches->createNewActive4x3(app(Classic4x3Rules::class));
         $this->rejectionMessage = null;
-        unset($this->matchState, $this->score, $this->winningCells);
+        unset($this->matchState, $this->score, $this->winningCells, $this->availableCells, $this->proximityInstruction);
 
         $this->redirectRoute('4x3-basic');
     }
@@ -123,6 +150,9 @@ new class extends Component
     board-label="Tabuleiro 4 por 4"
     board-class="classic-4x3-board"
     :winning-cells="$this->winningCells"
+    :available-cells="$this->availableCells"
+    :last-move="$this->matchState->isFinished() ? null : $this->matchState->data['last_move']"
+    :instruction="$this->proximityInstruction"
     :score="$this->score"
     :rejection-message="$rejectionMessage"
     :public-entry="$publicEntry"

@@ -25,7 +25,7 @@ it('renders distinct identity and sharing metadata for :dataset', function (stri
     'classic 3x3' => ['/3-basico', 'Clássico 3×3 | Plataforma Jogo da Velha', 'versão clássica 3×3'],
     'movement 3x3' => ['/3-mover', 'Movimento 3×3 | Plataforma Jogo da Velha', 'mova as suas pelo tabuleiro 3×3'],
     'rotation 3x3' => ['/3-rotacao', 'Rotação 3×3 | Plataforma Jogo da Velha', 'remove a sua mais antiga'],
-    'classic 4x4' => ['/4-3-basico', 'Clássico 4×4 | Plataforma Jogo da Velha', 'três marcas em linha'],
+    'classic 4x4' => ['/4-3-basico', 'Clássico 4×4 | Plataforma Jogo da Velha', 'última jogada adversária'],
     'movement 4x4' => ['/4-3-mover', 'Movimento 4×4 | Plataforma Jogo da Velha', 'Coloque três peças'],
     'rotation 4x4' => ['/4-3-rotacao', 'Rotação 4×4 | Plataforma Jogo da Velha', 'substitui a sua mais antiga'],
     'blocking' => ['/4-3-bloqueio', 'Bloqueio 4×4 | Plataforma Jogo da Velha', 'não bloqueia uma das pontas'],

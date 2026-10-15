@@ -9,6 +9,7 @@ use App\Games\Participant;
 use App\Games\ParticipantKind;
 use App\Games\Participants;
 use App\Games\PlayerMark;
+use App\Games\Rules\Classic4x3Rules;
 use App\Games\Rules\CrazyRules;
 use App\Games\Rules\DiceRules;
 use App\Games\Rules\Full5x5Rules;
@@ -194,6 +195,9 @@ class SessionMatchStore
             if ($state->modality->key === '3-move') {
                 app(Move3x3Rules::class)->assertState($state);
             }
+            if ($state->modality->key === '4x3-basic') {
+                app(Classic4x3Rules::class)->assertState($state);
+            }
             $this->assertRotationOrder($state->modality->key, $state->data['board'], $state->data['order'] ?? null);
             $this->assertHiddenOrder($state->modality->key, $state->data['board'], $state->data['order'] ?? null);
             $this->assertHiddenOutcome($state);
@@ -245,7 +249,7 @@ class SessionMatchStore
                 ),
                 $status,
                 $this->playerMark($stored['current_player'] ?? null),
-                in_array($stored['modality'], ['dice', 'crazy', 'ultimate', '3-move'], true)
+                in_array($stored['modality'], ['dice', 'crazy', 'ultimate', '3-move', '4x3-basic'], true)
                     ? $stored['data']
                     : (in_array($stored['modality'], ['3-rotation', '4x3-rotation', '4x3-hidden'], true)
                         ? ['board' => $stored['data']['board'], 'order' => $stored['data']['order']]
@@ -260,6 +264,10 @@ class SessionMatchStore
                 $this->assertDiceState($state);
             } elseif ($stored['modality'] === '3-move') {
                 app(Move3x3Rules::class)->assertState($state);
+            } elseif ($stored['modality'] === '4x3-basic') {
+                if (array_key_exists('version', $state->data) || array_key_exists('last_move', $state->data)) {
+                    app(Classic4x3Rules::class)->assertState($state);
+                }
             } else {
                 $this->assertHiddenOutcome($state);
                 $this->assertTwoLinesOutcome($state);

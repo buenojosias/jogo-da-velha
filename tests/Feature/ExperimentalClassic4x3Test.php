@@ -56,6 +56,39 @@ test('persists moves and turn changes between Livewire requests', function () {
 
     expect(app(SessionMatchStore::class)->find($matchId)->data['board'][0])->toBe('x');
     expect(app(SessionMatchStore::class)->find($matchId)->data['board'][15])->toBe('o');
+    expect(app(SessionMatchStore::class)->find($matchId)->data['last_move'])->toBe(15);
+});
+
+test('shows legal cells and rejects a distant Livewire move without changing state', function () {
+    $matchId = create4x3SessionMatch();
+    $component = Livewire::test('experimental-classic-4x3', ['matchId' => $matchId])
+        ->assertSee('Escolha qualquer casa vazia.')
+        ->call('place', 0)
+        ->assertSee('Escolha qualquer casa vazia.')
+        ->call('place', 15)
+        ->assertSee('Jogue em uma casa vizinha da última peça do adversário.');
+
+    $state = app(SessionMatchStore::class)->find($matchId);
+    expect($component->html())->toContain('data-last-move="true"');
+    expect($component->html())->toMatch('/data-testid="cell-1"[^>]*disabled/s');
+    expect($component->html())->toMatch('/data-testid="cell-10"[^>]*data-winning-cell="false"[^>]*aria-label="[^"]*"[^>]*class=/s');
+
+    $component->call('place', 1)->assertSee('Escolha uma casa vizinha da última peça do adversário.');
+    expect(app(SessionMatchStore::class)->find($matchId))->toEqual($state);
+    expect(app(SessionMatchStore::class)->score($matchId))->toBe(['x' => 0, 'o' => 0, 'draws' => 0]);
+});
+
+test('announces the temporary free turn when all neighboring cells are occupied', function () {
+    $matchId = create4x3SessionMatch();
+    $component = Livewire::test('experimental-classic-4x3', ['matchId' => $matchId]);
+
+    foreach ([0, 1, 2, 3, 6, 5, 8, 12, 9, 4] as $cell) {
+        $component->call('place', $cell);
+    }
+
+    $component->assertSee('Sem casas vizinhas disponíveis. Escolha qualquer casa vazia.')
+        ->call('place', 15)
+        ->assertSee('Jogue em uma casa vizinha da última peça do adversário.');
 });
 
 test('shows an error for rejected moves without changing the board or score', function () {
@@ -94,16 +127,16 @@ test('shows the confirmed winning trio and scores each direction', function (arr
     expect(app(SessionMatchStore::class)->score($matchId)[$winner->value])->toBe(1);
 })->with([
     'X horizontal' => [[0, 4, 1, 5, 2], [0, 1, 2], PlayerMark::X],
-    'O vertical' => [[0, 1, 2, 5, 4, 9], [1, 5, 9], PlayerMark::O],
-    'X descending diagonal' => [[0, 1, 5, 2, 10], [0, 5, 10], PlayerMark::X],
-    'O ascending diagonal' => [[0, 7, 1, 10, 4, 13], [7, 10, 13], PlayerMark::O],
+    'O vertical' => [[0, 5, 4, 9, 10, 13], [5, 9, 13], PlayerMark::O],
+    'X descending diagonal' => [[0, 1, 5, 6, 10], [0, 5, 10], PlayerMark::X],
+    'O ascending diagonal' => [[0, 7, 6, 10, 9, 13], [7, 10, 13], PlayerMark::O],
 ]);
 
 test('counts a draw and shows a neutral result without highlighted cells', function () {
     $matchId = create4x3SessionMatch();
     $component = Livewire::test('experimental-classic-4x3', ['matchId' => $matchId]);
 
-    foreach ([1, 0, 3, 2, 4, 6, 5, 7, 10, 8, 11, 9, 12, 14, 13, 15] as $cell) {
+    foreach ([0, 1, 2, 3, 6, 5, 4, 8, 9, 10, 7, 11, 15, 14, 13, 12] as $cell) {
         $component->call('place', $cell);
     }
 
@@ -190,6 +223,9 @@ test('refuses mismatched board size and corrupt session state', function (string
 })->with([
     'nine cells for four by four' => ['data.board', array_fill(0, 9, '')],
     'invalid mark' => ['data.board', array_replace(array_fill(0, 16, ''), [1 => 'z'])],
+    'last move outside board' => ['data.last_move', 16],
+    'last move without a piece' => ['data.last_move', 3],
+    'unknown state version' => ['data.version', 99],
     'unknown modality' => ['modality', 'unknown'],
     'invalid status' => ['status', 'finished'],
     'invalid participant' => ['participants.x.id', ''],

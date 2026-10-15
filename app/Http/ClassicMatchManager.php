@@ -105,6 +105,18 @@ class ClassicMatchManager
 
             $this->store->startingPlayer($matchId);
             $this->store->score($matchId);
+
+            if ($modalityKey === '4x3-basic' && ! array_key_exists('version', $state->data)) {
+                $startingPlayer = $this->store->startingPlayer($matchId);
+                if ($state->isFinished()) {
+                    $startingPlayer = $startingPlayer === PlayerMark::X ? PlayerMark::O : PlayerMark::X;
+                }
+                $this->store->restart($matchId, (new Classic4x3Rules)->initialState(
+                    $state->modality,
+                    $state->participants,
+                    $startingPlayer,
+                ));
+            }
         } catch (InvalidArgumentException|UnexpectedValueException) {
             return null;
         }

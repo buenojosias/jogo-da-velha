@@ -75,7 +75,7 @@ it('keeps the result dialog usable on a short landscape screen', function (int $
 it('shows a neutral result and draw score after sixteen moves', function () {
     $page = visit('/4-3-basico');
 
-    foreach ([1, 0, 3, 2, 4, 6, 5, 7, 10, 8, 11, 9, 12, 14, 13, 15] as $cell) {
+    foreach ([0, 1, 2, 3, 6, 5, 4, 8, 9, 10, 7, 11, 15, 14, 13, 12] as $cell) {
         $page->click('[data-testid="cell-'.$cell.'"]');
     }
 
@@ -84,6 +84,21 @@ it('shows a neutral result and draw score after sixteen moves', function () {
         ->assertSeeIn('[data-testid="result-score-draws"]', '1')
         ->assertScript('document.querySelector("[data-testid=result-dialog]").open', true)
         ->assertScript('document.querySelectorAll("[data-winning-cell=true]").length', 0)
+        ->assertNoJavaScriptErrors();
+});
+
+it('keeps only neighboring cells interactive after both first moves', function () {
+    $page = visit('/4-3-basico')->resize(360, 800)
+        ->assertSeeIn('[data-testid="game-instruction"]', 'Escolha qualquer casa vazia.');
+
+    $page->click('[data-testid="cell-0"]')
+        ->click('[data-testid="cell-15"]')
+        ->assertSeeIn('[data-testid="game-instruction"]', 'Jogue em uma casa vizinha da última peça do adversário.')
+        ->assertScript('document.querySelector("[data-testid=cell-1]").disabled', true)
+        ->assertScript('document.querySelector("[data-testid=cell-10]").disabled', false)
+        ->assertScript('document.querySelector("[data-testid=cell-15]").dataset.lastMove', 'true')
+        ->click('[data-testid="cell-10"]')
+        ->assertSeeIn('[data-testid="move-count"]', 'Jogadas realizadas: 3')
         ->assertNoJavaScriptErrors();
 });
 

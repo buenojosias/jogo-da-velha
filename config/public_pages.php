@@ -19,7 +19,7 @@ return [
     ],
     '4x3-basic' => [
         'title' => 'Clássico 4×4 | Plataforma Jogo da Velha',
-        'description' => 'Jogue em um tabuleiro 4×4 com uma regra direta: três marcas em linha vencem a rodada.',
+        'description' => 'Clássico 4×4: após a primeira jogada de cada jogador, coloque sua peça perto da última jogada adversária. Três marcas em linha vencem.',
     ],
     '4x3-move' => [
         'title' => 'Movimento 4×4 | Plataforma Jogo da Velha',

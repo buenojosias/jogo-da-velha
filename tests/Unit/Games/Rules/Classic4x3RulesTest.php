@@ -21,7 +21,7 @@ test('starts with sixteen empty cells and the chosen player', function (PlayerMa
     expect($state->status)->toBe(MatchStatus::InProgress);
     expect($state->currentPlayer)->toBe($startingPlayer);
     expect($state->winner)->toBeNull();
-    expect($state->data)->toBe(['board' => array_fill(0, 16, '')]);
+    expect($state->data)->toBe(['board' => array_fill(0, 16, ''), 'version' => 2, 'last_move' => null]);
 })->with([
     'X starts' => [PlayerMark::X],
     'O starts' => [PlayerMark::O],
@@ -64,6 +64,64 @@ test('rejects a move by the player outside their turn without changing the state
     expect($result->validation->reason)->toBe('not_your_turn');
     expect($result->state)->toBe($state);
     expect($state->data['board'])->toBe(array_fill(0, 16, ''));
+});
+
+test('both players have a free first move and the next turn follows proximity', function () {
+    $rules = new Classic4x3Rules;
+    $initial = $rules->initialState(new Modality('4x3-basic'), classic4x3Participants(), PlayerMark::X);
+
+    expect($rules->availableCells($initial))->toBe(range(0, 15));
+    $afterX = playClassic4x3Moves($rules, $initial, [0]);
+    expect($rules->availableCells($afterX))->toBe(range(1, 15));
+
+    $afterO = playClassic4x3Moves($rules, $afterX, [15]);
+    expect($afterO->data['last_move'])->toBe(15);
+    expect($rules->availableCells($afterO))->toBe([10, 11, 14]);
+
+    $rejected = $rules->apply($afterO, new GameAction(PlayerMark::X, 'place', ['cell' => 1]));
+    expect($rejected->validation->reason)->toBe('not_adjacent');
+    expect($rejected->state)->toBe($afterO);
+});
+
+test('geometric neighbors respect corners, edges and center', function (int $lastMove, array $neighbors) {
+    $rules = new Classic4x3Rules;
+    $initial = $rules->initialState(new Modality('4x3-basic'), classic4x3Participants(), PlayerMark::X);
+    $state = playClassic4x3Moves($rules, $initial, [15, $lastMove]);
+
+    expect($rules->availableCells($state))->toBe($neighbors);
+})->with([
+    'corner' => [0, [1, 4, 5]],
+    'edge' => [1, [0, 2, 4, 5, 6]],
+    'center' => [5, [0, 1, 2, 4, 6, 8, 9, 10]],
+]);
+
+test('horizontal vertical and diagonal neighbors can be played', function (int $cell) {
+    $rules = new Classic4x3Rules;
+    $initial = $rules->initialState(new Modality('4x3-basic'), classic4x3Participants(), PlayerMark::X);
+    $state = playClassic4x3Moves($rules, $initial, [15, 5]);
+
+    expect($rules->apply($state, new GameAction(PlayerMark::X, 'place', ['cell' => $cell]))->validation->valid)->toBeTrue();
+})->with(['horizontal' => [4], 'vertical' => [1], 'diagonal' => [0]]);
+
+test('a single free neighbor keeps the restriction active', function () {
+    $rules = new Classic4x3Rules;
+    $initial = $rules->initialState(new Modality('4x3-basic'), classic4x3Participants(), PlayerMark::X);
+    $state = playClassic4x3Moves($rules, $initial, [0, 1, 2, 3, 6, 5, 8, 12, 9]);
+
+    expect($rules->availableCells($state))->toContain(4);
+    expect($rules->availableCells($state))->not->toContain(15);
+});
+
+test('all occupied neighbors release the restriction for one turn', function () {
+    $rules = new Classic4x3Rules;
+    $initial = $rules->initialState(new Modality('4x3-basic'), classic4x3Participants(), PlayerMark::X);
+    $state = playClassic4x3Moves($rules, $initial, [0, 1, 2, 3, 6, 5, 8, 12, 9, 4]);
+
+    expect($rules->availableCells($state))->toBe([7, 10, 11, 13, 14, 15]);
+    $next = $rules->apply($state, new GameAction(PlayerMark::X, 'place', ['cell' => 15]));
+    expect($next->validation->valid)->toBeTrue();
+    expect($next->state->data['last_move'])->toBe(15);
+    expect($rules->availableCells($next->state))->toBe([10, 11, 14]);
 });
 
 test('rejects an occupied cell without changing the state', function () {
@@ -121,98 +179,77 @@ test('rejects actions while the match is awaiting', function () {
     expect($result->state)->toBe($state);
 });
 
-test('recognizes every horizontal, vertical and diagonal three-cell segment', function (array $line) {
+test('recognizes every horizontal, vertical and diagonal three-cell segment', function (array $line, array $moves) {
     $rules = new Classic4x3Rules;
     $initial = $rules->initialState(new Modality('4x3-basic'), classic4x3Participants(), PlayerMark::X);
-    $board = array_fill(0, 16, '');
-    $board[$line[0]] = 'x';
-    $board[$line[1]] = 'x';
-    $board[array_values(array_diff(range(0, 15), $line))[0]] = 'o';
-    $state = new MatchState($initial->modality, $initial->participants, MatchStatus::InProgress, PlayerMark::X, ['board' => $board]);
+    $state = playClassic4x3Moves($rules, $initial, $moves);
 
-    $result = $rules->apply($state, new GameAction(PlayerMark::X, 'place', ['cell' => $line[2]]));
-
-    expect($result->validation->valid)->toBeTrue();
-    expect($result->state->status)->toBe(MatchStatus::Completed);
-    expect($result->state->winner)->toBe(PlayerMark::X);
-    expect($result->state->currentPlayer)->toBeNull();
-    expect($rules->winningLine($result->state))->toBe($line);
-    expect($state->data['board'][$line[2]])->toBe('');
+    expect($state->status)->toBe(MatchStatus::Completed);
+    expect($state->winner)->toBe(PlayerMark::X);
+    expect($state->currentPlayer)->toBeNull();
+    expect($rules->winningLine($state))->toBe($line);
 })->with([
-    'horizontal row 1 left' => [[0, 1, 2]],
-    'horizontal row 1 right' => [[1, 2, 3]],
-    'horizontal row 2 left' => [[4, 5, 6]],
-    'horizontal row 2 right' => [[5, 6, 7]],
-    'horizontal row 3 left' => [[8, 9, 10]],
-    'horizontal row 3 right' => [[9, 10, 11]],
-    'horizontal row 4 left' => [[12, 13, 14]],
-    'horizontal row 4 right' => [[13, 14, 15]],
-    'vertical column 1 top' => [[0, 4, 8]],
-    'vertical column 1 bottom' => [[4, 8, 12]],
-    'vertical column 2 top' => [[1, 5, 9]],
-    'vertical column 2 bottom' => [[5, 9, 13]],
-    'vertical column 3 top' => [[2, 6, 10]],
-    'vertical column 3 bottom' => [[6, 10, 14]],
-    'vertical column 4 top' => [[3, 7, 11]],
-    'vertical column 4 bottom' => [[7, 11, 15]],
-    'descending diagonal 1' => [[0, 5, 10]],
-    'descending diagonal 2' => [[1, 6, 11]],
-    'descending diagonal 3' => [[4, 9, 14]],
-    'descending diagonal 4' => [[5, 10, 15]],
-    'ascending diagonal 1' => [[2, 5, 8]],
-    'ascending diagonal 2' => [[3, 6, 9]],
-    'ascending diagonal 3' => [[6, 9, 12]],
-    'ascending diagonal 4' => [[7, 10, 13]],
+    'horizontal row 1 left' => [[0, 1, 2], [0, 3, 2, 5, 1]],
+    'horizontal row 1 right' => [[1, 2, 3], [1, 5, 2, 6, 3]],
+    'horizontal row 2 left' => [[4, 5, 6], [4, 0, 5, 1, 6]],
+    'horizontal row 2 right' => [[5, 6, 7], [5, 1, 6, 2, 7]],
+    'horizontal row 3 left' => [[8, 9, 10], [8, 4, 9, 5, 10]],
+    'horizontal row 3 right' => [[9, 10, 11], [9, 5, 10, 6, 11]],
+    'horizontal row 4 left' => [[12, 13, 14], [12, 8, 13, 9, 14]],
+    'horizontal row 4 right' => [[13, 14, 15], [13, 9, 14, 10, 15]],
+    'vertical column 1 top' => [[0, 4, 8], [0, 1, 4, 5, 8]],
+    'vertical column 1 bottom' => [[4, 8, 12], [4, 5, 8, 9, 12]],
+    'vertical column 2 top' => [[1, 5, 9], [1, 0, 5, 4, 9]],
+    'vertical column 2 bottom' => [[5, 9, 13], [5, 4, 9, 8, 13]],
+    'vertical column 3 top' => [[2, 6, 10], [2, 1, 6, 5, 10]],
+    'vertical column 3 bottom' => [[6, 10, 14], [6, 5, 10, 9, 14]],
+    'vertical column 4 top' => [[3, 7, 11], [3, 2, 7, 6, 11]],
+    'vertical column 4 bottom' => [[7, 11, 15], [7, 6, 11, 10, 15]],
+    'descending diagonal 1' => [[0, 5, 10], [0, 1, 5, 6, 10]],
+    'descending diagonal 2' => [[1, 6, 11], [1, 2, 6, 7, 11]],
+    'descending diagonal 3' => [[4, 9, 14], [4, 5, 9, 10, 14]],
+    'descending diagonal 4' => [[5, 10, 15], [5, 6, 10, 11, 15]],
+    'ascending diagonal 1' => [[2, 5, 8], [2, 0, 5, 4, 8]],
+    'ascending diagonal 2' => [[3, 6, 9], [3, 1, 6, 5, 9]],
+    'ascending diagonal 3' => [[6, 9, 12], [6, 4, 9, 8, 12]],
+    'ascending diagonal 4' => [[7, 10, 13], [7, 5, 10, 9, 13]],
 ]);
 
-test('recognizes wins for O in each direction', function (array $line) {
-    $rules = new Classic4x3Rules;
-    $initial = $rules->initialState(new Modality('4x3-basic'), classic4x3Participants(), PlayerMark::O);
-    $board = array_fill(0, 16, '');
-    $board[$line[0]] = 'o';
-    $board[$line[1]] = 'o';
-    $board[array_values(array_diff(range(0, 15), $line))[0]] = 'x';
-    $state = new MatchState($initial->modality, $initial->participants, MatchStatus::InProgress, PlayerMark::O, ['board' => $board]);
-
-    $result = $rules->apply($state, new GameAction(PlayerMark::O, 'place', ['cell' => $line[2]]));
-
-    expect($result->state->status)->toBe(MatchStatus::Completed);
-    expect($result->state->winner)->toBe(PlayerMark::O);
-    expect($rules->winningLine($result->state))->toBe($line);
-})->with([
-    'horizontal' => [[1, 2, 3]],
-    'vertical' => [[5, 9, 13]],
-    'descending diagonal' => [[5, 10, 15]],
-    'ascending diagonal' => [[7, 10, 13]],
-]);
-
-test('does not accept sequences that wrap across row boundaries', function (array $cells) {
+test('recognizes wins for O in each direction', function (array $line, array $moves) {
     $rules = new Classic4x3Rules;
     $initial = $rules->initialState(new Modality('4x3-basic'), classic4x3Participants(), PlayerMark::X);
-    $board = array_fill(0, 16, '');
-    $board[$cells[0]] = 'x';
-    $board[$cells[1]] = 'x';
-    $board[array_values(array_diff(range(0, 15), $cells))[0]] = 'o';
-    $state = new MatchState($initial->modality, $initial->participants, MatchStatus::InProgress, PlayerMark::X, ['board' => $board]);
+    $state = playClassic4x3Moves($rules, $initial, $moves);
 
-    $result = $rules->apply($state, new GameAction(PlayerMark::X, 'place', ['cell' => $cells[2]]));
-
-    expect($result->validation->valid)->toBeTrue();
-    expect($result->state->status)->toBe(MatchStatus::InProgress);
-    expect($result->state->winner)->toBeNull();
-    expect($result->state->currentPlayer)->toBe(PlayerMark::O);
-    expect($rules->winningLine($result->state))->toBeNull();
+    expect($state->status)->toBe(MatchStatus::Completed);
+    expect($state->winner)->toBe(PlayerMark::O);
+    expect($rules->winningLine($state))->toBe($line);
 })->with([
-    'horizontal from first row to second' => [[2, 3, 4]],
-    'horizontal from second row to third' => [[7, 8, 9]],
-    'descending diagonal through right edge' => [[2, 7, 12]],
-    'ascending diagonal through left edge' => [[1, 4, 7]],
+    'horizontal' => [[1, 2, 3], [0, 1, 5, 2, 6, 3]],
+    'vertical' => [[5, 9, 13], [0, 5, 4, 9, 10, 13]],
+    'descending diagonal' => [[5, 10, 15], [0, 5, 6, 10, 11, 15]],
+    'ascending diagonal' => [[7, 10, 13], [0, 7, 6, 10, 9, 13]],
+]);
+
+test('does not accept neighbors that wrap across row boundaries', function (int $lastMove, int $target) {
+    $rules = new Classic4x3Rules;
+    $initial = $rules->initialState(new Modality('4x3-basic'), classic4x3Participants(), PlayerMark::X);
+    $state = playClassic4x3Moves($rules, $initial, [0, $lastMove]);
+    $result = $rules->apply($state, new GameAction(PlayerMark::X, 'place', ['cell' => $target]));
+
+    expect($rules->availableCells($state))->not->toContain($target);
+    expect($result->validation->reason)->toBe('not_adjacent');
+    expect($result->state)->toBe($state);
+})->with([
+    'first row to second' => [3, 4],
+    'second row to third' => [7, 8],
+    'diagonal at right edge' => [3, 8],
+    'diagonal at left edge' => [4, 3],
 ]);
 
 test('reports no winning line while a match is in progress or drawn', function () {
     $rules = new Classic4x3Rules;
     $initial = $rules->initialState(new Modality('4x3-basic'), classic4x3Participants(), PlayerMark::X);
-    $draw = playClassic4x3Moves($rules, $initial, [1, 0, 3, 2, 4, 6, 5, 7, 10, 8, 11, 9, 12, 14, 13, 15]);
+    $draw = playClassic4x3Moves($rules, $initial, [0, 1, 2, 3, 6, 5, 4, 8, 9, 10, 7, 11, 15, 14, 13, 12]);
 
     expect($rules->winningLine($initial))->toBeNull();
     expect($rules->winningLine($draw))->toBeNull();
@@ -222,7 +259,7 @@ test('declares a draw when the sixteenth move fills the board without a winner',
     $rules = new Classic4x3Rules;
     $initial = $rules->initialState(new Modality('4x3-basic'), classic4x3Participants(), PlayerMark::X);
 
-    $state = playClassic4x3Moves($rules, $initial, [1, 0, 3, 2, 4, 6, 5, 7, 10, 8, 11, 9, 12, 14, 13, 15]);
+    $state = playClassic4x3Moves($rules, $initial, [0, 1, 2, 3, 6, 5, 4, 8, 9, 10, 7, 11, 15, 14, 13, 12]);
 
     expect($state->data['board'])->not->toContain('');
     expect($state->status)->toBe(MatchStatus::Drawn);
@@ -230,17 +267,15 @@ test('declares a draw when the sixteenth move fills the board without a winner',
     expect($state->currentPlayer)->toBeNull();
 });
 
-test('prioritizes a win on the sixteenth move over a draw', function () {
+test('does not treat separated marks as a winning trio', function () {
     $rules = new Classic4x3Rules;
     $initial = $rules->initialState(new Modality('4x3-basic'), classic4x3Participants(), PlayerMark::X);
 
-    $state = playClassic4x3Moves($rules, $initial, [0, 1, 2, 3, 4, 6, 5, 8, 7, 10, 9, 13, 11, 15, 12, 14]);
+    $state = playClassic4x3Moves($rules, $initial, [0, 1, 2, 6, 10]);
 
-    expect($state->data['board'])->not->toContain('');
-    expect($state->status)->toBe(MatchStatus::Completed);
-    expect($state->winner)->toBe(PlayerMark::O);
-    expect($state->currentPlayer)->toBeNull();
-    expect($rules->winningLine($state))->toContain(14);
+    expect($state->status)->toBe(MatchStatus::InProgress);
+    expect($state->winner)->toBeNull();
+    expect($rules->winningLine($state))->toBeNull();
 });
 
 test('rejects moves after a win or draw without changing the finished state', function (array $moves) {
@@ -254,7 +289,7 @@ test('rejects moves after a win or draw without changing the finished state', fu
     expect($result->state)->toBe($finished);
 })->with([
     'victory' => [[0, 4, 1, 5, 2]],
-    'draw' => [[1, 0, 3, 2, 4, 6, 5, 7, 10, 8, 11, 9, 12, 14, 13, 15]],
+    'draw' => [[0, 1, 2, 3, 6, 5, 4, 8, 9, 10, 7, 11, 15, 14, 13, 12]],
 ]);
 
 test('validates repeatedly without changing state or retaining hidden state', function () {

@@ -2,7 +2,7 @@
     $groups = [
         'Para começar' => [
             ['3-basic', 'Clássico 3×3', 'O jogo conhecido por todo mundo: três em linha vencem.', 'Três em linha', 'grid', 3, true],
-            ['4x3-basic', 'Clássico 4×4', 'Mais espaço para jogar; três em linha ainda vencem.', 'Tabuleiro maior', 'grid', 4],
+            ['4x3-basic', 'Clássico 4×4', 'Após a primeira jogada de cada jogador, coloque suas peças perto da última jogada do adversário.', 'Regra de proximidade', 'grid', 4],
         ],
         'Peças em movimento' => [
             ['3-move', 'Movimento 3×3', 'Depois de colocar três peças, mova uma por turno.', 'Mova suas peças', 'movement', 3],

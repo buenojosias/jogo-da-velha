@@ -44,6 +44,49 @@ test('resumes the same four by four round and scoreboard without drawing again',
     expect(app(SessionMatchStore::class)->find($matchId)->data['board'][0])->toBe('x');
 });
 
+test('restarts an incompatible legacy round while preserving its score', function () {
+    $this->app->instance(Randomizer::class, new Randomizer(new Mt19937(0)));
+    $this->get(route('4x3-basic'))->assertOk();
+    $matchId = session('classic4x3.active_match_id');
+    $board = array_fill(0, 16, '');
+    $board[0] = 'x';
+    $board[15] = 'o';
+    session()->put('experimental_matches.'.$matchId.'.state.data', ['board' => $board]);
+    session()->put('experimental_matches.'.$matchId.'.state.current_player', 'x');
+    session()->put('experimental_matches.'.$matchId.'.score', ['x' => 2, 'o' => 1, 'draws' => 3]);
+
+    $this->get(route('4x3-basic'))->assertOk()->assertSee('Jogadas realizadas: 0');
+
+    expect(session('classic4x3.active_match_id'))->toBe($matchId);
+    expect(app(SessionMatchStore::class)->find($matchId)->data)->toBe([
+        'board' => array_fill(0, 16, ''), 'version' => 2, 'last_move' => null,
+    ]);
+    expect(app(SessionMatchStore::class)->score($matchId))->toBe(['x' => 2, 'o' => 1, 'draws' => 3]);
+});
+
+test('advances the starter when migrating a completed legacy round', function () {
+    $this->app->instance(Randomizer::class, new Randomizer(new Mt19937(0)));
+    $this->get(route('4x3-basic'))->assertOk();
+    $matchId = session('classic4x3.active_match_id');
+    $board = array_fill(0, 16, '');
+    foreach ([0, 1, 2] as $cell) {
+        $board[$cell] = 'x';
+    }
+    foreach ([4, 5] as $cell) {
+        $board[$cell] = 'o';
+    }
+    session()->put('experimental_matches.'.$matchId.'.state.data', ['board' => $board]);
+    session()->put('experimental_matches.'.$matchId.'.state.status', 'completed');
+    session()->put('experimental_matches.'.$matchId.'.state.current_player', null);
+    session()->put('experimental_matches.'.$matchId.'.state.winner', 'x');
+    session()->put('experimental_matches.'.$matchId.'.score', ['x' => 1, 'o' => 0, 'draws' => 0]);
+
+    $this->get(route('4x3-basic'))->assertOk()->assertSee('Vez do jogador O');
+
+    expect(app(SessionMatchStore::class)->startingPlayer($matchId))->toBe(PlayerMark::O);
+    expect(app(SessionMatchStore::class)->score($matchId)['x'])->toBe(1);
+});
+
 test('preserves a completed result and score between public rounds', function () {
     $this->app->instance(Randomizer::class, new Randomizer(new Mt19937(0)));
     $this->get(route('4x3-basic'))->assertOk();
@@ -72,7 +115,7 @@ test('counts a public four by four draw once and keeps it on reload', function (
     $matchId = session('classic4x3.active_match_id');
     $component = Livewire::test('experimental-classic-4x3', ['matchId' => $matchId, 'publicEntry' => true]);
 
-    foreach ([1, 0, 3, 2, 4, 6, 5, 7, 10, 8, 11, 9, 12, 14, 13, 15] as $cell) {
+    foreach ([0, 1, 2, 3, 6, 5, 4, 8, 9, 10, 7, 11, 15, 14, 13, 12] as $cell) {
         $component->call('place', $cell);
     }
 
